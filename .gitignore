@@ -1,0 +1,11 @@
+# Node.js
+/frontend/node_modules
+/frontend/build
+
+# Python
+/backend/venv
+__pycache__/
+*.pyc
+
+# General
+.DS_Store 
