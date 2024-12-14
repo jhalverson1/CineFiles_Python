@@ -6,7 +6,7 @@ function App() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    axios.get('http://10.0.0.188:8080/api/hello')
+    axios.get('http://0.0.0.0:8080/api/hello')
       .then(response => setMessage(response.data.message))
       .catch(error => console.error('Error:', error));
   }, []);
