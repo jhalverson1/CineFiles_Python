@@ -4,6 +4,7 @@ import os
 import requests
 from dotenv import load_dotenv
 import httpx
+from fastapi import HTTPException
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -21,6 +22,27 @@ app.add_middleware(
 @app.get("/api/hello")
 async def read_root():
     return {"message": "Hello from FastAPI!"}
+
+@app.get("/api/movies/popular")
+async def get_popular_movies():
+    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {bearer_token}"
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1",
+                headers=headers
+            )
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail="Error fetching popular movies")
+            data = response.json()
+            return data.get("results", [])  # Return just the results array
+    except Exception as e:
+        print(f"Error fetching popular movies: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/movies")
 async def get_movies():

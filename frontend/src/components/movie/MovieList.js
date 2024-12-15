@@ -9,11 +9,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-function MovieList({ movies }) {
-  if (movies.length === 0) {
+function MovieList({ movies = [] }) {
+  if (!movies || movies.length === 0) {
     return (
       <div style={styles.noResults}>
-        <p>Start typing to search for movies...</p>
+        <p>No movies found...</p>
       </div>
     );
   }

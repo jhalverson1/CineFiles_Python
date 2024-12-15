@@ -7,6 +7,11 @@ export const movieApi = {
     return response.data.results;
   },
 
+  getPopularMovies: async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/movies/popular`);
+    return response.data;
+  },
+
   getMovieDetails: async (id) => {
     const [movie, credits, videos] = await Promise.all([
       axios.get(`${API_BASE_URL}/api/movies/${id}`),

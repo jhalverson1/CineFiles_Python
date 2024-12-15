@@ -6,50 +6,27 @@
  * @param {Object} props
  * @param {Function} props.onResults - Callback function to handle search results
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
+import { movieApi } from '../../utils/api';
 
 function SearchBar({ onResults }) {
   const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState(query);
-  const [isSearching, setIsSearching] = useState(false);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 300);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [query]);
-
-  const fetchMovies = useCallback((searchQuery) => {
-    if (!searchQuery.trim()) {
-      onResults([]);
-      return;
+  const handleSearch = async (e) => {
+    e.preventDefault(); // Prevent form submission
+    if (query.trim()) {
+      try {
+        const results = await movieApi.searchMovies(query);
+        onResults(results);
+      } catch (error) {
+        console.error('Error searching movies:', error);
+      }
     }
-
-    setIsSearching(true);
-    const url = `http://0.0.0.0:8080/api/movies/search?query=${encodeURIComponent(searchQuery)}`;
-    
-    axios.get(url)
-      .then(response => {
-        onResults(response.data.results);
-      })
-      .catch(error => console.error('Error fetching search results:', error))
-      .finally(() => setIsSearching(false));
-  }, [onResults]);
-
-  useEffect(() => {
-    if (debouncedQuery) {
-      fetchMovies(debouncedQuery);
-    }
-  }, [debouncedQuery, fetchMovies]);
+  };
 
   return (
     <div style={styles.searchContainer}>
-      <div style={styles.searchWrapper}>
+      <form onSubmit={handleSearch} style={styles.searchWrapper}>
         <input
           type="text"
           value={query}
@@ -57,17 +34,15 @@ function SearchBar({ onResults }) {
           placeholder="Search for movies..."
           style={styles.searchInput}
         />
-        {isSearching && <div style={styles.loadingIndicator}>Searching...</div>}
-      </div>
+      </form>
     </div>
   );
 }
 
 const styles = {
   searchContainer: {
-    padding: '40px 0',
+    padding: '20px 0',
     marginBottom: '20px',
-    background: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 100%)',
   },
   searchWrapper: {
     position: 'relative',
@@ -86,29 +61,6 @@ const styles = {
     transition: 'all 0.3s ease',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(10px)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-    '&::placeholder': {
-      color: 'rgba(255, 255, 255, 0.5)',
-    },
-    '&:focus': {
-      borderColor: '#e50914',
-      boxShadow: '0 0 0 2px rgba(229, 9, 20, 0.2), 0 4px 12px rgba(0, 0, 0, 0.2)',
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    },
-  },
-  loadingIndicator: {
-    position: 'absolute',
-    right: '40px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: '0.9em',
-    animation: 'pulse 1.5s infinite',
-  },
-  '@keyframes pulse': {
-    '0%': { opacity: 0.6 },
-    '50%': { opacity: 1 },
-    '100%': { opacity: 0.6 },
   },
 };
 

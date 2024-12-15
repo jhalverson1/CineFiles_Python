@@ -11,4 +11,35 @@
   font-weight: 600;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.content-section {
+  padding: 0 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.section-title {
+  color: #fff;
+  font-size: 1.8em;
+  font-weight: 500;
+  margin: 20px 0;
+  padding-left: 20px;
+  opacity: 0.9;
+}
+
+/* Add a subtle animation for when movies update */
+.movie-grid {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 } 
