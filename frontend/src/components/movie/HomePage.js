@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SearchBar from './SearchBar';
 import MovieList from './MovieList';
+import Breadcrumb from '../common/Breadcrumb';
 import { movieApi } from '../../utils/api';
 import '../../styles/HomePage.css';
 
@@ -28,6 +29,7 @@ function HomePage() {
 
   return (
     <div className="home-container">
+      <Breadcrumb />
       <h1 className="title">CineFiles</h1>
       <SearchBar onResults={handleSearchResults} />
       <div className="content-section">

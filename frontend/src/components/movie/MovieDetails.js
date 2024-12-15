@@ -8,6 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import Breadcrumb from '../common/Breadcrumb';
 
 function MovieDetails() {
   const { id } = useParams();
@@ -75,6 +76,7 @@ function MovieDetails() {
 
   return (
     <div style={backgroundStyle}>
+      <Breadcrumb movie={movie} />
       <div style={styles.container}>
         {/* Movie Header Section */}
         <div style={styles.header}>
