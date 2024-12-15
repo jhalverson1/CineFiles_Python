@@ -10,12 +10,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 function SearchBar({ onResults }) {
-  // State for the current search query
   const [query, setQuery] = useState('');
-  // State for the debounced query to reduce API calls
   const [debouncedQuery, setDebouncedQuery] = useState(query);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Debounce effect: wait 300ms after user stops typing before updating debouncedQuery
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(query);
@@ -26,47 +24,77 @@ function SearchBar({ onResults }) {
     };
   }, [query]);
 
-  // Memoized function to fetch movies from the API
   const fetchMovies = useCallback((searchQuery) => {
-    const url = `http://0.0.0.0:8080/api/movies/search?query=${encodeURIComponent(searchQuery)}`;
-    console.log('Fetching movies from URL:', url);
+    if (!searchQuery.trim()) {
+      onResults([]);
+      return;
+    }
 
+    setIsSearching(true);
+    const url = `http://0.0.0.0:8080/api/movies/search?query=${encodeURIComponent(searchQuery)}`;
+    
     axios.get(url)
       .then(response => {
-        console.log('Movies fetched:', response.data.results);
         onResults(response.data.results);
       })
-      .catch(error => console.error('Error fetching search results:', error));
+      .catch(error => console.error('Error fetching search results:', error))
+      .finally(() => setIsSearching(false));
   }, [onResults]);
 
-  // Effect to fetch movies when debounced query changes
   useEffect(() => {
     if (debouncedQuery) {
-      console.log('Debounced query:', debouncedQuery);
       fetchMovies(debouncedQuery);
     }
   }, [debouncedQuery, fetchMovies]);
 
-  // Handler for search button click
-  const handleSearchClick = () => {
-    console.log('Search button clicked');
-    fetchMovies(query);
-  };
-
   return (
-    <div style={{ display: 'flex', alignItems: 'center' }}>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search for movies..."
-        style={{ flex: 1, padding: '10px', fontSize: '16px' }}
-      />
-      <button onClick={handleSearchClick} style={{ padding: '10px', marginLeft: '10px' }}>
-        Search
-      </button>
+    <div style={styles.searchContainer}>
+      <div style={styles.searchWrapper}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search for movies..."
+          style={styles.searchInput}
+        />
+        {isSearching && <div style={styles.loadingIndicator}>Searching...</div>}
+      </div>
     </div>
   );
 }
+
+const styles = {
+  searchContainer: {
+    padding: '20px 0',
+    marginBottom: '20px',
+  },
+  searchWrapper: {
+    position: 'relative',
+    maxWidth: '600px',
+    margin: '0 auto',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '15px 20px',
+    fontSize: '1.1em',
+    border: '2px solid #e5e5e5',
+    borderRadius: '30px',
+    outline: 'none',
+    transition: 'all 0.3s ease',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    '&:focus': {
+      borderColor: '#e50914',
+      boxShadow: '0 0 0 2px rgba(229, 9, 20, 0.2)',
+    },
+  },
+  loadingIndicator: {
+    position: 'absolute',
+    right: '20px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#666',
+    fontSize: '0.9em',
+  },
+};
 
 export default SearchBar;

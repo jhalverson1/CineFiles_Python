@@ -41,6 +41,18 @@ function MovieDetails() {
     };
   }, [id]);
 
+  const handleCastClick = async (personId) => {
+    try {
+      const response = await axios.get(`http://0.0.0.0:8080/api/person/${personId}`);
+      const imdbId = response.data.imdb_id;
+      if (imdbId) {
+        window.open(`https://www.imdb.com/name/${imdbId}`, '_blank');
+      }
+    } catch (error) {
+      console.error('Error fetching person details:', error);
+    }
+  };
+
   if (!movie || !credits || !videos) return <div>Loading...</div>;
 
   const director = credits.crew.find(person => person.job === 'Director');
@@ -87,6 +99,10 @@ function MovieDetails() {
                 ▶ Watch Trailer
               </button>
             )}
+            <div style={styles.overview}>
+              <h2 style={styles.overviewTitle}>Overview</h2>
+              <p style={styles.overviewText}>{movie.overview}</p>
+            </div>
           </div>
         </div>
 
@@ -113,18 +129,16 @@ function MovieDetails() {
           </div>
         )}
 
-        {/* Overview Section */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Overview</h2>
-          <p style={styles.overview}>{movie.overview}</p>
-        </div>
-
         {/* Cast Section */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Top Cast</h2>
           <div style={styles.castGrid}>
             {topCast.map(actor => (
-              <div key={actor.id} style={styles.castMember}>
+              <div 
+                key={actor.id} 
+                style={styles.castMember}
+                onClick={() => handleCastClick(actor.id)}
+              >
                 {actor.profile_path ? (
                   <img
                     src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
@@ -189,6 +203,8 @@ const styles = {
   },
   headerInfo: {
     flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
   title: {
     fontSize: '2.5em',
@@ -219,9 +235,18 @@ const styles = {
     color: 'white',
   },
   overview: {
+    marginTop: '20px',
+  },
+  overviewTitle: {
+    fontSize: '1.4em',
+    marginBottom: '10px',
+    color: 'white',
+  },
+  overviewText: {
     fontSize: '1.1em',
     lineHeight: '1.6',
     color: '#fff',
+    marginBottom: '20px',
   },
   castGrid: {
     display: 'grid',
@@ -230,6 +255,11 @@ const styles = {
   },
   castMember: {
     textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'transform 0.2s',
+    '&:hover': {
+      transform: 'scale(1.05)',
+    },
   },
   castImage: {
     width: '150px',
@@ -272,6 +302,7 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     transition: 'background-color 0.2s',
+    width: 'fit-content',
   },
   modal: {
     position: 'fixed',
