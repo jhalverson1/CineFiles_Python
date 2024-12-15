@@ -65,6 +65,20 @@ async def get_movie_details(id: int):
         )
         return response.json()
 
+@app.get("/api/movies/{id}/credits")
+async def get_movie_credits(id: int):
+    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {bearer_token}"
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"https://api.themoviedb.org/3/movie/{id}/credits",
+            headers=headers
+        )
+        return response.json()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

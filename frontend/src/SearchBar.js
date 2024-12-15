@@ -1,22 +1,32 @@
+/**
+ * SearchBar component that handles movie search functionality.
+ * Features debounced search to prevent excessive API calls.
+ * 
+ * @component
+ * @param {Object} props
+ * @param {Function} props.onResults - Callback function to handle search results
+ */
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 function SearchBar({ onResults }) {
+  // State for the current search query
   const [query, setQuery] = useState('');
+  // State for the debounced query to reduce API calls
   const [debouncedQuery, setDebouncedQuery] = useState(query);
 
-  // Debounce the search input
+  // Debounce effect: wait 300ms after user stops typing before updating debouncedQuery
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(query);
-    }, 300); // 300ms delay
+    }, 300);
 
     return () => {
       clearTimeout(handler);
     };
   }, [query]);
 
-  // Memoize fetchMovies to avoid unnecessary re-renders
+  // Memoized function to fetch movies from the API
   const fetchMovies = useCallback((searchQuery) => {
     const url = `http://0.0.0.0:8080/api/movies/search?query=${encodeURIComponent(searchQuery)}`;
     console.log('Fetching movies from URL:', url);
@@ -29,7 +39,7 @@ function SearchBar({ onResults }) {
       .catch(error => console.error('Error fetching search results:', error));
   }, [onResults]);
 
-  // Fetch search results when debouncedQuery changes
+  // Effect to fetch movies when debounced query changes
   useEffect(() => {
     if (debouncedQuery) {
       console.log('Debounced query:', debouncedQuery);
@@ -37,6 +47,7 @@ function SearchBar({ onResults }) {
     }
   }, [debouncedQuery, fetchMovies]);
 
+  // Handler for search button click
   const handleSearchClick = () => {
     console.log('Search button clicked');
     fetchMovies(query);

@@ -1,3 +1,11 @@
+/**
+ * MovieList component that displays a list of movies from search results.
+ * Each movie item is clickable and navigates to its details page.
+ * 
+ * @component
+ * @param {Object} props
+ * @param {Array} props.movies - Array of movie objects to display
+ */
 import React from 'react';
 import { Link } from 'react-router-dom';
 
