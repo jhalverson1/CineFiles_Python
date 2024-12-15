@@ -9,6 +9,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import Breadcrumb from '../common/Breadcrumb';
+import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
+import { styles } from '../../styles/MovieDetails';
 
 function MovieDetails() {
   const { id } = useParams();
@@ -16,6 +18,7 @@ function MovieDetails() {
   const [credits, setCredits] = useState(null);
   const [videos, setVideos] = useState(null);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [showAllCast, setShowAllCast] = useState(false);
 
   useEffect(() => {
     document.title = 'Loading Movie Details...';
@@ -54,11 +57,14 @@ function MovieDetails() {
     }
   };
 
-  if (!movie || !credits || !videos) return <div>Loading...</div>;
+  if (!movie || !credits || !videos) {
+    return <MovieDetailsSkeleton />;
+  }
 
   const director = credits.crew.find(person => person.job === 'Director');
   const releaseYear = new Date(movie.release_date).getFullYear();
-  const topCast = credits.cast.slice(0, 6);
+  const displayCast = credits.cast;
+  const initialCastCount = 6;
   
   // Find the official trailer or use the first video
   const trailer = videos.results.find(video => 
@@ -133,27 +139,45 @@ function MovieDetails() {
 
         {/* Cast Section */}
         <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Top Cast</h2>
-          <div style={styles.castGrid}>
-            {topCast.map(actor => (
+          <h2 style={styles.sectionTitle}>Cast</h2>
+          <div style={styles.castContainer}>
+            <div style={styles.castGrid} className={showAllCast ? 'expanded' : ''}>
+              {displayCast.map((actor, index) => (
+                <div 
+                  key={actor.id} 
+                  style={{
+                    ...styles.castMember,
+                    animation: `fadeIn 0.3s ease-in forwards ${index * 0.1}s`,
+                    opacity: 0,
+                  }}
+                  onClick={() => handleCastClick(actor.id)}
+                >
+                  {actor.profile_path ? (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
+                      alt={actor.name}
+                      style={styles.castImage}
+                    />
+                  ) : (
+                    <div style={styles.placeholderImage}>No Image</div>
+                  )}
+                  <p style={styles.actorName}>{actor.name}</p>
+                  <p style={styles.characterName}>{actor.character}</p>
+                </div>
+              ))}
+            </div>
+            {credits.cast.length > initialCastCount && (
               <div 
-                key={actor.id} 
-                style={styles.castMember}
-                onClick={() => handleCastClick(actor.id)}
+                style={styles.expandTrigger}
+                onClick={() => setShowAllCast(!showAllCast)}
               >
-                {actor.profile_path ? (
-                  <img
-                    src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
-                    alt={actor.name}
-                    style={styles.castImage}
-                  />
-                ) : (
-                  <div style={styles.placeholderImage}>No Image</div>
-                )}
-                <p style={styles.actorName}>{actor.name}</p>
-                <p style={styles.characterName}>{actor.character}</p>
+                <span>{showAllCast ? 'Show Less' : 'Show More'}</span>
+                <span style={{
+                  ...styles.arrow,
+                  transform: showAllCast ? 'rotate(180deg)' : 'rotate(0deg)'
+                }}>▼</span>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -172,171 +196,26 @@ function MovieDetails() {
   );
 }
 
-// Styles object
-const styles = {
-  background: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    overflowY: 'auto',
-  },
-  container: {
-    position: 'relative',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '20px',
-    color: 'white',
-    zIndex: 1,
-  },
-  header: {
-    display: 'flex',
-    gap: '30px',
-    marginBottom: '40px',
-  },
-  poster: {
-    width: '300px',
-    borderRadius: '10px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-  },
-  headerInfo: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  title: {
-    fontSize: '2.5em',
-    marginBottom: '10px',
-    color: 'white',
-  },
-  year: {
-    color: '#ccc',
-    fontWeight: 'normal',
-  },
-  director: {
-    fontSize: '1.2em',
-    color: '#ccc',
-    marginBottom: '15px',
-  },
-  metadata: {
-    color: '#ccc',
-    fontSize: '1.1em',
-  },
-  section: {
-    marginBottom: '40px',
-  },
-  sectionTitle: {
-    fontSize: '1.8em',
-    marginBottom: '20px',
-    borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
-    paddingBottom: '10px',
-    color: 'white',
-  },
-  overview: {
-    marginTop: '20px',
-  },
-  overviewTitle: {
-    fontSize: '1.4em',
-    marginBottom: '10px',
-    color: 'white',
-  },
-  overviewText: {
-    fontSize: '1.1em',
-    lineHeight: '1.6',
-    color: '#fff',
-    marginBottom: '20px',
-  },
-  castGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-    gap: '20px',
-  },
-  castMember: {
-    textAlign: 'center',
-    cursor: 'pointer',
-    transition: 'transform 0.2s',
-    '&:hover': {
-      transform: 'scale(1.05)',
-    },
-  },
-  castImage: {
-    width: '150px',
-    height: '225px',
-    objectFit: 'cover',
-    borderRadius: '5px',
-    marginBottom: '10px',
-  },
-  placeholderImage: {
-    width: '150px',
-    height: '225px',
-    backgroundColor: '#eee',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '5px',
-    marginBottom: '10px',
-  },
-  actorName: {
-    fontWeight: 'bold',
-    marginBottom: '5px',
-  },
-  characterName: {
-    color: '#ccc',
-    fontSize: '0.9em',
-  },
-  additionalInfo: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '20px',
-    color: '#fff',
-  },
-  trailerButton: {
-    marginTop: '15px',
-    padding: '6px 12px',
-    fontSize: '0.9em',
-    backgroundColor: '#e50914',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-    width: 'fit-content',
-  },
-  modal: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modalContent: {
-    position: 'relative',
-    width: '90%',
-    maxWidth: '900px',
-    backgroundColor: 'black',
-    padding: '20px',
-    borderRadius: '10px',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: '-30px',
-    right: '-30px',
-    backgroundColor: 'transparent',
-    border: 'none',
-    color: 'white',
-    fontSize: '24px',
-    cursor: 'pointer',
-    padding: '10px',
-  },
-};
+// Only keep the CSS animations here
+const css = `
+  .expanded {
+    max-height: 2000px !important;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+const styleSheet = document.createElement("style");
+styleSheet.innerText = css;
+document.head.appendChild(styleSheet);
 
 export default MovieDetails; 
