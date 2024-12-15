@@ -13,27 +13,45 @@ import MovieList from './MovieList';
 import MovieDetails from './MovieDetails';
 
 function App() {
-  // State to store the list of movies returned from search
   const [movies, setMovies] = useState([]);
 
   return (
     <Router>
-      <div className="App" style={{ padding: '20px', maxWidth: '600px', margin: 'auto' }}>
+      <div style={styles.app}>
         <Routes>
-          {/* Home route with search functionality */}
           <Route path="/" element={
-            <>
-              <h1>Movie Search</h1>
+            <div style={styles.homeContainer}>
+              <h1 style={styles.title}>CineFiles</h1>
               <SearchBar onResults={setMovies} />
               <MovieList movies={movies} />
-            </>
+            </div>
           } />
-          {/* Movie details route with dynamic ID parameter */}
           <Route path="/movies/:id" element={<MovieDetails />} />
         </Routes>
       </div>
     </Router>
   );
 }
+
+const styles = {
+  app: {
+    minHeight: '100vh',
+    background: '#141414',
+    color: '#fff',
+  },
+  homeContainer: {
+    minHeight: '100vh',
+    background: 'linear-gradient(to bottom, #1a1a1a 0%, #0a0a0a 100%)',
+  },
+  title: {
+    textAlign: 'center',
+    padding: '40px 0 20px',
+    margin: 0,
+    fontSize: '2.5em',
+    fontWeight: '600',
+    color: '#fff',
+    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+  },
+};
 
 export default App;

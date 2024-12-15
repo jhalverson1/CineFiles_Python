@@ -10,18 +10,135 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 function MovieList({ movies }) {
+  if (movies.length === 0) {
+    return (
+      <div style={styles.noResults}>
+        <p>Start typing to search for movies...</p>
+      </div>
+    );
+  }
+
   return (
-    <ul style={{ listStyleType: 'none', padding: 0 }}>
+    <div style={styles.grid}>
       {movies.map(movie => (
-        <li key={movie.id} style={{ margin: '10px 0' }}>
-          <Link to={`/movies/${movie.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <h3>{movie.title}</h3>
-            <p>{movie.overview}</p>
-          </Link>
-        </li>
+        <Link 
+          key={movie.id} 
+          to={`/movies/${movie.id}`} 
+          style={styles.movieCard}
+        >
+          <div style={styles.posterContainer}>
+            {movie.poster_path ? (
+              <img
+                src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                alt={movie.title}
+                style={styles.poster}
+              />
+            ) : (
+              <div style={styles.noPoster}>No Poster Available</div>
+            )}
+            <div style={styles.overlay}>
+              <div style={styles.rating}>
+                ★ {movie.vote_average.toFixed(1)}
+              </div>
+            </div>
+          </div>
+          <div style={styles.movieInfo}>
+            <h3 style={styles.title}>{movie.title}</h3>
+            <p style={styles.year}>
+              {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
+            </p>
+          </div>
+        </Link>
       ))}
-    </ul>
+    </div>
   );
 }
+
+const styles = {
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: '25px',
+    padding: '20px',
+    maxWidth: '1200px',
+    margin: '0 auto',
+  },
+  movieCard: {
+    textDecoration: 'none',
+    color: '#fff',
+    background: 'rgba(32, 32, 32, 0.8)',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      transform: 'translateY(-5px) scale(1.02)',
+      boxShadow: '0 6px 16px rgba(0, 0, 0, 0.3)',
+    },
+  },
+  posterContainer: {
+    position: 'relative',
+    aspectRatio: '2/3',
+  },
+  poster: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  noPoster: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a2a2a',
+    color: '#666',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 30%)',
+    opacity: 0,
+    transition: 'opacity 0.3s ease',
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+  rating: {
+    position: 'absolute',
+    top: '10px',
+    right: '10px',
+    background: 'rgba(0, 0, 0, 0.75)',
+    color: '#ffd700',
+    padding: '6px 10px',
+    borderRadius: '4px',
+    fontSize: '0.9em',
+    backdropFilter: 'blur(4px)',
+  },
+  movieInfo: {
+    padding: '15px',
+    background: 'rgba(0, 0, 0, 0.2)',
+  },
+  title: {
+    margin: '0 0 5px 0',
+    fontSize: '1em',
+    fontWeight: '500',
+    color: '#fff',
+  },
+  year: {
+    margin: 0,
+    color: '#999',
+    fontSize: '0.9em',
+  },
+  noResults: {
+    textAlign: 'center',
+    padding: '40px',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: '1.1em',
+  },
+};
 
 export default MovieList;
