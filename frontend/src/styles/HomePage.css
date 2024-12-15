@@ -1,0 +1,14 @@
+.home-container {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #1a1a1a 0%, #0a0a0a 100%);
+}
+
+.title {
+  text-align: center;
+  padding: 40px 0 20px;
+  margin: 0;
+  font-size: 2.5em;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+} 
