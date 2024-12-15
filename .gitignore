@@ -9,3 +9,6 @@ __pycache__/
 
 # General
 .DS_Store 
+
+/movie_center_example
+.env

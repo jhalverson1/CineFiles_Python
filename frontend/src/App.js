@@ -1,20 +1,15 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import './App.css';
+import React, { useState } from 'react';
+import SearchBar from './SearchBar';
+import MovieList from './MovieList';
 
 function App() {
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    axios.get('http://0.0.0.0:8080/api/hello')
-      .then(response => setMessage(response.data.message))
-      .catch(error => console.error('Error:', error));
-  }, []);
+  const [movies, setMovies] = useState([]);
 
   return (
-    <div className="App">
-      <h1>My Pi Website</h1>
-      <p>{message}</p>
+    <div className="App" style={{ padding: '20px', maxWidth: '600px', margin: 'auto' }}>
+      <h1>Movie Search</h1>
+      <SearchBar onResults={setMovies} />
+      <MovieList movies={movies} />
     </div>
   );
 }
