@@ -5,6 +5,7 @@ import requests
 from dotenv import load_dotenv
 import httpx
 from fastapi import HTTPException
+from utils.scraper import scrape_movie_news
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -72,6 +73,17 @@ async def search_movies(query: str = Query(..., min_length=1)):
             params={"query": query}
         )
         return response.json()
+
+@app.get("/api/movies/news")
+async def get_movie_news():
+    try:
+        news_items = await scrape_movie_news()
+        if not news_items:
+            return []
+        return news_items
+    except Exception as e:
+        print(f"Error fetching movie news: {str(e)}")
+        return []
 
 @app.get("/api/movies/{id}")
 async def get_movie_details(id: int):

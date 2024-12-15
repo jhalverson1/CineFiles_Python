@@ -57,9 +57,9 @@ function MovieList({ movies = [] }) {
 const styles = {
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-    gap: '25px',
-    padding: '20px',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+    gap: '15px',
+    padding: '10px',
     maxWidth: '1200px',
     margin: '0 auto',
   },
@@ -67,13 +67,13 @@ const styles = {
     textDecoration: 'none',
     color: '#fff',
     background: 'rgba(32, 32, 32, 0.8)',
-    borderRadius: '8px',
+    borderRadius: '6px',
     overflow: 'hidden',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
     transition: 'all 0.3s ease',
     '&:hover': {
-      transform: 'translateY(-5px) scale(1.02)',
-      boxShadow: '0 6px 16px rgba(0, 0, 0, 0.3)',
+      transform: 'translateY(-3px) scale(1.02)',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
     },
   },
   posterContainer: {
@@ -119,19 +119,19 @@ const styles = {
     backdropFilter: 'blur(4px)',
   },
   movieInfo: {
-    padding: '15px',
+    padding: '10px',
     background: 'rgba(0, 0, 0, 0.2)',
   },
   title: {
-    margin: '0 0 5px 0',
-    fontSize: '1em',
+    margin: '0 0 3px 0',
+    fontSize: '0.9em',
     fontWeight: '500',
     color: '#fff',
   },
   year: {
     margin: 0,
     color: '#999',
-    fontSize: '0.9em',
+    fontSize: '0.8em',
   },
   noResults: {
     textAlign: 'center',

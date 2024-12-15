@@ -1,25 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import SearchBar from './SearchBar';
 import MovieList from './MovieList';
+import NewsSection from './NewsSection';
 import Breadcrumb from '../common/Breadcrumb';
 import { movieApi } from '../../utils/api';
 import '../../styles/HomePage.css';
 
 function HomePage() {
   const [movies, setMovies] = useState([]);
+  const [newsItems, setNewsItems] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    const loadPopularMovies = async () => {
+    const loadInitialData = async () => {
       try {
-        const popularMovies = await movieApi.getPopularMovies();
+        const [popularMovies, news] = await Promise.all([
+          movieApi.getPopularMovies(),
+          movieApi.getMovieNews()
+        ]);
         setMovies(popularMovies);
+        setNewsItems(news);
       } catch (error) {
-        console.error('Error loading popular movies:', error);
+        console.error('Error loading initial data:', error);
       }
     };
 
-    loadPopularMovies();
+    loadInitialData();
   }, []);
 
   const handleSearchResults = (searchResults) => {
@@ -38,6 +44,7 @@ function HomePage() {
         </h2>
         <MovieList movies={movies} />
       </div>
+      {!isSearching && <NewsSection newsItems={newsItems} />}
     </div>
   );
 }

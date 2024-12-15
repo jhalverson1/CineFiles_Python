@@ -29,5 +29,10 @@ export const movieApi = {
   getPersonDetails: async (personId) => {
     const response = await axios.get(`${API_BASE_URL}/api/person/${personId}`);
     return response.data;
+  },
+
+  getMovieNews: async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/movies/news`);
+    return response.data;
   }
 }; 
