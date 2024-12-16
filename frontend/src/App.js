@@ -7,7 +7,7 @@
  * - "/movies/:id" : Individual movie details page
  */
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { HashRouter as Router, Route, Routes } from 'react-router-dom';
 import MovieDetails from './components/movie/MovieDetails';
 import HomePage from './components/movie/HomePage';
 import './styles/App.css';

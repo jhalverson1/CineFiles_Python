@@ -25,9 +25,9 @@ function MovieDetails() {
 
     // Fetch movie details, credits, and videos
     Promise.all([
-      axios.get(`http://0.0.0.0:8080/api/movies/${id}`),
-      axios.get(`http://0.0.0.0:8080/api/movies/${id}/credits`),
-      axios.get(`http://0.0.0.0:8080/api/movies/${id}/videos`)
+      axios.get(`${API_URL}/api/movies/${id}`),
+      axios.get(`${API_URL}/api/movies/${id}/credits`),
+      axios.get(`${API_URL}/api/movies/${id}/videos`)
     ])
       .then(([movieResponse, creditsResponse, videosResponse]) => {
         setMovie(movieResponse.data);
