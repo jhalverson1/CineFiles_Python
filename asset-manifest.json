@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/CineFiles_Python/static/css/main.ad1acf85.css",
+    "main.js": "/CineFiles_Python/static/js/main.0e908673.js",
+    "index.html": "/CineFiles_Python/index.html",
+    "main.ad1acf85.css.map": "/CineFiles_Python/static/css/main.ad1acf85.css.map",
+    "main.0e908673.js.map": "/CineFiles_Python/static/js/main.0e908673.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ad1acf85.css",
+    "static/js/main.0e908673.js"
+  ]
+}
