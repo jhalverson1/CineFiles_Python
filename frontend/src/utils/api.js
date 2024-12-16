@@ -12,22 +12,13 @@ export const movieApi = {
     return response.data;
   },
 
-  getMovieDetails: async (id) => {
-    const [movie, credits, videos] = await Promise.all([
-      axios.get(`${API_BASE_URL}/api/movies/${id}`),
-      axios.get(`${API_BASE_URL}/api/movies/${id}/credits`),
-      axios.get(`${API_BASE_URL}/api/movies/${id}/videos`)
-    ]);
-
-    return {
-      movie: movie.data,
-      credits: credits.data,
-      videos: videos.data
-    };
+  getTopRatedMovies: async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/movies/top-rated`);
+    return response.data;
   },
 
-  getPersonDetails: async (personId) => {
-    const response = await axios.get(`${API_BASE_URL}/api/person/${personId}`);
+  getUpcomingMovies: async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/movies/upcoming`);
     return response.data;
   },
 

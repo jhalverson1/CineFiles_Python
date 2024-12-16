@@ -20,12 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/api/hello")
-async def read_root():
-    return {"message": "Hello from FastAPI!"}
-
-@app.get("/api/movies/popular")
-async def get_popular_movies():
+async def fetch_tmdb_data(endpoint):
     bearer_token = os.getenv("TMDB_BEARER_TOKEN")
     headers = {
         "accept": "application/json",
@@ -34,16 +29,36 @@ async def get_popular_movies():
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1",
+                f"https://api.themoviedb.org/3{endpoint}",
                 headers=headers
             )
             if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail="Error fetching popular movies")
+                raise HTTPException(status_code=response.status_code, detail=f"Error fetching from TMDB: {endpoint}")
             data = response.json()
-            return data.get("results", [])  # Return just the results array
+            return data.get("results", [])
     except Exception as e:
-        print(f"Error fetching popular movies: {str(e)}")
+        print(f"Error fetching from TMDB: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/hello")
+async def read_root():
+    return {"message": "Hello from FastAPI!"}
+
+@app.get("/api/movies/popular")
+async def get_popular_movies():
+    return await fetch_tmdb_data("/movie/popular?language=en-US&page=1")
+
+@app.get("/api/movies/top-rated")
+async def get_top_rated_movies():
+    return await fetch_tmdb_data("/movie/top_rated?language=en-US&page=1")
+
+@app.get("/api/movies/upcoming")
+async def get_upcoming_movies():
+    return await fetch_tmdb_data("/movie/upcoming?language=en-US&page=1")
+
+@app.get("/api/movies/news")
+async def get_movie_news():
+    return await scrape_movie_news()
 
 @app.get("/api/movies")
 async def get_movies():
@@ -73,17 +88,6 @@ async def search_movies(query: str = Query(..., min_length=1)):
             params={"query": query}
         )
         return response.json()
-
-@app.get("/api/movies/news")
-async def get_movie_news():
-    try:
-        news_items = await scrape_movie_news()
-        if not news_items:
-            return []
-        return news_items
-    except Exception as e:
-        print(f"Error fetching movie news: {str(e)}")
-        return []
 
 @app.get("/api/movies/{id}")
 async def get_movie_details(id: int):

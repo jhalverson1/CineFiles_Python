@@ -6,10 +6,13 @@
  * @param {Object} props
  * @param {Array} props.movies - Array of movie objects to display
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-function MovieList({ movies = [] }) {
+function MovieList({ movies = [], title }) {
+  const [showAll, setShowAll] = useState(false);
+  const itemsPerRow = 6;
+
   if (!movies || movies.length === 0) {
     return (
       <div style={styles.noResults}>
@@ -18,50 +21,82 @@ function MovieList({ movies = [] }) {
     );
   }
 
+  const displayedMovies = showAll ? movies : movies.slice(0, itemsPerRow);
+
   return (
-    <div style={styles.grid}>
-      {movies.map(movie => (
-        <Link 
-          key={movie.id} 
-          to={`/movies/${movie.id}`} 
-          style={styles.movieCard}
-        >
-          <div style={styles.posterContainer}>
-            {movie.poster_path ? (
-              <img
-                src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                alt={movie.title}
-                style={styles.poster}
-              />
-            ) : (
-              <div style={styles.noPoster}>No Poster Available</div>
-            )}
-            <div style={styles.overlay}>
-              <div style={styles.rating}>
-                ★ {movie.vote_average.toFixed(1)}
+    <div style={styles.container}>
+      <div style={styles.grid}>
+        {displayedMovies.map(movie => (
+          <Link 
+            key={movie.id} 
+            to={`/movies/${movie.id}`} 
+            style={styles.movieCard}
+          >
+            <div style={styles.posterContainer}>
+              {movie.poster_path ? (
+                <img
+                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                  alt={movie.title}
+                  style={styles.poster}
+                />
+              ) : (
+                <div style={styles.noPoster}>No Poster Available</div>
+              )}
+              <div style={styles.overlay}>
+                <div style={styles.rating}>
+                  ★ {movie.vote_average.toFixed(1)}
+                </div>
               </div>
             </div>
-          </div>
-          <div style={styles.movieInfo}>
-            <h3 style={styles.title}>{movie.title}</h3>
-            <p style={styles.year}>
-              {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
-            </p>
-          </div>
-        </Link>
-      ))}
+            <div style={styles.movieInfo}>
+              <h3 style={styles.title}>{movie.title}</h3>
+              <p style={styles.year}>
+                {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
+      {movies.length > itemsPerRow && (
+        <button 
+          onClick={() => setShowAll(!showAll)}
+          style={styles.seeMoreButton}
+        >
+          {showAll ? 'Show Less' : 'See More'}
+        </button>
+      )}
     </div>
   );
 }
 
 const styles = {
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-    gap: '15px',
-    padding: '10px',
+  container: {
+    position: 'relative',
     maxWidth: '1200px',
     margin: '0 auto',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(6, 1fr)',
+    gap: '15px',
+    padding: '10px',
+    margin: '0 auto',
+  },
+  seeMoreButton: {
+    display: 'block',
+    margin: '20px auto 0',
+    padding: '8px 20px',
+    backgroundColor: 'transparent',
+    border: '2px solid #e50914',
+    color: '#e50914',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '0.9em',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      backgroundColor: '#e50914',
+      color: '#fff',
+    },
   },
   movieCard: {
     textDecoration: 'none',

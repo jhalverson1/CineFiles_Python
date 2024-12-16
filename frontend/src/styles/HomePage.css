@@ -1,6 +1,7 @@
 .home-container {
   min-height: 100vh;
   background: linear-gradient(to bottom, #1a1a1a 0%, #0a0a0a 100%);
+  padding: 0 20px;
 }
 
 .title {
@@ -13,22 +14,20 @@
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-.content-section {
-  padding: 0 20px;
+.movie-section {
   max-width: 1400px;
-  margin: 0 auto;
+  margin: 0 auto 40px auto;
 }
 
 .section-title {
   color: #fff;
   font-size: 1.5em;
   font-weight: 500;
-  margin: 10px 0;
-  padding-left: 20px;
-  opacity: 0.9;
+  margin: 20px 0 15px 0;
+  padding-left: 15px;
+  border-left: 3px solid #e50914;
 }
 
-/* Add a subtle animation for when movies update */
 .movie-grid {
   animation: fadeIn 0.3s ease-in;
 }
