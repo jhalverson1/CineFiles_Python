@@ -20,6 +20,9 @@ function MovieDetails() {
   const [showTrailer, setShowTrailer] = useState(false);
   const [showAllCast, setShowAllCast] = useState(false);
 
+  // Define the API URL using environment variable or fallback
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
   useEffect(() => {
     document.title = 'Loading Movie Details...';
 
@@ -43,11 +46,11 @@ function MovieDetails() {
     return () => {
       document.title = 'Movie Search';
     };
-  }, [id]);
+  }, [id, API_URL]);
 
   const handleCastClick = async (personId) => {
     try {
-      const response = await axios.get(`http://0.0.0.0:8080/api/person/${personId}`);
+      const response = await axios.get(`${API_URL}/api/person/${personId}`);
       const imdbId = response.data.imdb_id;
       if (imdbId) {
         window.open(`https://www.imdb.com/name/${imdbId}`, '_blank');

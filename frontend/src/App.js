@@ -7,7 +7,7 @@
  * - "/movies/:id" : Individual movie details page
  */
 import React from 'react';
-import { HashRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import MovieDetails from './components/movie/MovieDetails';
 import HomePage from './components/movie/HomePage';
 import './styles/App.css';
@@ -17,8 +17,9 @@ function App() {
     <Router>
       <div className="app">
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route exact path="/" element={<HomePage />} />
           <Route path="/movies/:id" element={<MovieDetails />} />
+          <Route path="*" element={<HomePage />} />
         </Routes>
       </div>
     </Router>
