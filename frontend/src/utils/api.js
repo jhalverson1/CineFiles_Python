@@ -2,15 +2,21 @@ import axios from 'axios';
 import { API_BASE_URL } from './constants';
 
 // Add logging for API configuration
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api-cinefiles.railway.app';
+
 console.log('API Configuration:', {
   baseURL: API_BASE_URL,
   environment: process.env.NODE_ENV,
-  reactAppApiUrl: process.env.REACT_APP_API_URL
+  reactAppApiUrl: process.env.REACT_APP_API_URL,
+  currentOrigin: window.location.origin
 });
 
 // Configure axios with logging
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL
+  baseURL: API_BASE_URL,
+  headers: {
+    'Origin': window.location.origin
+  }
 });
 
 // Add request interceptor

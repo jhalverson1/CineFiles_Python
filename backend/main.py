@@ -19,14 +19,11 @@ app = FastAPI()
 # Configure CORS with logging
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 logger.debug(f"Frontend URL from env: {frontend_url}")
+logger.debug(f"Configuring CORS with allowed origins")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        frontend_url,
-        "http://localhost:3000",
-        "https://frontend-production-a118.up.railway.app"
-    ],
+    allow_origins=["*"],  # Temporarily allow all origins for debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
