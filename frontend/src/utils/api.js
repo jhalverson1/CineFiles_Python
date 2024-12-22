@@ -12,9 +12,7 @@ console.log('API Configuration:', {
 // Configure axios with logging
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Origin': window.location.origin
-  }
+  withCredentials: true
 });
 
 // Add request interceptor
