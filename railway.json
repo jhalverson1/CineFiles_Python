@@ -14,7 +14,8 @@
       "path": "frontend",
       "dockerfile": "Dockerfile",
       "envVars": {
-        "API_URL": "https://api-cinefiles.railway.app"
+        "PORT": "3000",
+        "REACT_APP_API_URL": "https://api-cinefiles.railway.app"
       }
     }
   }
