@@ -19,18 +19,31 @@ app = FastAPI()
 # Configure CORS with logging
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 logger.debug(f"Frontend URL from env: {frontend_url}")
-logger.debug(f"Configuring CORS with allowed origins")
+
+origins = [
+    "https://frontend-production-a118.up.railway.app",
+    "http://localhost:3000",
+    frontend_url
+]
+
+logger.debug(f"Configuring CORS with allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://frontend-production-a118.up.railway.app",
-        "http://localhost:3000"
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
+
+# Add a middleware to set CORS headers explicitly
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", frontend_url)
+    return response
 
 @app.middleware("http")
 async def log_requests(request, call_next):

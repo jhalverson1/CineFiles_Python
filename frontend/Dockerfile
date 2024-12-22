@@ -5,6 +5,8 @@ RUN npm install
 RUN npm install @babel/plugin-proposal-private-property-in-object
 COPY . .
 
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 ENV NODE_ENV=production
 ENV PORT=3000
 
