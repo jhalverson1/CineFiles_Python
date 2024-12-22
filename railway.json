@@ -1,0 +1,22 @@
+{
+  "services": {
+    "api": {
+      "path": "backend",
+      "dockerfile": "Dockerfile",
+      "startCommand": "uvicorn main:app --host 0.0.0.0 --port $PORT",
+      "envVars": {
+        "TMDB_BEARER_TOKEN": "${TMDB_BEARER_TOKEN}",
+        "REDDIT_CLIENT_ID": "${REDDIT_CLIENT_ID}",
+        "REDDIT_CLIENT_SECRET": "${REDDIT_CLIENT_SECRET}"
+      }
+    },
+    "web": {
+      "path": "frontend",
+      "dockerfile": "Dockerfile",
+      "startCommand": "npm start",
+      "envVars": {
+        "REACT_APP_API_URL": "https://api-cinefiles.railway.app"
+      }
+    }
+  }
+}
