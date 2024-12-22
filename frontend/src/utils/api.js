@@ -55,26 +55,26 @@ axiosInstance.interceptors.response.use(
 export const movieApi = {
   searchMovies: async (query) => {
     const response = await axiosInstance.get(`/api/movies/search?query=${encodeURIComponent(query)}`);
-    return response.data.results;
+    return response.data?.results || [];
   },
 
   getPopularMovies: async () => {
     const response = await axiosInstance.get('/api/movies/popular');
-    return response.data;
+    return response.data?.results || [];
   },
 
   getTopRatedMovies: async () => {
     const response = await axiosInstance.get('/api/movies/top-rated');
-    return response.data;
+    return response.data?.results || [];
   },
 
   getUpcomingMovies: async () => {
     const response = await axiosInstance.get('/api/movies/upcoming');
-    return response.data;
+    return response.data?.results || [];
   },
 
   getMovieNews: async () => {
     const response = await axiosInstance.get('/api/movies/news');
-    return response.data;
+    return response.data?.items || [];
   }
 }; 
