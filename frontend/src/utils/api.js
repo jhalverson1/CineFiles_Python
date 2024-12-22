@@ -2,8 +2,6 @@ import axios from 'axios';
 import { API_BASE_URL } from './constants';
 
 // Add logging for API configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api-cinefiles.railway.app';
-
 console.log('API Configuration:', {
   baseURL: API_BASE_URL,
   environment: process.env.NODE_ENV,
