@@ -13,7 +13,16 @@ function MovieList({ movies = [], title }) {
   const [showAll, setShowAll] = useState(false);
   const itemsPerRow = 6;
 
-  if (!movies || movies.length === 0) {
+  console.log('MovieList received:', {
+    movies,
+    type: typeof movies,
+    isArray: Array.isArray(movies)
+  });
+
+  // Ensure movies is always an array
+  const movieArray = Array.isArray(movies) ? movies : [];
+
+  if (!movieArray.length) {
     return (
       <div style={styles.noResults}>
         <p>No movies found...</p>
@@ -21,7 +30,7 @@ function MovieList({ movies = [], title }) {
     );
   }
 
-  const displayedMovies = showAll ? movies : movies.slice(0, itemsPerRow);
+  const displayedMovies = showAll ? movieArray : movieArray.slice(0, itemsPerRow);
 
   return (
     <div style={styles.container}>
@@ -57,7 +66,7 @@ function MovieList({ movies = [], title }) {
           </Link>
         ))}
       </div>
-      {movies.length > itemsPerRow && (
+      {movieArray.length > itemsPerRow && (
         <button 
           onClick={() => setShowAll(!showAll)}
           style={styles.seeMoreButton}

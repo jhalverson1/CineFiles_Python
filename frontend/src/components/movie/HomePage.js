@@ -23,10 +23,18 @@ function HomePage() {
           movieApi.getUpcomingMovies(),
           movieApi.getMovieNews()
         ]);
-        setPopularMovies(popular);
-        setTopRatedMovies(topRated);
-        setUpcomingMovies(upcoming);
-        setNewsItems(news);
+        
+        console.log('API Responses:', {
+          popular,
+          topRated,
+          upcoming,
+          news
+        });
+
+        setPopularMovies(Array.isArray(popular) ? popular : []);
+        setTopRatedMovies(Array.isArray(topRated) ? topRated : []);
+        setUpcomingMovies(Array.isArray(upcoming) ? upcoming : []);
+        setNewsItems(Array.isArray(news?.items) ? news.items : []);
       } catch (error) {
         console.error('Error loading initial data:', error);
       }
