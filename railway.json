@@ -13,9 +13,8 @@
     "web": {
       "path": "frontend",
       "dockerfile": "Dockerfile",
-      "startCommand": "npm start",
       "envVars": {
-        "REACT_APP_API_URL": "https://api-cinefiles.railway.app"
+        "API_URL": "https://api-cinefiles.railway.app"
       }
     }
   }
