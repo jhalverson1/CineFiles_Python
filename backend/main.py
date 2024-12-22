@@ -12,11 +12,13 @@ load_dotenv()  # Load environment variables from .env file
 app = FastAPI()
 
 # Configure CORS
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://frontend-production-a118.up.railway.app",
-        "http://localhost:3000"  # for local development
+        frontend_url,
+        "http://localhost:3000",  # for local development
+        "https://frontend-production-a118.up.railway.app"  # hardcoded for safety
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -61,7 +63,17 @@ async def get_upcoming_movies():
 
 @app.get("/api/movies/news")
 async def get_movie_news():
-    return await scrape_movie_news()
+    try:
+        news = await scrape_movie_news()
+        if not news:
+            return {"error": "No news found", "items": []}
+        return {"items": news}
+    except Exception as e:
+        print(f"Error in get_movie_news: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch movie news: {str(e)}"
+        )
 
 @app.get("/api/movies")
 async def get_movies():
