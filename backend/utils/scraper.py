@@ -1,51 +1,43 @@
 import asyncpraw
 import os
 from dotenv import load_dotenv
+import logging
 
-load_dotenv()
+logger = logging.getLogger(__name__)
 
 async def scrape_movie_news():
     try:
-        # Initialize Reddit client
+        logger.debug("Initializing Reddit client")
         reddit = asyncpraw.Reddit(
             client_id=os.getenv('REDDIT_CLIENT_ID'),
             client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
             user_agent="CineFiles/1.0"
         )
         
+        logger.debug(f"Reddit credentials - Client ID exists: {bool(os.getenv('REDDIT_CLIENT_ID'))}, Secret exists: {bool(os.getenv('REDDIT_CLIENT_SECRET'))}")
+        
         news_items = []
         subreddit = await reddit.subreddit('movies')
+        logger.debug("Connected to r/movies subreddit")
         
-        # Search specifically for posts with Article flair
         async for submission in subreddit.search('flair:"Article"', sort='hot', limit=6):
-            # Skip posts without links or self posts
+            logger.debug(f"Processing submission: {submission.title}")
             if submission.is_self or not submission.url:
+                logger.debug("Skipping self post or post without URL")
                 continue
-                
-            print(f"Found article: {submission.title}")
             
-            # Get thumbnail image
-            image_url = None
-            if hasattr(submission, 'preview'):
-                try:
-                    image_url = submission.preview['images'][0]['source']['url']
-                except:
-                    pass
-            elif submission.thumbnail and submission.thumbnail.startswith('http'):
-                image_url = submission.thumbnail
-                
             news_items.append({
                 'title': submission.title,
                 'url': submission.url,
                 'source': f'r/movies • {submission.score:,} points',
-                'image': image_url,
+                'image': submission.thumbnail if submission.thumbnail.startswith('http') else None,
                 'description': submission.selftext[:200] if submission.selftext else ''
             })
             
-        print(f"Found {len(news_items)} articles")
+        logger.info(f"Successfully fetched {len(news_items)} news items")
         await reddit.close()
         return news_items
         
     except Exception as e:
-        print(f"Error fetching from Reddit: {str(e)}")
+        logger.error(f"Error in scrape_movie_news: {str(e)}", exc_info=True)
         return []

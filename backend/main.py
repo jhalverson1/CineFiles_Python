@@ -6,24 +6,39 @@ from dotenv import load_dotenv
 import httpx
 from fastapi import HTTPException
 from utils.scraper import scrape_movie_news
+import logging
 
-load_dotenv()  # Load environment variables from .env file
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+load_dotenv()
 
 app = FastAPI()
 
-# Configure CORS
+# Configure CORS with logging
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+logger.debug(f"Frontend URL from env: {frontend_url}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         frontend_url,
-        "http://localhost:3000",  # for local development
-        "https://frontend-production-a118.up.railway.app"  # hardcoded for safety
+        "http://localhost:3000",
+        "https://frontend-production-a118.up.railway.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logger.debug(f"Incoming request: {request.method} {request.url}")
+    logger.debug(f"Headers: {request.headers}")
+    response = await call_next(request)
+    logger.debug(f"Response status: {response.status_code}")
+    return response
 
 async def fetch_tmdb_data(endpoint):
     bearer_token = os.getenv("TMDB_BEARER_TOKEN")
@@ -64,12 +79,15 @@ async def get_upcoming_movies():
 @app.get("/api/movies/news")
 async def get_movie_news():
     try:
+        logger.debug("Starting movie news fetch")
         news = await scrape_movie_news()
+        logger.debug(f"Fetched {len(news) if news else 0} news items")
         if not news:
+            logger.warning("No news items found")
             return {"error": "No news found", "items": []}
         return {"items": news}
     except Exception as e:
-        print(f"Error in get_movie_news: {str(e)}")
+        logger.error(f"Error in get_movie_news: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch movie news: {str(e)}"
