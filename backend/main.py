@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from utils.scraper import scrape_movie_news
 import logging
 
-# Configure logging
+# Configure logging - ignore me
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
