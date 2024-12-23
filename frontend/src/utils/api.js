@@ -10,7 +10,7 @@ console.log('API Configuration:', {
 });
 
 // Configure axios with logging
-const axiosInstance = axios.create({
+export const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true
 });
