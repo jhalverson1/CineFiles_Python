@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import { axiosInstance } from '../../utils/api';
 import Breadcrumb from '../common/Breadcrumb';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
 import { styles } from '../../styles/MovieDetails';
@@ -20,17 +20,13 @@ function MovieDetails() {
   const [showTrailer, setShowTrailer] = useState(false);
   const [showAllCast, setShowAllCast] = useState(false);
 
-  // Define the API URL using environment variable or fallback
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-
   useEffect(() => {
     document.title = 'Loading Movie Details...';
 
-    // Fetch movie details, credits, and videos
     Promise.all([
-      axios.get(`${API_URL}/api/movies/${id}`),
-      axios.get(`${API_URL}/api/movies/${id}/credits`),
-      axios.get(`${API_URL}/api/movies/${id}/videos`)
+      axiosInstance.get(`/api/movies/${id}`),
+      axiosInstance.get(`/api/movies/${id}/credits`),
+      axiosInstance.get(`/api/movies/${id}/videos`)
     ])
       .then(([movieResponse, creditsResponse, videosResponse]) => {
         setMovie(movieResponse.data);
@@ -46,11 +42,11 @@ function MovieDetails() {
     return () => {
       document.title = 'Movie Search';
     };
-  }, [id, API_URL]);
+  }, [id]);
 
   const handleCastClick = async (personId) => {
     try {
-      const response = await axios.get(`${API_URL}/api/person/${personId}`);
+      const response = await axiosInstance.get(`/api/person/${personId}`);
       const imdbId = response.data.imdb_id;
       if (imdbId) {
         window.open(`https://www.imdb.com/name/${imdbId}`, '_blank');

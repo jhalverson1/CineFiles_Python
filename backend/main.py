@@ -23,6 +23,7 @@ logger.debug(f"Frontend URL from env: {frontend_url}")
 origins = [
     "https://frontend-production-a118.up.railway.app",
     "http://localhost:3000",
+    "https://backend-production-e6f3.up.railway.app",
     frontend_url
 ]
 
