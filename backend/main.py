@@ -191,6 +191,19 @@ async def get_person_details(id: int):
         )
         return response.json()
 
+@app.get("/")
+async def root():
+    return {
+        "status": "healthy",
+        "version": "1.0",
+        "endpoints": [
+            "/api/movies/popular",
+            "/api/movies/top-rated",
+            "/api/movies/upcoming",
+            "/api/movies/news"
+        ]
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
