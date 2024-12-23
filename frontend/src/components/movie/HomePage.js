@@ -31,9 +31,9 @@ function HomePage() {
           news
         });
 
-        setPopularMovies(Array.isArray(popular) ? popular : []);
-        setTopRatedMovies(Array.isArray(topRated) ? topRated : []);
-        setUpcomingMovies(Array.isArray(upcoming) ? upcoming : []);
+        setPopularMovies(popular?.results || []);
+        setTopRatedMovies(topRated?.results || []);
+        setUpcomingMovies(upcoming?.results || []);
         setNewsItems(Array.isArray(news?.items) ? news.items : []);
       } catch (error) {
         console.error('Error loading initial data:', error);

@@ -56,30 +56,30 @@ export const movieApi = {
   searchMovies: async (query) => {
     const response = await axiosInstance.get(`/api/movies/search?query=${encodeURIComponent(query)}`);
     console.log('Search Response:', response.data);
-    return response.data?.results || [];
+    return response.data;
   },
 
   getPopularMovies: async () => {
     const response = await axiosInstance.get('/api/movies/popular');
     console.log('Popular Movies Response:', response.data);
-    return response.data || [];
+    return response.data;
   },
 
   getTopRatedMovies: async () => {
     const response = await axiosInstance.get('/api/movies/top-rated');
     console.log('Top Rated Response:', response.data);
-    return response.data || [];
+    return response.data;
   },
 
   getUpcomingMovies: async () => {
     const response = await axiosInstance.get('/api/movies/upcoming');
     console.log('Upcoming Response:', response.data);
-    return response.data || [];
+    return response.data;
   },
 
   getMovieNews: async () => {
     const response = await axiosInstance.get('/api/movies/news');
     console.log('News Response:', response.data);
-    return response.data?.items || [];
+    return response.data;
   }
 }; 
