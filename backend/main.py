@@ -68,10 +68,9 @@ async def fetch_tmdb_data(endpoint):
             )
             if response.status_code != 200:
                 raise HTTPException(status_code=response.status_code, detail=f"Error fetching from TMDB: {endpoint}")
-            data = response.json()
-            return data.get("results", [])
+            return response.json()
     except Exception as e:
-        print(f"Error fetching from TMDB: {str(e)}")
+        logger.error(f"Error fetching from TMDB: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/hello")
