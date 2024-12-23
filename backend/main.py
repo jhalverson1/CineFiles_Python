@@ -20,8 +20,9 @@ app = FastAPI()
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 logger.debug(f"Frontend URL from env: {frontend_url}")
 
+# Only allow the frontend URL and localhost for development
 origins = [
-    os.getenv("FRONTEND_URL", "http://localhost:3000"),
+    frontend_url,
     "http://localhost:3000",  # Keep local development URL
 ]
 
@@ -31,9 +32,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET"],  # Only allow GET requests since we're just fetching data
     allow_headers=["*"],
-    expose_headers=["*"],
     max_age=3600,
 )
 

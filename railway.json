@@ -8,9 +8,8 @@
         "TMDB_BEARER_TOKEN": "${TMDB_BEARER_TOKEN}",
         "REDDIT_CLIENT_ID": "${REDDIT_CLIENT_ID}",
         "REDDIT_CLIENT_SECRET": "${REDDIT_CLIENT_SECRET}",
-        "FRONTEND_URL": "https://frontend-production-a118.up.railway.app",
-        "PORT": "8080",
-        "CORS_ALLOW_ORIGINS": "*"
+        "FRONTEND_URL": "${FRONTEND_URL}",
+        "PORT": "8080"
       }
     },
     "web": {
