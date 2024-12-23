@@ -21,10 +21,8 @@ frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 logger.debug(f"Frontend URL from env: {frontend_url}")
 
 origins = [
-    "https://frontend-production-a118.up.railway.app",
-    "http://localhost:3000",
-    "https://backend-production-e6f3.up.railway.app",
-    frontend_url
+    os.getenv("FRONTEND_URL", "http://localhost:3000"),
+    "http://localhost:3000",  # Keep local development URL
 ]
 
 logger.debug(f"Configuring CORS with allowed origins: {origins}")
