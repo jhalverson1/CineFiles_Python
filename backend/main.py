@@ -20,11 +20,16 @@ app = FastAPI()
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 logger.debug(f"Frontend URL from env: {frontend_url}")
 
-# Only allow the frontend URL and localhost for development
+# Allow production and development URLs
 origins = [
     frontend_url,
-    "http://localhost:3000",  # Keep local development URL
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://*.railway.app",  # Allow Railway subdomains
 ]
+
+if frontend_url not in origins:
+    origins.append(frontend_url)  # Ensure the frontend URL is always included
 
 logger.debug(f"Configuring CORS with allowed origins: {origins}")
 
@@ -204,4 +209,5 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
