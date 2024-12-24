@@ -6,9 +6,8 @@
  * @component
  */
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { axiosInstance } from '../../utils/api';
-import Breadcrumb from '../common/Breadcrumb';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
 
 function MovieDetails() {
@@ -75,7 +74,27 @@ function MovieDetails() {
         backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 1)), url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`
       }}
     >
-      <Breadcrumb movie={movie} />
+      <Link 
+        to="/"
+        className="inline-flex items-center gap-2 p-5 text-white hover:text-primary transition-colors duration-200"
+        aria-label="Back to home"
+      >
+        <svg 
+          className="w-5 h-5" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+          />
+        </svg>
+        <span>Back to Home</span>
+      </Link>
+
       <div className="w-[95%] max-w-[1200px] mx-auto py-8">
         {/* Movie Header Section */}
         <div className="flex flex-col md:flex-row gap-8 mb-10">

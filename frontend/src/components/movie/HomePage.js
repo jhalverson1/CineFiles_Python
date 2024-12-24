@@ -3,7 +3,6 @@ import SearchBar from './SearchBar';
 import MovieList from './MovieList';
 import SearchResults from './SearchResults';
 import NewsSection from './NewsSection';
-import Breadcrumb from '../common/Breadcrumb';
 import { movieApi } from '../../utils/api';
 import '../../styles/HomePage.css';
 
@@ -70,7 +69,6 @@ function HomePage() {
 
   return (
     <div className="home-container">
-      <Breadcrumb />
       <h1 className="title">CineFiles</h1>
       <SearchBar onResults={handleSearchResults} onSearchStart={handleSearchStart} />
       
