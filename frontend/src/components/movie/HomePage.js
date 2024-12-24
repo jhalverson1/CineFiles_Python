@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SearchBar from './SearchBar';
 import MovieList from './MovieList';
+import SearchResults from './SearchResults';
 import NewsSection from './NewsSection';
 import Breadcrumb from '../common/Breadcrumb';
 import { movieApi } from '../../utils/api';
@@ -74,7 +75,7 @@ function HomePage() {
       <SearchBar onResults={handleSearchResults} onSearchStart={handleSearchStart} />
       
       {isSearching ? (
-        <MovieSection title="Search Results" movies={searchResults} loading={isSearchLoading} />
+        <SearchResults movies={searchResults} isLoading={isSearchLoading} />
       ) : (
         <>
           <MovieSection title="Popular Movies" movies={popularMovies} loading={isLoading} />

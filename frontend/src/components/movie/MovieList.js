@@ -167,7 +167,7 @@ function MovieList({ movies = [], title, isLoading = true }) {
   const movieArray = Array.isArray(movies) ? movies : [];
 
   // Create placeholder array for loading state
-  const placeholderArray = Array(8).fill({ id: 'placeholder' });
+  const placeholderArray = Array(8).fill().map((_, index) => ({ id: `placeholder-${index}` }));
   const displayArray = isLoading ? placeholderArray : movieArray;
 
   if (!isLoading && !movieArray.length) {
@@ -214,17 +214,36 @@ function MovieList({ movies = [], title, isLoading = true }) {
         <div style={styles.movieRow}>
           {displayArray.map((movie, index) => (
             <div 
-              key={movie.id || `placeholder-${index}`}
+              key={movie.id}
               style={styles.movieCard}
             >
-              {movie.id === 'placeholder' ? (
-                <div style={styles.posterContainer}>
-                  <LazyImage
-                    src=""
-                    alt="Loading..."
-                    style={styles.poster}
-                  />
-                </div>
+              {movie.id.toString().startsWith('placeholder') ? (
+                <>
+                  <div style={styles.posterContainer}>
+                    <LazyImage
+                      src=""
+                      alt="Loading..."
+                      style={styles.poster}
+                    />
+                  </div>
+                  <div style={styles.movieInfo}>
+                    <div style={{
+                      ...styles.title,
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      height: '1em',
+                      width: '80%',
+                      borderRadius: '4px',
+                    }}></div>
+                    <div style={{
+                      ...styles.year,
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      height: '0.8em',
+                      width: '40%',
+                      borderRadius: '4px',
+                      marginTop: '8px',
+                    }}></div>
+                  </div>
+                </>
               ) : (
                 <Link 
                   to={`/movies/${movie.id}`} 
@@ -249,25 +268,6 @@ function MovieList({ movies = [], title, isLoading = true }) {
                     </p>
                   </div>
                 </Link>
-              )}
-              {movie.id === 'placeholder' && (
-                <div style={styles.movieInfo}>
-                  <div style={{
-                    ...styles.title,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    height: '1em',
-                    width: '80%',
-                    borderRadius: '4px',
-                  }}></div>
-                  <div style={{
-                    ...styles.year,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    height: '0.8em',
-                    width: '40%',
-                    borderRadius: '4px',
-                    marginTop: '8px',
-                  }}></div>
-                </div>
               )}
             </div>
           ))}
