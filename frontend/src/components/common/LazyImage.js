@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function LazyImage({ src, alt, style }) {
+function LazyImage({ src, alt, className = '' }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
@@ -31,15 +31,7 @@ function LazyImage({ src, alt, style }) {
   }, [src]);
 
   const renderPlaceholder = () => (
-    <div
-      style={{
-        ...style,
-        background: 'rgba(255, 255, 255, 0.05)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <div className={`bg-white/5 flex items-center justify-center ${className}`}>
       <svg
         width="24"
         height="24"
@@ -62,45 +54,16 @@ function LazyImage({ src, alt, style }) {
   }
 
   return (
-    <div style={{ ...style, position: 'relative' }}>
+    <div className={`relative ${className}`}>
       {!loaded && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(255, 255, 255, 0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: '30px',
-              height: '30px',
-              border: '2px solid rgba(255, 255, 255, 0.1)',
-              borderTopColor: '#8A2BE2',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
+        <div className="absolute inset-0 bg-white/5 flex items-center justify-center">
+          <div className="w-[30px] h-[30px] border-2 border-white/10 border-t-primary rounded-full animate-spin-slow" />
         </div>
       )}
       <img
         src={src}
         alt={alt}
-        style={{
-          ...style,
-          display: 'block',
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          opacity: loaded ? 1 : 0,
-          transition: 'opacity 0.3s ease',
-        }}
+        className={`block w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
       />

@@ -12,38 +12,22 @@ function Breadcrumb({ movie }) {
   };
 
   return (
-    <nav style={styles.breadcrumb} aria-label="breadcrumb">
-      <Link to="/" style={styles.link} onClick={handleHomeClick}>Home</Link>
+    <nav className="p-5 text-white text-lg" aria-label="breadcrumb">
+      <Link 
+        to="/" 
+        className="text-primary hover:underline"
+        onClick={handleHomeClick}
+      >
+        Home
+      </Link>
       {location.pathname.includes('/movies/') && (
         <>
-          <span style={styles.separator}>/</span>
-          <span style={styles.current}>{movie?.title || 'Loading...'}</span>
+          <span className="mx-2.5 text-gray-500">/</span>
+          <span className="text-gray-300">{movie?.title || 'Loading...'}</span>
         </>
       )}
     </nav>
   );
 }
-
-const styles = {
-  breadcrumb: {
-    padding: '20px',
-    color: '#fff',
-    fontSize: '1.1em',
-  },
-  link: {
-    color: '#8A2BE2',
-    textDecoration: 'none',
-    '&:hover': {
-      textDecoration: 'underline',
-    },
-  },
-  separator: {
-    margin: '0 10px',
-    color: '#666',
-  },
-  current: {
-    color: '#ccc',
-  },
-};
 
 export default Breadcrumb; 
