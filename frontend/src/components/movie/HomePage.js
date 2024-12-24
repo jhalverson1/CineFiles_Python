@@ -13,9 +13,12 @@ function HomePage() {
   const [newsItems, setNewsItems] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
 
   useEffect(() => {
     const loadInitialData = async () => {
+      setIsLoading(true);
       try {
         const [popular, topRated, upcoming, news] = await Promise.all([
           movieApi.getPopularMovies(),
@@ -37,6 +40,8 @@ function HomePage() {
         setNewsItems(Array.isArray(news?.items) ? news.items : []);
       } catch (error) {
         console.error('Error loading initial data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -47,13 +52,18 @@ function HomePage() {
     console.log('Search results received:', results);
     setSearchResults(results?.results || []);
     setIsSearching(true);
+    setIsSearchLoading(false);
     console.log('isSearching set to true');
   };
 
-  const MovieSection = ({ title, movies }) => (
+  const handleSearchStart = () => {
+    setIsSearchLoading(true);
+  };
+
+  const MovieSection = ({ title, movies, loading }) => (
     <div className="movie-section">
       <h2 className="section-title">{title}</h2>
-      <MovieList movies={movies} compact={true} />
+      <MovieList movies={movies} isLoading={loading} />
     </div>
   );
 
@@ -61,15 +71,15 @@ function HomePage() {
     <div className="home-container">
       <Breadcrumb />
       <h1 className="title">CineFiles</h1>
-      <SearchBar onResults={handleSearchResults} />
+      <SearchBar onResults={handleSearchResults} onSearchStart={handleSearchStart} />
       
       {isSearching ? (
-        <MovieSection title="Search Results" movies={searchResults} />
+        <MovieSection title="Search Results" movies={searchResults} loading={isSearchLoading} />
       ) : (
         <>
-          <MovieSection title="Popular Movies" movies={popularMovies} />
-          <MovieSection title="Top Rated" movies={topRatedMovies} />
-          <MovieSection title="Coming Soon" movies={upcomingMovies} />
+          <MovieSection title="Popular Movies" movies={popularMovies} loading={isLoading} />
+          <MovieSection title="Top Rated" movies={topRatedMovies} loading={isLoading} />
+          <MovieSection title="Coming Soon" movies={upcomingMovies} loading={isLoading} />
           <NewsSection newsItems={newsItems} />
         </>
       )}

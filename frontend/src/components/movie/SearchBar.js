@@ -5,22 +5,25 @@
  * @component
  * @param {Object} props
  * @param {Function} props.onResults - Callback function to handle search results
+ * @param {Function} props.onSearchStart - Callback function called when search starts
  */
 import React, { useState } from 'react';
 import { movieApi } from '../../utils/api';
 
-function SearchBar({ onResults }) {
+function SearchBar({ onResults, onSearchStart }) {
   const [query, setQuery] = useState('');
 
   const handleSearch = async (e) => {
     e.preventDefault(); // Prevent form submission
     if (query.trim()) {
       try {
+        onSearchStart?.(); // Call onSearchStart if provided
         const results = await movieApi.searchMovies(query);
         console.log('API search results:', results);
         onResults(results);
       } catch (error) {
         console.error('Error searching movies:', error);
+        onResults({ results: [] }); // Clear results on error
       }
     }
   };

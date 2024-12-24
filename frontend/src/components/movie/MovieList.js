@@ -9,7 +9,115 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-function MovieList({ movies = [], title }) {
+function LazyImage({ src, alt, style, placeholderColor = '#2a2a2a' }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    // Don't set up observer if this is a placeholder
+    if (!src) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Pre-load the image
+            const img = new Image();
+            img.src = src;
+            img.onload = () => setIsLoaded(true);
+            img.onerror = () => setIsError(true);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: '50px' }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, [src]);
+
+  // Show loading placeholder if no src (placeholder state) or not loaded yet
+  const showPlaceholder = !src || (!isLoaded && !isError);
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {showPlaceholder && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: placeholderColor,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'pulse 1.5s infinite',
+          }}
+        >
+          <svg
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="rgba(255,255,255,0.2)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        </div>
+      )}
+      {src && (isLoaded || isError) && (
+        <img
+          src={src}
+          alt={alt}
+          style={{
+            ...style,
+            opacity: isLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease-in-out',
+          }}
+        />
+      )}
+      {isError && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: '#3a3a3a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: '0.8rem',
+            textAlign: 'center',
+            padding: '1rem',
+          }}
+        >
+          No Image Available
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MovieList({ movies = [], title, isLoading = true }) {
   const scrollContainerRef = useRef(null);
   const [showRightButton, setShowRightButton] = useState(false);
   const [showLeftButton, setShowLeftButton] = useState(false);
@@ -58,7 +166,11 @@ function MovieList({ movies = [], title }) {
   // Ensure movies is always an array
   const movieArray = Array.isArray(movies) ? movies : [];
 
-  if (!movieArray.length) {
+  // Create placeholder array for loading state
+  const placeholderArray = Array(8).fill({ id: 'placeholder' });
+  const displayArray = isLoading ? placeholderArray : movieArray;
+
+  if (!isLoading && !movieArray.length) {
     return (
       <div style={styles.noResults}>
         <p>No movies found...</p>
@@ -100,36 +212,64 @@ function MovieList({ movies = [], title }) {
       )}
       <div ref={scrollContainerRef} style={styles.scrollContainer}>
         <div style={styles.movieRow}>
-          {movieArray.map(movie => (
-            <Link 
-              key={movie.id} 
-              to={`/movies/${movie.id}`} 
+          {displayArray.map((movie, index) => (
+            <div 
+              key={movie.id || `placeholder-${index}`}
               style={styles.movieCard}
             >
-              <div style={styles.posterContainer}>
-                {movie.poster_path ? (
-                  <img
-                    src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                    alt={movie.title}
+              {movie.id === 'placeholder' ? (
+                <div style={styles.posterContainer}>
+                  <LazyImage
+                    src=""
+                    alt="Loading..."
                     style={styles.poster}
-                    loading="lazy"
                   />
-                ) : (
-                  <div style={styles.noPoster}>No Poster Available</div>
-                )}
-                <div style={styles.overlay}>
-                  <div style={styles.rating}>
-                    ★ {movie.vote_average.toFixed(1)}
-                  </div>
                 </div>
-              </div>
-              <div style={styles.movieInfo}>
-                <h3 style={styles.title}>{movie.title}</h3>
-                <p style={styles.year}>
-                  {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
-                </p>
-              </div>
-            </Link>
+              ) : (
+                <Link 
+                  to={`/movies/${movie.id}`} 
+                  style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+                >
+                  <div style={styles.posterContainer}>
+                    <LazyImage
+                      src={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : ''}
+                      alt={movie.title}
+                      style={styles.poster}
+                    />
+                    <div style={styles.overlay}>
+                      <div style={styles.rating}>
+                        ★ {movie.vote_average.toFixed(1)}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={styles.movieInfo}>
+                    <h3 style={styles.title}>{movie.title}</h3>
+                    <p style={styles.year}>
+                      {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
+                    </p>
+                  </div>
+                </Link>
+              )}
+              {movie.id === 'placeholder' && (
+                <div style={styles.movieInfo}>
+                  <div style={{
+                    ...styles.title,
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    height: '1em',
+                    width: '80%',
+                    borderRadius: '4px',
+                  }}></div>
+                  <div style={{
+                    ...styles.year,
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    height: '0.8em',
+                    width: '40%',
+                    borderRadius: '4px',
+                    marginTop: '8px',
+                  }}></div>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -251,6 +391,7 @@ const styles = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
+    display: 'block',
   },
   noPoster: {
     width: '100%',
@@ -328,6 +469,28 @@ const styles = {
     color: 'rgba(255, 255, 255, 0.7)',
     fontSize: '1.1em',
   },
+  '@keyframes pulse': {
+    '0%': {
+      opacity: 0.6,
+    },
+    '50%': {
+      opacity: 0.8,
+    },
+    '100%': {
+      opacity: 0.6,
+    },
+  },
 };
+
+// Add the animation to the document
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+  @keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.6; }
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default MovieList;
