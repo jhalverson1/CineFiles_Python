@@ -9,7 +9,7 @@ from utils.scraper import scrape_movie_news
 import logging
 
 # Configure logging - ignore me
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 load_dotenv()

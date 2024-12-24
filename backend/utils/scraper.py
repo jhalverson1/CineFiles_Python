@@ -7,23 +7,17 @@ logger = logging.getLogger(__name__)
 
 async def scrape_movie_news():
     try:
-        logger.debug("Initializing Reddit client")
         reddit = asyncpraw.Reddit(
             client_id=os.getenv('REDDIT_CLIENT_ID'),
             client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
             user_agent="CineFiles/1.0"
         )
         
-        logger.debug(f"Reddit credentials - Client ID exists: {bool(os.getenv('REDDIT_CLIENT_ID'))}, Secret exists: {bool(os.getenv('REDDIT_CLIENT_SECRET'))}")
-        
         news_items = []
         subreddit = await reddit.subreddit('movies')
-        logger.debug("Connected to r/movies subreddit")
         
         async for submission in subreddit.search('flair:"Article"', sort='hot', limit=6):
-            logger.debug(f"Processing submission: {submission.title}")
             if submission.is_self or not submission.url:
-                logger.debug("Skipping self post or post without URL")
                 continue
             
             news_items.append({
