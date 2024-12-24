@@ -10,35 +10,32 @@ function SearchResults({ movies = [], isLoading = false }) {
 
   if (!isLoading && !movies.length) {
     return (
-      <div style={styles.noResults}>
+      <div className="text-center py-10 text-white/70 text-lg">
         <p>No movies found...</p>
       </div>
     );
   }
 
-  // Create placeholder array for loading state with unique keys
   const displayArray = isLoading 
     ? Array(8).fill().map((_, index) => ({ id: `placeholder-${index}` })) 
     : movies;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.grid}>
+    <div className="w-[95%] max-w-[1200px] mx-auto py-5">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-5 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] sm:gap-7">
         {displayArray.map((movie, index) => (
           <div 
             key={movie.id}
-            style={styles.movieCard}
+            className="bg-[rgba(32,32,32,0.8)] rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
           >
             {movie.id.toString().startsWith('placeholder') ? (
               <>
-                <div style={styles.posterContainer}>
-                  <div style={styles.placeholderPoster}>
+                <div className="relative aspect-[2/3] bg-white/5">
+                  <div className="absolute inset-0 bg-[#2a2a2a] flex items-center justify-center animate-pulse">
                     <svg
-                      width="40"
-                      height="40"
+                      className="w-10 h-10 stroke-white/20"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="rgba(255,255,255,0.2)"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -49,44 +46,33 @@ function SearchResults({ movies = [], isLoading = false }) {
                     </svg>
                   </div>
                 </div>
-                <div style={styles.movieInfo}>
-                  <div style={{
-                    ...styles.title,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    height: '1em',
-                    width: '80%',
-                    borderRadius: '4px',
-                  }}></div>
-                  <div style={{
-                    ...styles.year,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    height: '0.8em',
-                    width: '40%',
-                    borderRadius: '4px',
-                    marginTop: '8px',
-                  }}></div>
+                <div className="p-2 sm:p-2.5 bg-black/20">
+                  <div className="h-4 w-4/5 rounded bg-white/10"></div>
+                  <div className="h-3 w-2/5 rounded bg-white/10 mt-2"></div>
                 </div>
               </>
             ) : (
               <Link 
                 to={`/movies/${movie.id}`} 
-                style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+                className="block text-inherit no-underline"
               >
-                <div style={styles.posterContainer}>
+                <div className="relative aspect-[2/3] bg-white/5">
                   <LazyImage
                     src={getPosterUrl(movie.poster_path)}
                     alt={movie.title}
-                    style={styles.poster}
+                    className="w-full h-full object-cover block"
                   />
-                  <div style={styles.overlay}>
-                    <div style={styles.rating}>
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 bg-black/75 text-yellow-400 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs sm:text-sm backdrop-blur">
                       ★ {movie.vote_average?.toFixed(1)}
                     </div>
                   </div>
                 </div>
-                <div style={styles.movieInfo}>
-                  <h3 style={styles.title}>{movie.title}</h3>
-                  <p style={styles.year}>
+                <div className="p-2 sm:p-2.5 bg-black/20">
+                  <h3 className="m-0 mb-0.5 sm:mb-1 text-sm sm:text-base font-medium text-white truncate">
+                    {movie.title}
+                  </h3>
+                  <p className="m-0 text-xs sm:text-sm text-gray-400">
                     {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
                   </p>
                 </div>
@@ -98,121 +84,5 @@ function SearchResults({ movies = [], isLoading = false }) {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    width: '95%',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '20px 0',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-    gap: '20px',
-    '@media (min-width: 640px)': {
-      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-      gap: '30px',
-    },
-  },
-  movieCard: {
-    background: 'rgba(32, 32, 32, 0.8)',
-    borderRadius: '6px',
-    overflow: 'hidden',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      transform: 'translateY(-3px)',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-    },
-  },
-  posterContainer: {
-    position: 'relative',
-    aspectRatio: '2/3',
-    background: 'rgba(255, 255, 255, 0.05)',
-  },
-  placeholderPoster: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    background: '#2a2a2a',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    animation: 'pulse 1.5s infinite',
-  },
-  poster: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    display: 'block',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 30%)',
-    opacity: 0,
-    transition: 'opacity 0.3s ease',
-    '&:hover': {
-      opacity: 1,
-    },
-  },
-  rating: {
-    position: 'absolute',
-    top: '8px',
-    right: '8px',
-    background: 'rgba(0, 0, 0, 0.75)',
-    color: '#ffd700',
-    padding: '3px 6px',
-    borderRadius: '4px',
-    fontSize: '0.75em',
-    backdropFilter: 'blur(4px)',
-    '@media (min-width: 640px)': {
-      top: '10px',
-      right: '10px',
-      padding: '4px 8px',
-      fontSize: '0.8em',
-    },
-  },
-  movieInfo: {
-    padding: '8px',
-    background: 'rgba(0, 0, 0, 0.2)',
-    '@media (min-width: 640px)': {
-      padding: '10px',
-    },
-  },
-  title: {
-    margin: '0 0 2px 0',
-    fontSize: '0.8em',
-    fontWeight: '500',
-    color: '#fff',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    '@media (min-width: 640px)': {
-      fontSize: '0.9em',
-      margin: '0 0 3px 0',
-    },
-  },
-  year: {
-    margin: 0,
-    color: '#999',
-    fontSize: '0.7em',
-    '@media (min-width: 640px)': {
-      fontSize: '0.8em',
-    },
-  },
-  noResults: {
-    textAlign: 'center',
-    padding: '40px',
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: '1.1em',
-  },
-};
 
 export default SearchResults; 
