@@ -20,25 +20,23 @@ app = FastAPI()
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 logger.debug(f"Frontend URL from env: {frontend_url}")
 
-# Allow production and development URLs
+# Allow specific origins
 origins = [
     frontend_url,
     "http://localhost:3000",
-    "http://localhost:3001",
-    "https://*.railway.app",  # Allow Railway subdomains
-    "https://backend-staging-df72.up.railway.app",  # Explicit backend URL
+    "http://localhost:3001"
 ]
 
 # Clean and normalize origins
-origins = list(set([origin.rstrip('/') for origin in origins if origin]))  # Remove duplicates and trailing slashes
+origins = list(set([origin.rstrip('/') for origin in origins if origin]))
 
 logger.debug(f"Configuring CORS with allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Temporarily allow all origins for debugging
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods temporarily
+    allow_methods=["GET"],  # Only allow GET methods since we're just fetching data
     allow_headers=["*"],
     max_age=3600,
 )
@@ -47,10 +45,9 @@ app.add_middleware(
 @app.middleware("http")
 async def add_cors_headers(request, call_next):
     response = await call_next(request)
-    origin = request.headers.get("origin", frontend_url)
-    response.headers["Access-Control-Allow-Origin"] = "*"  # Temporarily allow all origins
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
+    origin = request.headers.get("origin")
+    if origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
     return response
 
 @app.middleware("http")
