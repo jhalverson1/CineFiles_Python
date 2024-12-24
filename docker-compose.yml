@@ -23,10 +23,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
       - REACT_APP_API_URL=http://localhost:8080
       - NODE_ENV=development
+      - PORT=3001
+      - WDS_SOCKET_PORT=3001
     volumes:
       - ./frontend:/app
       - /app/node_modules

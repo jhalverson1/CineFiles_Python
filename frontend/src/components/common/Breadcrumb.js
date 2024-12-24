@@ -31,7 +31,7 @@ const styles = {
     fontSize: '1.1em',
   },
   link: {
-    color: '#e50914',
+    color: '#8A2BE2',
     textDecoration: 'none',
     '&:hover': {
       textDecoration: 'underline',

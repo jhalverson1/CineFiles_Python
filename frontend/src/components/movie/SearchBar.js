@@ -17,6 +17,7 @@ function SearchBar({ onResults }) {
     if (query.trim()) {
       try {
         const results = await movieApi.searchMovies(query);
+        console.log('API search results:', results);
         onResults(results);
       } catch (error) {
         console.error('Error searching movies:', error);
@@ -41,19 +42,28 @@ function SearchBar({ onResults }) {
 
 const styles = {
   searchContainer: {
-    padding: '20px 0',
-    marginBottom: '20px',
+    padding: '10px 0',
+    marginBottom: '15px',
+    '@media (min-width: 640px)': {
+      padding: '20px 0',
+      marginBottom: '20px',
+    },
   },
   searchWrapper: {
     position: 'relative',
+    width: '90%',
     maxWidth: '600px',
     margin: '0 auto',
-    padding: '0 20px',
+    padding: '0 10px',
+    '@media (min-width: 640px)': {
+      width: '80%',
+      padding: '0 20px',
+    },
   },
   searchInput: {
     width: '100%',
-    padding: '15px 20px',
-    fontSize: '1.1em',
+    padding: '12px 15px',
+    fontSize: '1em',
     color: '#fff',
     border: '2px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '30px',
@@ -61,6 +71,10 @@ const styles = {
     transition: 'all 0.3s ease',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(10px)',
+    '@media (min-width: 640px)': {
+      padding: '15px 20px',
+      fontSize: '1.1em',
+    },
   },
 };
 

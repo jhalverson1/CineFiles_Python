@@ -44,8 +44,10 @@ function HomePage() {
   }, []);
 
   const handleSearchResults = (results) => {
-    setSearchResults(results);
+    console.log('Search results received:', results);
+    setSearchResults(results?.results || []);
     setIsSearching(true);
+    console.log('isSearching set to true');
   };
 
   const MovieSection = ({ title, movies }) => (

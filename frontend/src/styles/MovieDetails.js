@@ -20,23 +20,41 @@ export const styles = {
   },
   header: {
     display: 'flex',
-    gap: '30px',
+    flexDirection: 'column',
+    gap: '20px',
     marginBottom: '40px',
+    '@media (min-width: 768px)': {
+      flexDirection: 'row',
+      gap: '30px',
+    },
   },
   poster: {
-    width: '300px',
+    width: '100%',
+    maxWidth: '300px',
+    margin: '0 auto',
     borderRadius: '10px',
     boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+    '@media (min-width: 768px)': {
+      margin: '0',
+      width: '300px',
+    },
   },
   headerInfo: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
+    textAlign: 'center',
+    '@media (min-width: 768px)': {
+      textAlign: 'left',
+    },
   },
   title: {
-    fontSize: '2.5em',
+    fontSize: '1.8em',
     marginBottom: '10px',
     color: 'white',
+    '@media (min-width: 768px)': {
+      fontSize: '2.5em',
+    },
   },
   year: {
     color: '#ccc',

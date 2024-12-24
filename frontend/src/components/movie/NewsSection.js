@@ -44,28 +44,39 @@ function NewsSection({ newsItems }) {
 const styles = {
   newsSection: {
     padding: '0',
+    width: '95%',
     maxWidth: '1200px',
     margin: '0 auto',
+    '@media (min-width: 640px)': {
+      width: '90%',
+    },
   },
   sectionTitle: {
     color: '#fff',
-    fontSize: '1.3em',
+    fontSize: '1.1em',
     fontWeight: '600',
     marginBottom: '8px',
-    paddingLeft: '15px',
+    paddingLeft: '10px',
     borderLeft: '3px solid #e50914',
+    '@media (min-width: 640px)': {
+      fontSize: '1.3em',
+      paddingLeft: '15px',
+    },
   },
   newsList: {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
-    padding: '0 15px 15px 15px',
+    padding: '0 10px 10px 10px',
+    '@media (min-width: 640px)': {
+      padding: '0 15px 15px 15px',
+    },
   },
   newsItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    padding: '8px',
+    gap: '8px',
+    padding: '6px',
     backgroundColor: 'rgba(32, 32, 32, 0.8)',
     borderRadius: '4px',
     textDecoration: 'none',
@@ -75,13 +86,21 @@ const styles = {
       transform: 'translateX(3px)',
       backgroundColor: 'rgba(40, 40, 40, 0.8)',
     },
+    '@media (min-width: 640px)': {
+      gap: '12px',
+      padding: '8px',
+    },
   },
   imageContainer: {
     flexShrink: 0,
-    width: '70px',
-    height: '40px',
+    width: '60px',
+    height: '35px',
     borderRadius: '3px',
     overflow: 'hidden',
+    '@media (min-width: 640px)': {
+      width: '70px',
+      height: '40px',
+    },
   },
   image: {
     width: '100%',

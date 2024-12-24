@@ -17,7 +17,7 @@ const styles = {
   },
   loader: {
     border: '4px solid rgba(255, 255, 255, 0.1)',
-    borderTop: '4px solid #e50914',
+    borderTop: '4px solid #8A2BE2',
     borderRadius: '50%',
     width: '40px',
     height: '40px',

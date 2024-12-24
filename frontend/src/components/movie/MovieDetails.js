@@ -79,6 +79,19 @@ function MovieDetails() {
     backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 1)), url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`
   };
 
+  const trailerButton = {
+    marginTop: '15px',
+    padding: '6px 12px',
+    fontSize: '0.9em',
+    backgroundColor: '#8A2BE2',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    width: 'fit-content',
+  }
+
   return (
     <div style={backgroundStyle}>
       <Breadcrumb movie={movie} />
@@ -99,16 +112,18 @@ function MovieDetails() {
               <span>{movie.vote_average.toFixed(1)}/10</span>
             </div>
             {trailer && (
-              <button 
-                onClick={() => setShowTrailer(true)}
-                style={styles.trailerButton}
-              >
-                ▶ Watch Trailer
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <button 
+                  onClick={() => setShowTrailer(true)}
+                  style={styles.trailerButton}
+                >
+                  ▶ Watch Trailer
+                </button>
+              </div>
             )}
-            <div style={styles.overview}>
-              <h2 style={styles.overviewTitle}>Overview</h2>
-              <p style={styles.overviewText}>{movie.overview}</p>
+            <div style={{ ...styles.overview, textAlign: 'left' }}>
+              <h2 style={{ ...styles.overviewTitle, textAlign: 'left' }}>Overview</h2>
+              <p style={{ ...styles.overviewText, textAlign: 'left' }}>{movie.overview}</p>
             </div>
           </div>
         </div>
