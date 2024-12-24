@@ -10,7 +10,6 @@ import { useParams } from 'react-router-dom';
 import { axiosInstance } from '../../utils/api';
 import Breadcrumb from '../common/Breadcrumb';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
-import { styles } from '../../styles/MovieDetails';
 
 function MovieDetails() {
   const { id } = useParams();
@@ -65,82 +64,75 @@ function MovieDetails() {
   const displayCast = credits.cast;
   const initialCastCount = 6;
   
-  // Find the official trailer or use the first video
   const trailer = videos.results.find(video => 
     video.type === 'Trailer' && video.site === 'YouTube'
   ) || videos.results[0];
 
-  console.log('Trailer:', trailer); // Add this debug log
-  console.log('Show Trailer State:', showTrailer); // Add this debug log
-
-  // Create the background style with the backdrop image
-  const backgroundStyle = {
-    ...styles.background,
-    backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 1)), url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`
-  };
-
-  const trailerButton = {
-    marginTop: '15px',
-    padding: '6px 12px',
-    fontSize: '0.9em',
-    backgroundColor: '#8A2BE2',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-    width: 'fit-content',
-  }
-
   return (
-    <div style={backgroundStyle}>
+    <div 
+      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 1)), url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`
+      }}
+    >
       <Breadcrumb movie={movie} />
-      <div style={styles.container}>
+      <div className="w-[95%] max-w-[1200px] mx-auto py-8">
         {/* Movie Header Section */}
-        <div style={styles.header}>
+        <div className="flex flex-col md:flex-row gap-8 mb-10">
           <img
             src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
             alt={movie.title}
-            style={styles.poster}
+            className="w-[300px] h-[450px] rounded-lg shadow-lg object-cover"
           />
-          <div style={styles.headerInfo}>
-            <h1 style={styles.title}>{movie.title} <span style={styles.year}>({releaseYear})</span></h1>
-            {director && <p style={styles.director}>Directed by {director.name}</p>}
-            <div style={styles.metadata}>
+          <div className="flex-1 text-white">
+            <h1 className="text-4xl font-bold mb-2">
+              {movie.title} <span className="text-gray-400">({releaseYear})</span>
+            </h1>
+            {director && (
+              <p className="text-lg text-gray-300 mb-4">
+                Directed by {director.name}
+              </p>
+            )}
+            <div className="text-gray-300 mb-4">
               <span>{movie.runtime} minutes</span>
-              <span> • </span>
+              <span className="mx-2">•</span>
               <span>{movie.vote_average.toFixed(1)}/10</span>
             </div>
             {trailer && (
-              <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <div className="flex justify-start mb-6">
                 <button 
                   onClick={() => setShowTrailer(true)}
-                  style={styles.trailerButton}
+                  className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/80 transition-colors duration-200 flex items-center gap-2"
                 >
-                  ▶ Watch Trailer
+                  <span className="text-lg">▶</span> Watch Trailer
                 </button>
               </div>
             )}
-            <div style={{ ...styles.overview, textAlign: 'left' }}>
-              <h2 style={{ ...styles.overviewTitle, textAlign: 'left' }}>Overview</h2>
-              <p style={{ ...styles.overviewText, textAlign: 'left' }}>{movie.overview}</p>
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Overview</h2>
+              <p className="text-gray-300 leading-relaxed">{movie.overview}</p>
             </div>
           </div>
         </div>
 
         {/* Trailer Modal */}
         {showTrailer && trailer && (
-          <div style={styles.modal} onClick={() => setShowTrailer(false)}>
-            <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+          <div 
+            className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowTrailer(false)}
+          >
+            <div 
+              className="relative w-full max-w-4xl bg-black rounded-lg overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
               <button 
-                style={styles.closeButton}
+                className="absolute top-2 right-2 text-white/80 hover:text-white w-8 h-8 flex items-center justify-center text-xl bg-black/50 rounded-full"
                 onClick={() => setShowTrailer(false)}
               >
                 ✕
               </button>
               <iframe
-                width="100%"
-                height="500"
+                className="w-full aspect-video"
                 src={`https://www.youtube.com/embed/${trailer.key}`}
                 title={trailer.name}
                 frameBorder="0"
@@ -152,84 +144,60 @@ function MovieDetails() {
         )}
 
         {/* Cast Section */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Cast</h2>
-          <div style={styles.castContainer}>
-            <div style={styles.castGrid} className={showAllCast ? 'expanded' : ''}>
+        <div className="mb-10">
+          <h2 className="text-2xl font-semibold text-white mb-6">Cast</h2>
+          <div className="relative">
+            <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 ${!showAllCast ? 'max-h-[600px]' : ''} overflow-hidden transition-all duration-500`}>
               {displayCast.map((actor, index) => (
                 <div 
                   key={actor.id} 
-                  style={{
-                    ...styles.castMember,
-                    animation: `fadeIn 0.3s ease-in forwards ${index * 0.1}s`,
-                    opacity: 0,
-                  }}
+                  className="bg-[rgba(32,32,32,0.8)] rounded-lg overflow-hidden cursor-pointer hover:-translate-y-1 transition-transform duration-200 animate-fade-in"
+                  style={{ animationDelay: `${index * 100}ms` }}
                   onClick={() => handleCastClick(actor.id)}
                 >
                   {actor.profile_path ? (
                     <img
                       src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
                       alt={actor.name}
-                      style={styles.castImage}
+                      className="w-full aspect-[2/3] object-cover"
                     />
                   ) : (
-                    <div style={styles.placeholderImage}>No Image</div>
+                    <div className="w-full aspect-[2/3] bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
+                      No Image
+                    </div>
                   )}
-                  <p style={styles.actorName}>{actor.name}</p>
-                  <p style={styles.characterName}>{actor.character}</p>
+                  <div className="p-2">
+                    <p className="text-white font-medium text-sm truncate">{actor.name}</p>
+                    <p className="text-gray-400 text-xs truncate">{actor.character}</p>
+                  </div>
                 </div>
               ))}
             </div>
             {credits.cast.length > initialCastCount && (
               <div 
-                style={styles.expandTrigger}
+                className="text-center mt-4 cursor-pointer text-white/80 hover:text-white"
                 onClick={() => setShowAllCast(!showAllCast)}
               >
-                <span>{showAllCast ? 'Show Less' : 'Show More'}</span>
-                <span style={{
-                  ...styles.arrow,
-                  transform: showAllCast ? 'rotate(180deg)' : 'rotate(0deg)'
-                }}>▼</span>
+                <span className="mr-2">{showAllCast ? 'Show Less' : 'Show More'}</span>
+                <span className={`inline-block transition-transform duration-200 ${showAllCast ? 'rotate-180' : ''}`}>▼</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Additional Details Section */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Additional Details</h2>
-          <div style={styles.additionalInfo}>
-            <p><strong>Release Date:</strong> {movie.release_date}</p>
-            <p><strong>Original Language:</strong> {movie.original_language.toUpperCase()}</p>
-            <p><strong>Budget:</strong> ${movie.budget.toLocaleString()}</p>
-            <p><strong>Revenue:</strong> ${movie.revenue.toLocaleString()}</p>
+        <div className="text-white">
+          <h2 className="text-2xl font-semibold mb-6">Additional Details</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-300">
+            <p><span className="font-semibold">Release Date:</span> {movie.release_date}</p>
+            <p><span className="font-semibold">Original Language:</span> {movie.original_language.toUpperCase()}</p>
+            <p><span className="font-semibold">Budget:</span> ${movie.budget.toLocaleString()}</p>
+            <p><span className="font-semibold">Revenue:</span> ${movie.revenue.toLocaleString()}</p>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-// Only keep the CSS animations here
-const css = `
-  .expanded {
-    max-height: 2000px !important;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`;
-
-const styleSheet = document.createElement("style");
-styleSheet.innerText = css;
-document.head.appendChild(styleSheet);
 
 export default MovieDetails; 
