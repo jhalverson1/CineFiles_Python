@@ -1,13 +1,22 @@
 import axios from 'axios';
 import { API_BASE_URL } from './constants';
 
-// Add logging for API configuration
-console.log('API Configuration:', {
-  baseURL: API_BASE_URL,
-  environment: process.env.NODE_ENV,
-  reactAppApiUrl: process.env.REACT_APP_API_URL,
-  currentOrigin: window.location.origin
+// Enhanced API configuration logging
+console.log('🔧 Detailed API Configuration:', {
+  API_BASE_URL,
+  'process.env.REACT_APP_API_URL': process.env.REACT_APP_API_URL,
+  'process.env.NODE_ENV': process.env.NODE_ENV,
+  'window.location.origin': window.location.origin,
+  'axios baseURL': API_BASE_URL
 });
+
+// Log any potential mismatches
+if (API_BASE_URL !== process.env.REACT_APP_API_URL) {
+  console.warn('⚠️ Warning: API_BASE_URL does not match REACT_APP_API_URL', {
+    API_BASE_URL,
+    REACT_APP_API_URL: process.env.REACT_APP_API_URL
+  });
+}
 
 // Configure axios with logging
 export const axiosInstance = axios.create({
