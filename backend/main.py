@@ -26,27 +26,31 @@ origins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "https://*.railway.app",  # Allow Railway subdomains
+    "https://backend-staging-df72.up.railway.app",  # Explicit backend URL
 ]
 
-if frontend_url not in origins:
-    origins.append(frontend_url)  # Ensure the frontend URL is always included
+# Clean and normalize origins
+origins = list(set([origin.rstrip('/') for origin in origins if origin]))  # Remove duplicates and trailing slashes
 
 logger.debug(f"Configuring CORS with allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Temporarily allow all origins for debugging
     allow_credentials=True,
-    allow_methods=["GET"],  # Only allow GET requests since we're just fetching data
+    allow_methods=["*"],  # Allow all methods temporarily
     allow_headers=["*"],
     max_age=3600,
 )
 
-# Add a middleware to set CORS headers explicitly
+# Update CORS headers middleware
 @app.middleware("http")
 async def add_cors_headers(request, call_next):
     response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", frontend_url)
+    origin = request.headers.get("origin", frontend_url)
+    response.headers["Access-Control-Allow-Origin"] = "*"  # Temporarily allow all origins
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
 @app.middleware("http")
