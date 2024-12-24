@@ -6,23 +6,25 @@ function NewsSection({ newsItems }) {
   }
 
   return (
-    <div style={styles.newsSection}>
-      <h2 style={styles.sectionTitle}>Latest from r/movies</h2>
-      <div style={styles.newsList}>
+    <div className="w-[95%] max-w-[1200px] mx-auto sm:w-[90%]">
+      <h2 className="text-white text-lg font-semibold mb-2 pl-3 sm:pl-4 border-l-3 border-[#e50914] sm:text-xl">
+        Latest from r/movies
+      </h2>
+      <div className="flex flex-col gap-1 px-3 pb-3 sm:gap-2 sm:px-4 sm:pb-4">
         {newsItems.map((item, index) => (
           <a 
             href={item.url} 
             target="_blank" 
             rel="noopener noreferrer" 
             key={index} 
-            style={styles.newsItem}
+            className="flex items-center gap-2 p-1.5 sm:gap-3 sm:p-2 bg-[rgba(32,32,32,0.8)] rounded hover:translate-x-[3px] hover:bg-[rgba(40,40,40,0.8)] transition-all duration-200 text-white no-underline"
           >
             {item.image && (
-              <div style={styles.imageContainer}>
+              <div className="flex-shrink-0 w-[60px] h-[35px] sm:w-[70px] sm:h-[40px] rounded overflow-hidden">
                 <img
                   src={item.image}
                   alt={item.title}
-                  style={styles.image}
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = '/placeholder.jpg';
@@ -30,9 +32,13 @@ function NewsSection({ newsItems }) {
                 />
               </div>
             )}
-            <div style={styles.newsContent}>
-              <h3 style={styles.newsTitle}>{item.title}</h3>
-              <p style={styles.source}>{item.source}</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-medium mb-0.5 text-white leading-tight truncate">
+                {item.title}
+              </h3>
+              <p className="text-[#999] text-xs">
+                {item.source}
+              </p>
             </div>
           </a>
         ))}
@@ -40,91 +46,5 @@ function NewsSection({ newsItems }) {
     </div>
   );
 }
-
-const styles = {
-  newsSection: {
-    padding: '0',
-    width: '95%',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    '@media (min-width: 640px)': {
-      width: '90%',
-    },
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: '1.1em',
-    fontWeight: '600',
-    marginBottom: '8px',
-    paddingLeft: '10px',
-    borderLeft: '3px solid #e50914',
-    '@media (min-width: 640px)': {
-      fontSize: '1.3em',
-      paddingLeft: '15px',
-    },
-  },
-  newsList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    padding: '0 10px 10px 10px',
-    '@media (min-width: 640px)': {
-      padding: '0 15px 15px 15px',
-    },
-  },
-  newsItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '6px',
-    backgroundColor: 'rgba(32, 32, 32, 0.8)',
-    borderRadius: '4px',
-    textDecoration: 'none',
-    color: '#fff',
-    transition: 'transform 0.2s ease, background-color 0.2s ease',
-    '&:hover': {
-      transform: 'translateX(3px)',
-      backgroundColor: 'rgba(40, 40, 40, 0.8)',
-    },
-    '@media (min-width: 640px)': {
-      gap: '12px',
-      padding: '8px',
-    },
-  },
-  imageContainer: {
-    flexShrink: 0,
-    width: '60px',
-    height: '35px',
-    borderRadius: '3px',
-    overflow: 'hidden',
-    '@media (min-width: 640px)': {
-      width: '70px',
-      height: '40px',
-    },
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  newsContent: {
-    flex: 1,
-    minWidth: 0,
-  },
-  newsTitle: {
-    fontSize: '0.9em',
-    fontWeight: '500',
-    marginBottom: '2px',
-    color: '#fff',
-    lineHeight: '1.2',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  source: {
-    color: '#999',
-    fontSize: '0.75em',
-  },
-};
 
 export default NewsSection; 

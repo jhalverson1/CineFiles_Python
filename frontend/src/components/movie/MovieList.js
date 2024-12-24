@@ -9,20 +9,18 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-function LazyImage({ src, alt, style, placeholderColor = '#2a2a2a' }) {
+function LazyImage({ src, alt, className = '', placeholderColor = '#2a2a2a' }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // Don't set up observer if this is a placeholder
     if (!src) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            // Pre-load the image
             const img = new Image();
             img.src = src;
             img.onload = () => setIsLoaded(true);
@@ -45,32 +43,16 @@ function LazyImage({ src, alt, style, placeholderColor = '#2a2a2a' }) {
     };
   }, [src]);
 
-  // Show loading placeholder if no src (placeholder state) or not loaded yet
   const showPlaceholder = !src || (!isLoaded && !isError);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div ref={containerRef} className="relative w-full h-full">
       {showPlaceholder && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: placeholderColor,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            animation: 'pulse 1.5s infinite',
-          }}
-        >
+        <div className="absolute inset-0 bg-[#2a2a2a] flex items-center justify-center animate-pulse">
           <svg
-            width="40"
-            height="40"
+            className="w-10 h-10 stroke-white/20"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="rgba(255,255,255,0.2)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -85,31 +67,11 @@ function LazyImage({ src, alt, style, placeholderColor = '#2a2a2a' }) {
         <img
           src={src}
           alt={alt}
-          style={{
-            ...style,
-            opacity: isLoaded ? 1 : 0,
-            transition: 'opacity 0.3s ease-in-out',
-          }}
+          className={`${className} ${isLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
         />
       )}
       {isError && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: '#3a3a3a',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: '0.8rem',
-            textAlign: 'center',
-            padding: '1rem',
-          }}
-        >
+        <div className="absolute inset-0 bg-[#3a3a3a] flex items-center justify-center text-white/60 text-sm text-center p-4">
           No Image Available
         </div>
       )}
@@ -141,7 +103,6 @@ function MovieList({ movies = [], title, isLoading = true }) {
     window.addEventListener('resize', handleResize);
     if (scrollContainerRef.current) {
       scrollContainerRef.current.addEventListener('scroll', handleScroll);
-      // Initial check
       handleScroll();
     }
 
@@ -155,7 +116,7 @@ function MovieList({ movies = [], title, isLoading = true }) {
 
   const handleScroll = (direction) => {
     if (scrollContainerRef.current) {
-      const scrollAmount = isDesktop ? 600 : 300; // Scroll 3 cards on desktop, 2 on mobile
+      const scrollAmount = isDesktop ? 600 : 300;
       scrollContainerRef.current.scrollBy({
         left: direction === 'right' ? scrollAmount : -scrollAmount,
         behavior: 'smooth'
@@ -163,43 +124,33 @@ function MovieList({ movies = [], title, isLoading = true }) {
     }
   };
 
-  // Ensure movies is always an array
   const movieArray = Array.isArray(movies) ? movies : [];
-
-  // Create placeholder array for loading state
   const placeholderArray = Array(8).fill().map((_, index) => ({ id: `placeholder-${index}` }));
   const displayArray = isLoading ? placeholderArray : movieArray;
 
   if (!isLoading && !movieArray.length) {
     return (
-      <div style={styles.noResults}>
+      <div className="text-center py-10 text-white/70 text-lg">
         <p>No movies found...</p>
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
+    <div className="relative max-w-[1200px] mx-auto flex items-stretch">
       {isDesktop && (
         <div 
-          style={styles.scrollTriggerLeft}
+          className={`w-[30px] flex items-center justify-center bg-gradient-to-r from-purple-600/10 to-transparent ${!showLeftButton && 'pointer-events-none'}`}
           onMouseEnter={() => setIsHoveringLeft(true)}
           onMouseLeave={() => setIsHoveringLeft(false)}
           onClick={() => showLeftButton && handleScroll('left')}
         >
           {showLeftButton && (
-            <div style={{
-              ...styles.scrollButton,
-              opacity: isHoveringLeft ? 1 : 0,
-              transition: 'opacity 0.2s ease',
-              cursor: 'pointer',
-            }}>
+            <div className={`flex items-center justify-center w-[30px] h-[40px] bg-purple-600/20 backdrop-blur rounded cursor-pointer transition-opacity duration-200 ${isHoveringLeft ? 'opacity-100' : 'opacity-0'}`}>
               <svg
-                width="24"
-                height="24"
+                className="w-6 h-6 stroke-current"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -210,60 +161,49 @@ function MovieList({ movies = [], title, isLoading = true }) {
           )}
         </div>
       )}
-      <div ref={scrollContainerRef} style={styles.scrollContainer}>
-        <div style={styles.movieRow}>
+      <div ref={scrollContainerRef} className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-none py-1.5 sm:py-2.5">
+        <div className="flex gap-2.5 py-1.5 sm:gap-4 sm:py-2.5">
           {displayArray.map((movie, index) => (
             <div 
               key={movie.id}
-              style={styles.movieCard}
+              className="flex-shrink-0 w-[140px] sm:w-[200px] bg-[rgba(32,32,32,0.8)] rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
             >
               {movie.id.toString().startsWith('placeholder') ? (
                 <>
-                  <div style={styles.posterContainer}>
+                  <div className="relative aspect-[2/3]">
                     <LazyImage
                       src=""
                       alt="Loading..."
-                      style={styles.poster}
+                      className="w-full h-full object-cover"
                     />
                   </div>
-                  <div style={styles.movieInfo}>
-                    <div style={{
-                      ...styles.title,
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      height: '1em',
-                      width: '80%',
-                      borderRadius: '4px',
-                    }}></div>
-                    <div style={{
-                      ...styles.year,
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      height: '0.8em',
-                      width: '40%',
-                      borderRadius: '4px',
-                      marginTop: '8px',
-                    }}></div>
+                  <div className="p-2 sm:p-2.5 bg-black/20">
+                    <div className="h-4 w-4/5 rounded bg-white/10"></div>
+                    <div className="h-3 w-2/5 rounded bg-white/10 mt-2"></div>
                   </div>
                 </>
               ) : (
                 <Link 
                   to={`/movies/${movie.id}`} 
-                  style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+                  className="block text-inherit no-underline"
                 >
-                  <div style={styles.posterContainer}>
+                  <div className="relative aspect-[2/3]">
                     <LazyImage
                       src={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : ''}
                       alt={movie.title}
-                      style={styles.poster}
+                      className="w-full h-full object-cover"
                     />
-                    <div style={styles.overlay}>
-                      <div style={styles.rating}>
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 bg-black/75 text-yellow-400 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs sm:text-sm backdrop-blur">
                         ★ {movie.vote_average.toFixed(1)}
                       </div>
                     </div>
                   </div>
-                  <div style={styles.movieInfo}>
-                    <h3 style={styles.title}>{movie.title}</h3>
-                    <p style={styles.year}>
+                  <div className="p-2 sm:p-2.5 bg-black/20">
+                    <h3 className="m-0 mb-0.5 sm:mb-1 text-sm sm:text-base font-medium text-white truncate">
+                      {movie.title}
+                    </h3>
+                    <p className="m-0 text-xs sm:text-sm text-gray-400">
                       {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
                     </p>
                   </div>
@@ -275,24 +215,17 @@ function MovieList({ movies = [], title, isLoading = true }) {
       </div>
       {isDesktop && (
         <div 
-          style={styles.scrollTriggerRight}
+          className={`w-[30px] flex items-center justify-center bg-gradient-to-l from-purple-600/10 to-transparent ${!showRightButton && 'pointer-events-none'}`}
           onMouseEnter={() => setIsHoveringRight(true)}
           onMouseLeave={() => setIsHoveringRight(false)}
           onClick={() => showRightButton && handleScroll('right')}
         >
           {showRightButton && (
-            <div style={{
-              ...styles.scrollButton,
-              opacity: isHoveringRight ? 1 : 0,
-              transition: 'opacity 0.2s ease',
-              cursor: 'pointer',
-            }}>
+            <div className={`flex items-center justify-center w-[30px] h-[40px] bg-purple-600/20 backdrop-blur rounded cursor-pointer transition-opacity duration-200 ${isHoveringRight ? 'opacity-100' : 'opacity-0'}`}>
               <svg
-                width="24"
-                height="24"
+                className="w-6 h-6 stroke-current"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -306,191 +239,5 @@ function MovieList({ movies = [], title, isLoading = true }) {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    position: 'relative',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    display: 'flex',
-    alignItems: 'stretch',
-  },
-  scrollContainer: {
-    flex: 1,
-    overflowX: 'auto',
-    overflowY: 'hidden',
-    WebkitOverflowScrolling: 'touch',
-    scrollbarWidth: 'none',
-    msOverflowStyle: 'none',
-    '&::-webkit-scrollbar': {
-      display: 'none',
-    },
-    padding: '5px 0',
-    '@media (min-width: 640px)': {
-      padding: '10px 0',
-    },
-  },
-  scrollTriggerLeft: {
-    width: '30px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(to right, rgba(138, 43, 226, 0.1), transparent)',
-  },
-  scrollTriggerRight: {
-    width: '30px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(to left, rgba(138, 43, 226, 0.1), transparent)',
-  },
-  scrollButton: {
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '30px',
-    height: '40px',
-    background: 'rgba(138, 43, 226, 0.2)',
-    borderRadius: '4px',
-    backdropFilter: 'blur(4px)',
-    cursor: 'pointer',
-  },
-  movieRow: {
-    display: 'flex',
-    gap: '10px',
-    padding: '5px 0',
-    '@media (min-width: 640px)': {
-      gap: '15px',
-      padding: '10px 0',
-    },
-  },
-  movieCard: {
-    textDecoration: 'none',
-    color: '#fff',
-    background: 'rgba(32, 32, 32, 0.8)',
-    borderRadius: '6px',
-    overflow: 'hidden',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-    transition: 'all 0.3s ease',
-    flexShrink: 0,
-    width: '140px',
-    '@media (min-width: 640px)': {
-      width: '200px',
-    },
-    '&:hover': {
-      transform: 'translateY(-3px)',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-    },
-  },
-  posterContainer: {
-    position: 'relative',
-    aspectRatio: '2/3',
-  },
-  poster: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    display: 'block',
-  },
-  noPoster: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2a2a2a',
-    color: '#666',
-    textAlign: 'center',
-    padding: '10px',
-    fontSize: '0.8em',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 30%)',
-    opacity: 0,
-    transition: 'opacity 0.3s ease',
-    '&:hover': {
-      opacity: 1,
-    },
-  },
-  rating: {
-    position: 'absolute',
-    top: '8px',
-    right: '8px',
-    background: 'rgba(0, 0, 0, 0.75)',
-    color: '#ffd700',
-    padding: '3px 6px',
-    borderRadius: '4px',
-    fontSize: '0.75em',
-    backdropFilter: 'blur(4px)',
-    '@media (min-width: 640px)': {
-      top: '10px',
-      right: '10px',
-      padding: '4px 8px',
-      fontSize: '0.8em',
-    },
-  },
-  movieInfo: {
-    padding: '8px',
-    background: 'rgba(0, 0, 0, 0.2)',
-    '@media (min-width: 640px)': {
-      padding: '10px',
-    },
-  },
-  title: {
-    margin: '0 0 2px 0',
-    fontSize: '0.8em',
-    fontWeight: '500',
-    color: '#fff',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    '@media (min-width: 640px)': {
-      fontSize: '0.9em',
-      margin: '0 0 3px 0',
-    },
-  },
-  year: {
-    margin: 0,
-    color: '#999',
-    fontSize: '0.7em',
-    '@media (min-width: 640px)': {
-      fontSize: '0.8em',
-    },
-  },
-  noResults: {
-    textAlign: 'center',
-    padding: '40px',
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: '1.1em',
-  },
-  '@keyframes pulse': {
-    '0%': {
-      opacity: 0.6,
-    },
-    '50%': {
-      opacity: 0.8,
-    },
-    '100%': {
-      opacity: 0.6,
-    },
-  },
-};
-
-// Add the animation to the document
-const styleSheet = document.createElement('style');
-styleSheet.textContent = `
-  @keyframes pulse {
-    0% { opacity: 0.6; }
-    50% { opacity: 0.8; }
-    100% { opacity: 0.6; }
-  }
-`;
-document.head.appendChild(styleSheet);
 
 export default MovieList;
