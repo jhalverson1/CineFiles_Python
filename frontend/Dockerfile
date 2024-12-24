@@ -7,21 +7,15 @@ COPY . .
 
 # Build arguments and environment variables
 ARG REACT_APP_API_URL
-ARG REACT_APP_DEPLOY_ENV=staging
-ARG PORT=3000
+ARG REACT_APP_DEPLOY_ENV=development
+ARG PORT=3001
 
 # Set environment variables
 ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 ENV REACT_APP_DEPLOY_ENV=${REACT_APP_DEPLOY_ENV}
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV PORT=${PORT}
 ENV WDS_SOCKET_PORT=${PORT}
 
-# Build the application
-RUN npm run build
-
-# Install serve
-RUN npm install -g serve
-
-# Start the application
-CMD serve -s build -l ${PORT}
+# Start the development server
+CMD ["npm", "start"]
