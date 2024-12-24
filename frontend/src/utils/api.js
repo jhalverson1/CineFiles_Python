@@ -1,36 +1,37 @@
 import axios from 'axios';
 import { API_BASE_URL } from './constants';
 
-// Enhanced API configuration logging
-console.log('🔧 Detailed API Configuration:', {
+// Temporary alert to verify code execution
+alert('API Configuration Loading - API_BASE_URL: ' + API_BASE_URL);
+
+// STARTUP LOGGING
+console.log('🚨 APPLICATION STARTUP 🚨');
+console.log('==========================================');
+console.log('API CONFIGURATION:', {
   API_BASE_URL,
   'process.env.REACT_APP_API_URL': process.env.REACT_APP_API_URL,
   'process.env.NODE_ENV': process.env.NODE_ENV,
-  'window.location.origin': window.location.origin,
-  'axios baseURL': API_BASE_URL
+  'window.location.origin': window.location.origin
 });
+console.log('==========================================');
 
-// Log any potential mismatches
-if (API_BASE_URL !== process.env.REACT_APP_API_URL) {
-  console.warn('⚠️ Warning: API_BASE_URL does not match REACT_APP_API_URL', {
-    API_BASE_URL,
-    REACT_APP_API_URL: process.env.REACT_APP_API_URL
-  });
-}
-
-// Configure axios with logging
+// Configure axios
 export const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true
+  withCredentials: false,  // Disable credentials for now
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  timeout: 10000 // 10 second timeout
 });
 
-// Add request interceptor
+// Add request interceptor with more detailed logging
 axiosInstance.interceptors.request.use(
   (config) => {
-    console.log('🚀 API Request:', {
+    console.log('🚀 Outgoing Request:', {
+      fullUrl: config.baseURL + config.url,
       method: config.method,
-      url: config.url,
-      data: config.data,
       headers: config.headers
     });
     return config;
@@ -41,21 +42,25 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Add response interceptor
+// Add response interceptor with more error details
 axiosInstance.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', {
+    console.log('✅ Response Received:', {
       status: response.status,
-      data: response.data,
-      headers: response.headers
+      headers: response.headers,
+      url: response.config.url
     });
     return response;
   },
   (error) => {
-    console.error('❌ Response Error:', {
+    console.error('❌ Response Error Details:', {
+      message: error.message,
       status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      fullUrl: error.config?.baseURL + error.config?.url,
+      headers: error.config?.headers
     });
     return Promise.reject(error);
   }
