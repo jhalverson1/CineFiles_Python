@@ -6,7 +6,7 @@ RUN npm install @babel/plugin-proposal-private-property-in-object
 COPY . .
 
 # Build arguments and environment variables
-ARG REACT_APP_API_URL
+ARG REACT_APP_API_URL=http://localhost:8080
 ARG REACT_APP_DEPLOY_ENV=development
 ARG PORT=3001
 

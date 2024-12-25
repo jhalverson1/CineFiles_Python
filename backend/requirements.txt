@@ -16,3 +16,7 @@ beautifulsoup4==4.12.2
 aiohttp==3.9.1
 asyncpraw==7.5.0
 httpx==0.24.1
+alembic==1.12.1
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+greenlet==3.0.1

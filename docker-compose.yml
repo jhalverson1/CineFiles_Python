@@ -13,10 +13,18 @@ services:
       - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET}
       - FRONTEND_URL=http://localhost:3001
       - PORT=8080
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/cinefiles
     volumes:
       - ./backend:/app
       - /app/__pycache__
-    command: uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "cd /app &&
+             sleep 5 &&
+             python -m alembic upgrade head &&
+             uvicorn main:app --host 0.0.0.0 --port 8080 --reload"
 
   frontend:
     build:
@@ -32,4 +40,23 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    command: npm start 
+    command: npm start
+
+  db:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=cinefiles
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data: 
