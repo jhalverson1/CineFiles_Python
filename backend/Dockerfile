@@ -28,9 +28,10 @@ ENV PYTHONPATH=/app
 # Default to development mode
 ENV APP_ENV=development
 
-# Use a script to determine startup command based on environment
-CMD if [ "$APP_ENV" = "production" ] || [ "$APP_ENV" = "staging" ] ; then \
-        alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT ; \
-    else \
-        uvicorn main:app --host 0.0.0.0 --port $PORT --reload ; \
-    fi
+# Ensure the script has the correct permissions
+RUN chmod +x /app/scripts/start.sh && \
+    # Convert possible Windows line endings to Unix
+    sed -i 's/\r$//' /app/scripts/start.sh
+
+# Use shell to execute the script
+CMD ["sh", "/app/scripts/start.sh"]

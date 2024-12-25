@@ -21,11 +21,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      sh -c "cd /app &&
-             sleep 5 &&
-             python -m alembic upgrade head &&
-             uvicorn main:app --host 0.0.0.0 --port 8080 --reload"
 
   frontend:
     build:

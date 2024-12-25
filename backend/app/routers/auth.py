@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_
+from sqlalchemy import or_, func
+from datetime import datetime
 
 from ..database.database import get_db
 from ..models.user import User
@@ -58,6 +59,10 @@ async def login(user_credentials: UserLogin, db: AsyncSession = Depends(get_db))
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
         )
+    
+    # Update last_login timestamp
+    user.last_login = datetime.utcnow()
+    await db.commit()
     
     # Create access token
     access_token = create_access_token(
