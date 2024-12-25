@@ -7,6 +7,7 @@ import httpx
 from fastapi import HTTPException
 from utils.scraper import scrape_movie_news
 import logging
+from app.routers import auth, proxy
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -38,10 +39,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods since we'll have user authentication
+    allow_methods=["*"],
     allow_headers=["*"],
     max_age=3600,
 )
+
+# Include routers
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(proxy.router, prefix="/api/proxy", tags=["proxy"])
 
 # Update CORS headers middleware
 @app.middleware("http")

@@ -1,89 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import SearchBar from './SearchBar';
-import MovieList from './MovieList';
-import SearchResults from './SearchResults';
-import NewsSection from './NewsSection';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { movieApi } from '../../utils/api';
-import '../../styles/HomePage.css';
+import MovieList from './MovieList';
+import SearchBar from '../common/SearchBar';
 
-function HomePage() {
-  const [popularMovies, setPopularMovies] = useState([]);
-  const [topRatedMovies, setTopRatedMovies] = useState([]);
-  const [upcomingMovies, setUpcomingMovies] = useState([]);
-  const [newsItems, setNewsItems] = useState([]);
+const HomePage = () => {
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      setIsLoading(true);
-      try {
-        const [popular, topRated, upcoming, news] = await Promise.all([
-          movieApi.getPopularMovies(),
-          movieApi.getTopRatedMovies(),
-          movieApi.getUpcomingMovies(),
-          movieApi.getMovieNews()
-        ]);
-        
-        console.log('API Responses:', {
-          popular,
-          topRated,
-          upcoming,
-          news
-        });
+  const handleSearch = async (query) => {
+    if (!query.trim()) return;
 
-        setPopularMovies(popular?.results || []);
-        setTopRatedMovies(topRated?.results || []);
-        setUpcomingMovies(upcoming?.results || []);
-        setNewsItems(Array.isArray(news?.items) ? news.items : []);
-      } catch (error) {
-        console.error('Error loading initial data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadInitialData();
-  }, []);
-
-  const handleSearchResults = (results) => {
-    console.log('Search results received:', results);
-    setSearchResults(results?.results || []);
     setIsSearching(true);
-    setIsSearchLoading(false);
-    console.log('isSearching set to true');
+    try {
+      const response = await movieApi.searchMovies(query);
+      navigate('/search', { 
+        state: { 
+          results: response.results,
+          query: query 
+        } 
+      });
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
   };
-
-  const handleSearchStart = () => {
-    setIsSearchLoading(true);
-  };
-
-  const MovieSection = ({ title, movies, loading }) => (
-    <div className="movie-section">
-      <h2 className="section-title">{title}</h2>
-      <MovieList movies={movies} isLoading={loading} />
-    </div>
-  );
 
   return (
-    <div className="home-container">
-      <h1 className="title">CineFiles</h1>
-      <SearchBar onResults={handleSearchResults} onSearchStart={handleSearchStart} />
-      
-      {isSearching ? (
-        <SearchResults movies={searchResults} isLoading={isSearchLoading} />
-      ) : (
-        <>
-          <MovieSection title="Popular Movies" movies={popularMovies} loading={isLoading} />
-          <MovieSection title="Top Rated" movies={topRatedMovies} loading={isLoading} />
-          <MovieSection title="Coming Soon" movies={upcomingMovies} loading={isLoading} />
-          <NewsSection newsItems={newsItems} />
-        </>
-      )}
+    <div className="min-h-screen bg-black text-white">
+      <div className="w-full px-6 py-8">
+        {/* Hero Section */}
+        <div className="max-w-4xl mx-auto text-center mb-12">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">
+            Discover Your Next Favorite Movie
+          </h1>
+          <p className="text-gray-400 text-lg mb-8">
+            Explore popular, top-rated, and upcoming movies
+          </p>
+          <SearchBar 
+            onSearch={handleSearch} 
+            isSearching={isSearching} 
+          />
+        </div>
+
+        {/* Movie Lists */}
+        <div className="space-y-12">
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Popular Movies</h2>
+            <MovieList type="popular" />
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Top Rated Movies</h2>
+            <MovieList type="top-rated" />
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Upcoming Movies</h2>
+            <MovieList type="upcoming" />
+          </section>
+
+          {/* Movie News Section - Currently Hidden
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Movie News</h2>
+            <MovieList type="news" />
+          </section>
+          */}
+        </div>
+      </div>
     </div>
   );
-}
+};
 
 export default HomePage; 
