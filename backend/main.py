@@ -7,6 +7,7 @@ import httpx
 from fastapi import HTTPException
 from utils.scraper import scrape_movie_news
 import logging
+from app.routers import auth
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +43,9 @@ app.add_middleware(
     allow_headers=["*"],
     max_age=3600,
 )
+
+# Include routers
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 # Update CORS headers middleware
 @app.middleware("http")

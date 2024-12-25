@@ -10,6 +10,8 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import MovieDetails from './components/movie/MovieDetails';
 import HomePage from './components/movie/HomePage';
+import LoginForm from './components/auth/LoginForm';
+import SignupForm from './components/auth/SignupForm';
 import './styles/App.css';
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
         <Routes>
           <Route exact path="/" element={<HomePage />} />
           <Route path="/movies/:id" element={<MovieDetails />} />
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/signup" element={<SignupForm />} />
           <Route path="*" element={<HomePage />} />
         </Routes>
       </div>
