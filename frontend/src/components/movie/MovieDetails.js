@@ -7,8 +7,9 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { axiosInstance } from '../../utils/api';
+import { movieApi } from '../../utils/api';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
+import { getImageUrl } from '../../utils/image';
 
 function MovieDetails() {
   const { id } = useParams();
@@ -22,15 +23,15 @@ function MovieDetails() {
     document.title = 'Loading Movie Details...';
 
     Promise.all([
-      axiosInstance.get(`/api/movies/${id}`),
-      axiosInstance.get(`/api/movies/${id}/credits`),
-      axiosInstance.get(`/api/movies/${id}/videos`)
+      movieApi.getMovieDetails(id),
+      movieApi.getMovieCredits(id),
+      movieApi.getMovieVideos(id)
     ])
-      .then(([movieResponse, creditsResponse, videosResponse]) => {
-        setMovie(movieResponse.data);
-        setCredits(creditsResponse.data);
-        setVideos(videosResponse.data);
-        document.title = `${movieResponse.data.title} - Movie Details`;
+      .then(([movieData, creditsData, videosData]) => {
+        setMovie(movieData);
+        setCredits(creditsData);
+        setVideos(videosData);
+        document.title = `${movieData.title} - Movie Details`;
       })
       .catch(error => {
         console.error('Error fetching movie details:', error);
@@ -44,8 +45,8 @@ function MovieDetails() {
 
   const handleCastClick = async (personId) => {
     try {
-      const response = await axiosInstance.get(`/api/person/${personId}`);
-      const imdbId = response.data.imdb_id;
+      const response = await movieApi.getPersonDetails(personId);
+      const imdbId = response.imdb_id;
       if (imdbId) {
         window.open(`https://www.imdb.com/name/${imdbId}`, '_blank');
       }
@@ -71,7 +72,7 @@ function MovieDetails() {
     <div 
       className="min-h-screen bg-cover bg-center bg-no-repeat"
       style={{
-        backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 1)), url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`
+        backgroundImage: `linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 1)), url(${getImageUrl(movie.backdrop_path, 'original')})`
       }}
     >
       <Link 
@@ -99,7 +100,7 @@ function MovieDetails() {
         {/* Movie Header Section */}
         <div className="flex flex-col md:flex-row gap-8 mb-10">
           <img
-            src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+            src={getImageUrl(movie.poster_path, 'w500')}
             alt={movie.title}
             className="w-[300px] h-[450px] rounded-lg shadow-lg object-cover"
           />
@@ -165,43 +166,38 @@ function MovieDetails() {
         {/* Cast Section */}
         <div className="mb-10">
           <h2 className="text-2xl font-semibold text-white mb-6">Cast</h2>
-          <div className="relative">
-            <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 ${!showAllCast ? 'max-h-[600px]' : ''} overflow-hidden transition-all duration-500`}>
-              {displayCast.map((actor, index) => (
-                <div 
-                  key={actor.id} 
-                  className="bg-[rgba(32,32,32,0.8)] rounded-lg overflow-hidden cursor-pointer hover:-translate-y-1 transition-transform duration-200 animate-fade-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {displayCast
+              .slice(0, showAllCast ? undefined : initialCastCount)
+              .map((actor) => (
+                <div
+                  key={actor.id}
                   onClick={() => handleCastClick(actor.id)}
+                  className="bg-zinc-900 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                 >
-                  {actor.profile_path ? (
-                    <img
-                      src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
-                      alt={actor.name}
-                      className="w-full aspect-[2/3] object-cover"
-                    />
-                  ) : (
-                    <div className="w-full aspect-[2/3] bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
-                      No Image
-                    </div>
-                  )}
+                  <img
+                    src={getImageUrl(actor.profile_path, 'w185')}
+                    alt={actor.name}
+                    className="w-full aspect-[2/3] object-cover"
+                    onError={(e) => {
+                      e.target.src = '/placeholder.jpg';
+                    }}
+                  />
                   <div className="p-2">
-                    <p className="text-white font-medium text-sm truncate">{actor.name}</p>
-                    <p className="text-gray-400 text-xs truncate">{actor.character}</p>
+                    <h3 className="font-medium text-white text-sm">{actor.name}</h3>
+                    <p className="text-gray-400 text-xs">{actor.character}</p>
                   </div>
                 </div>
               ))}
-            </div>
-            {credits.cast.length > initialCastCount && (
-              <div 
-                className="text-center mt-4 cursor-pointer text-white/80 hover:text-white"
-                onClick={() => setShowAllCast(!showAllCast)}
-              >
-                <span className="mr-2">{showAllCast ? 'Show Less' : 'Show More'}</span>
-                <span className={`inline-block transition-transform duration-200 ${showAllCast ? 'rotate-180' : ''}`}>▼</span>
-              </div>
-            )}
           </div>
+          {displayCast.length > initialCastCount && (
+            <button
+              onClick={() => setShowAllCast(!showAllCast)}
+              className="mt-4 px-4 py-2 bg-zinc-800 text-white rounded hover:bg-zinc-700 transition-colors duration-200"
+            >
+              {showAllCast ? 'Show Less' : `Show All (${displayCast.length})`}
+            </button>
+          )}
         </div>
 
         {/* Additional Details Section */}

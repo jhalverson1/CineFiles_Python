@@ -26,15 +26,15 @@ const LoginForm = () => {
       const response = await authApi.login(formData);
       // Store the token in localStorage
       localStorage.setItem('token', response.access_token);
-      // Redirect to home page
-      navigate('/');
+      // Force a page reload to update the navigation state
+      window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to login');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">

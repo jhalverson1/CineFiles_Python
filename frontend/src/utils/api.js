@@ -1,17 +1,17 @@
 import axios from 'axios';
 
-export const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
-  withCredentials: false,
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
+const api = axios.create({
+  baseURL,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
   },
-  timeout: 10000
 });
 
-// Add a request interceptor to include the auth token
-axiosInstance.interceptors.request.use(
+// Add request interceptor to include auth token
+api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -24,45 +24,31 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-export const authApi = {
-  login: async (credentials) => {
-    const response = await axiosInstance.post('/api/auth/login', credentials);
-    return response.data;
-  },
-
-  signup: async (userData) => {
-    const response = await axiosInstance.post('/api/auth/signup', userData);
-    return response.data;
-  },
-
-  logout: () => {
-    localStorage.removeItem('token');
+// Add response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    console.error('API Error:', error.response?.data || error.message);
+    return Promise.reject(error);
   }
-};
+);
 
 export const movieApi = {
-  searchMovies: async (query) => {
-    const response = await axiosInstance.get(`/api/movies/search?query=${encodeURIComponent(query)}`);
-    return response.data;
-  },
+  getPopularMovies: () => api.get('/api/movies/popular'),
+  getTopRatedMovies: () => api.get('/api/movies/top-rated'),
+  getUpcomingMovies: () => api.get('/api/movies/upcoming'),
+  getMovieNews: () => api.get('/api/movies/news'),
+  searchMovies: (query) => api.get(`/api/movies/search?query=${encodeURIComponent(query)}`),
+  getMovieDetails: (id) => api.get(`/api/movies/${id}`),
+  getMovieCredits: (id) => api.get(`/api/movies/${id}/credits`),
+  getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
+  getPersonDetails: (id) => api.get(`/api/person/${id}`),
+};
 
-  getPopularMovies: async () => {
-    const response = await axiosInstance.get('/api/movies/popular');
-    return response.data;
-  },
+export const authApi = {
+  login: (credentials) => api.post('/api/auth/login', credentials),
+  signup: (userData) => api.post('/api/auth/signup', userData),
+  verifyToken: () => api.get('/api/auth/verify'),
+};
 
-  getTopRatedMovies: async () => {
-    const response = await axiosInstance.get('/api/movies/top-rated');
-    return response.data;
-  },
-
-  getUpcomingMovies: async () => {
-    const response = await axiosInstance.get('/api/movies/upcoming');
-    return response.data;
-  },
-
-  getMovieNews: async () => {
-    const response = await axiosInstance.get('/api/movies/news');
-    return response.data;
-  }
-}; 
+export default api; 
