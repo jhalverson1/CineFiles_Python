@@ -30,12 +30,17 @@ if config.config_file_name is not None:
 # Get the DATABASE_URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Handle Railway's postgres:// vs postgresql:// URL scheme
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-# Set the database URL in the alembic.ini file
+# Handle URL transformations
 if DATABASE_URL:
+    # Replace postgres:// with postgresql:// for SQLAlchemy
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    # Add async driver if not present
+    if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+    
+    # Set the URL in alembic config
     config.set_main_option("sqlalchemy.url", DATABASE_URL)
 else:
     config.set_main_option("sqlalchemy.url", "postgresql+asyncpg://postgres:postgres@db:5432/cinefiles")

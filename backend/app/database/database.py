@@ -7,8 +7,14 @@ import os
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Handle Railway's postgres:// vs postgresql:// URL scheme
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+if DATABASE_URL:
+    # Replace postgres:// with postgresql:// for SQLAlchemy
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    # Add async driver if not present
+    if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 # Fallback to local database if no DATABASE_URL is provided
 if not DATABASE_URL:
