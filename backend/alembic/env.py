@@ -27,8 +27,18 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Get the DATABASE_URL from environment variable
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Handle Railway's postgres:// vs postgresql:// URL scheme
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # Set the database URL in the alembic.ini file
-config.set_main_option("sqlalchemy.url", "postgresql+asyncpg://postgres:postgres@db:5432/cinefiles")
+if DATABASE_URL:
+    config.set_main_option("sqlalchemy.url", DATABASE_URL)
+else:
+    config.set_main_option("sqlalchemy.url", "postgresql+asyncpg://postgres:postgres@db:5432/cinefiles")
 
 # Add your model's MetaData object here for 'autogenerate' support
 target_metadata = Base.metadata

@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from utils.scraper import scrape_movie_news
 import logging
 
-# Configure logging - ignore me
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,9 @@ logger.debug(f"Frontend URL from env: {frontend_url}")
 origins = [
     frontend_url,
     "http://localhost:3000",
-    "http://localhost:3001"
+    "http://localhost:3001",
+    # Add your Railway frontend URL here when deployed
+    "https://cinefiles-production.up.railway.app",
 ]
 
 # Clean and normalize origins
@@ -36,7 +38,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET"],  # Only allow GET methods since we're just fetching data
+    allow_methods=["*"],  # Allow all methods since we'll have user authentication
     allow_headers=["*"],
     max_age=3600,
 )
@@ -210,5 +212,7 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
+    # Get port from Railway or default to 8080
     port = int(os.getenv("PORT", 8080))
+    # Bind to 0.0.0.0 for Railway
     uvicorn.run(app, host="0.0.0.0", port=port)
