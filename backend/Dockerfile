@@ -29,7 +29,7 @@ ENV PYTHONPATH=/app
 ENV APP_ENV=development
 
 # Use a script to determine startup command based on environment
-CMD if [ "$APP_ENV" = "production" ] ; then \
+CMD if [ "$APP_ENV" = "production" ] || [ "$APP_ENV" = "staging" ] ; then \
         alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT ; \
     else \
         uvicorn main:app --host 0.0.0.0 --port $PORT --reload ; \
