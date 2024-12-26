@@ -1,7 +1,7 @@
-const getImageUrl = (path, size = 'w500') => {
-  if (!path) return '/placeholder.jpg';
-  const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-  return `${baseUrl}/api/proxy/image/${size}${path}`;
-};
+import { API_BASE_URL } from './constants';
 
-export { getImageUrl }; 
+export const getImageUrl = (path, size = 'original') => {
+  if (!path) return '';
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  return `${API_BASE_URL}/api/proxy/image/${size}/${cleanPath}`;
+}; 

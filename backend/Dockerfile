@@ -9,6 +9,7 @@ RUN apt-get update && \
     libpq-dev \
     gcc \
     python3-dev \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching

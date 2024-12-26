@@ -1,223 +1,57 @@
-from fastapi import FastAPI, Query
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-import os
-import requests
-from dotenv import load_dotenv
-import httpx
-from fastapi import HTTPException
-from utils.scraper import scrape_movie_news
+from starlette.middleware.base import BaseHTTPMiddleware
+from app.core.config import get_settings
+from app.database.database import init_db
+from app.routers import auth, movies, proxy, person
 import logging
-from app.routers import auth, proxy
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+settings = get_settings()
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+class APIVersionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith('/api/'):
+            request.scope["path"] = request.url.path.replace('/api/', '/api/v1/')
+        return await call_next(request)
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Setup logging configuration
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    
+    await init_db()
+    yield
+    logger.info("Shutting down application")
 
-# Configure CORS with logging
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-logger.debug(f"Frontend URL from env: {frontend_url}")
-
-# Allow specific origins
-origins = [
-    frontend_url,
-    "http://localhost:3000",
-    "http://localhost:3001",
-    # Add your Railway frontend URL here when deployed
-    "https://cinefiles-production.up.railway.app",
-]
-
-# Clean and normalize origins
-origins = list(set([origin.rstrip('/') for origin in origins if origin]))
-
-logger.debug(f"Configuring CORS with allowed origins: {origins}")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    max_age=3600,
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    debug=settings.DEBUG,
+    lifespan=lifespan
 )
 
+# Add version middleware before routers
+app.add_middleware(APIVersionMiddleware)
+
 # Include routers
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(proxy.router, prefix="/api/proxy", tags=["proxy"])
+app.include_router(auth.router, prefix=settings.API_V1_STR + "/auth", tags=["auth"])
+app.include_router(movies.router, prefix=settings.API_V1_STR + "/movies", tags=["movies"])
+app.include_router(proxy.router, prefix=settings.API_V1_STR + "/proxy", tags=["proxy"])
+app.include_router(person.router, prefix=settings.API_V1_STR + "/person", tags=["person"])
 
-# Update CORS headers middleware
-@app.middleware("http")
-async def add_cors_headers(request, call_next):
-    response = await call_next(request)
-    origin = request.headers.get("origin")
-    if origin in origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-    return response
-
-@app.middleware("http")
-async def log_requests(request, call_next):
-    logger.debug(f"Incoming request: {request.method} {request.url}")
-    logger.debug(f"Headers: {request.headers}")
-    response = await call_next(request)
-    logger.debug(f"Response status: {response.status_code}")
-    return response
-
-async def fetch_tmdb_data(endpoint):
-    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
-    }
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"https://api.themoviedb.org/3{endpoint}",
-                headers=headers
-            )
-            if response.status_code != 200:
-                raise HTTPException(status_code=response.status_code, detail=f"Error fetching from TMDB: {endpoint}")
-            return response.json()
-    except Exception as e:
-        logger.error(f"Error fetching from TMDB: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/hello")
-async def read_root():
-    return {"message": "Hello from FastAPI!"}
-
-@app.get("/api/movies/popular")
-async def get_popular_movies():
-    return await fetch_tmdb_data("/movie/popular?language=en-US&page=1")
-
-@app.get("/api/movies/top-rated")
-async def get_top_rated_movies():
-    return await fetch_tmdb_data("/movie/top_rated?language=en-US&page=1")
-
-@app.get("/api/movies/upcoming")
-async def get_upcoming_movies():
-    return await fetch_tmdb_data("/movie/upcoming?language=en-US&page=1")
-
-@app.get("/api/movies/news")
-async def get_movie_news():
-    try:
-        logger.debug("Starting movie news fetch")
-        news = await scrape_movie_news()
-        logger.debug(f"Fetched {len(news) if news else 0} news items")
-        if not news:
-            logger.warning("No news items found")
-            return {"error": "No news found", "items": []}
-        return {"items": news}
-    except Exception as e:
-        logger.error(f"Error in get_movie_news: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch movie news: {str(e)}"
-        )
-
-@app.get("/api/movies")
-async def get_movies():
-    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
-    }
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://api.themoviedb.org/3/movie/popular",
-            headers=headers
-        )
-        return response.json()
-
-@app.get("/api/movies/search")
-async def search_movies(query: str = Query(..., min_length=1)):
-    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
-    }
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://api.themoviedb.org/3/search/movie",
-            headers=headers,
-            params={"query": query}
-        )
-        return response.json()
-
-@app.get("/api/movies/{id}")
-async def get_movie_details(id: int):
-    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
-    }
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"https://api.themoviedb.org/3/movie/{id}",
-            headers=headers
-        )
-        return response.json()
-
-@app.get("/api/movies/{id}/credits")
-async def get_movie_credits(id: int):
-    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
-    }
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"https://api.themoviedb.org/3/movie/{id}/credits",
-            headers=headers
-        )
-        return response.json()
-
-@app.get("/api/movies/{id}/videos")
-async def get_movie_videos(id: int):
-    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
-    }
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"https://api.themoviedb.org/3/movie/{id}/videos",
-            headers=headers
-        )
-        return response.json()
-
-@app.get("/api/person/{id}")
-async def get_person_details(id: int):
-    bearer_token = os.getenv("TMDB_BEARER_TOKEN")
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
-    }
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"https://api.themoviedb.org/3/person/{id}/external_ids",
-            headers=headers
-        )
-        return response.json()
-
-@app.get("/")
-async def root():
-    return {
-        "status": "healthy",
-        "version": "1.0",
-        "endpoints": [
-            "/api/movies/popular",
-            "/api/movies/top-rated",
-            "/api/movies/upcoming",
-            "/api/movies/news"
-        ]
-    }
-
-if __name__ == "__main__":
-    import uvicorn
-    # Get port from Railway or default to 8080
-    port = int(os.getenv("PORT", 8080))
-    # Bind to 0.0.0.0 for Railway
-    uvicorn.run(app, host="0.0.0.0", port=port)
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
+    max_age=600
+)

@@ -1,14 +1,6 @@
 // Environment-aware API configuration
 const getApiBaseUrl = () => {
-  const deployEnv = process.env.REACT_APP_DEPLOY_ENV || 'local';
-  
-  const apiUrls = {
-    local: 'http://localhost:8080',
-    staging: 'https://backend-staging-df72.up.railway.app',
-    production: process.env.REACT_APP_API_URL
-  };
-
-  return process.env.REACT_APP_API_URL || apiUrls[deployEnv] || apiUrls.local;
+  return process.env.REACT_APP_API_URL || 'http://localhost:8080';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

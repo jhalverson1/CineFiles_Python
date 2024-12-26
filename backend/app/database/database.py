@@ -1,27 +1,14 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
-import os
+from app.core.config import get_settings
+import logging
 
-# Get the DATABASE_URL from environment variable, with a fallback for local development
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Handle Railway's postgres:// vs postgresql:// URL scheme
-if DATABASE_URL:
-    # Replace postgres:// with postgresql:// for SQLAlchemy
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    
-    # Add async driver if not present
-    if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-
-# Fallback to local database if no DATABASE_URL is provided
-if not DATABASE_URL:
-    DATABASE_URL = "postgresql+asyncpg://postgres:postgres@db:5432/cinefiles"
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
 engine = create_async_engine(
-    DATABASE_URL,
+    settings.DATABASE_URL,
     poolclass=NullPool,
 )
 
@@ -38,4 +25,13 @@ async def get_db():
         try:
             yield session
         finally:
-            await session.close() 
+            await session.close()
+
+async def init_db():
+    try:
+        async with engine.begin() as conn:
+            # Run migrations
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise 

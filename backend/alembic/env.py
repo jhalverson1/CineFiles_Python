@@ -9,16 +9,15 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from app.core.config import get_settings
+from app.database.database import Base
 
 # Add parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Load environment variables
+# Load environment variables and settings
 load_dotenv()
-
-# Import models
-from app.models.user import User
-from app.database.database import Base
+settings = get_settings()
 
 # this is the Alembic Config object
 config = context.config
@@ -27,25 +26,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Get the DATABASE_URL from environment variable
-DATABASE_URL = os.getenv("DATABASE_URL")
+# Set the URL in alembic config
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
-# Handle URL transformations
-if DATABASE_URL:
-    # Replace postgres:// with postgresql:// for SQLAlchemy
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    
-    # Add async driver if not present
-    if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-    
-    # Set the URL in alembic config
-    config.set_main_option("sqlalchemy.url", DATABASE_URL)
-else:
-    config.set_main_option("sqlalchemy.url", "postgresql+asyncpg://postgres:postgres@db:5432/cinefiles")
-
-# Add your model's MetaData object here for 'autogenerate' support
+# Add your model's MetaData object here
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
