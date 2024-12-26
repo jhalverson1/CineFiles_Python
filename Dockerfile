@@ -12,5 +12,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ .
 COPY --from=frontend /app/frontend/build ./static
 
+# Copy and set up init script
+COPY scripts/init.sh /app/init.sh
+RUN chmod +x /app/init.sh
+
 ENV PORT=8080
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Use single CMD that runs migrations and starts the app
+CMD ["/app/init.sh"]
