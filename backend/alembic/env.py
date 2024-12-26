@@ -26,8 +26,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set the URL in alembic config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Use sync URL for Alembic
+sync_url = str(settings.DATABASE_URL).replace('postgresql+asyncpg', 'postgresql+psycopg2')
+config.set_main_option("sqlalchemy.url", sync_url)
 
 # Add your model's MetaData object here
 target_metadata = Base.metadata
@@ -47,8 +48,12 @@ def run_migrations_offline() -> None:
 
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
+    config_section = config.get_section(config.config_ini_section)
+    url = config_section["sqlalchemy.url"]
+    config_section["sqlalchemy.url"] = url.replace("+asyncpg", "+psycopg2")
+    
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        config_section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
