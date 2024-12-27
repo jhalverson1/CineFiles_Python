@@ -46,7 +46,12 @@ export const movieApi = {
 };
 
 export const authApi = {
-  login: (credentials) => api.post('/api/auth/login', credentials),
+  login: (formData) => api.post('/api/auth/login', formData, {
+    headers: {
+      // Don't set Content-Type - axios will set it automatically for FormData
+      'Content-Type': undefined
+    }
+  }),
   signup: (userData) => api.post('/api/auth/signup', userData),
   verifyToken: () => api.get('/api/auth/verify'),
   logout: () => {
@@ -54,6 +59,10 @@ export const authApi = {
     localStorage.removeItem('user');
     return Promise.resolve();
   },
+};
+
+export const getUserById = async (id) => {
+  return await api.get(`/users/${id}`);
 };
 
 export default api; 

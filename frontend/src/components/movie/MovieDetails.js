@@ -10,6 +10,8 @@ import { useParams, Link } from 'react-router-dom';
 import { movieApi } from '../../utils/api';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
 import { getImageUrl } from '../../utils/image';
+import AddToListButton from './AddToListButton';
+import WatchedToggle from './WatchedToggle';
 
 function MovieDetails() {
   const { id } = useParams();
@@ -105,9 +107,12 @@ function MovieDetails() {
             className="w-[300px] h-[450px] rounded-lg shadow-lg object-cover"
           />
           <div className="flex-1 text-white">
-            <h1 className="text-4xl font-bold mb-2">
-              {movie.title} <span className="text-gray-400">({releaseYear})</span>
-            </h1>
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-4xl font-bold">
+                {movie.title} <span className="text-gray-400">({releaseYear})</span>
+              </h1>
+              <WatchedToggle movieId={id} />
+            </div>
             {director && (
               <p className="text-lg text-gray-300 mb-4">
                 Directed by {director.name}
@@ -209,6 +214,10 @@ function MovieDetails() {
             <p><span className="font-semibold">Budget:</span> ${movie.budget.toLocaleString()}</p>
             <p><span className="font-semibold">Revenue:</span> ${movie.revenue.toLocaleString()}</p>
           </div>
+        </div>
+
+        <div className="mt-4">
+          <AddToListButton movieId={id} />
         </div>
       </div>
     </div>

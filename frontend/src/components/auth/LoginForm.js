@@ -23,10 +23,13 @@ const LoginForm = () => {
     setError('');
     
     try {
-      const response = await authApi.login(formData);
-      // Store the token in localStorage
+      // Create FormData for OAuth2 password flow
+      const formDataObj = new FormData();
+      formDataObj.append('username', formData.email);  // OAuth2 expects 'username'
+      formDataObj.append('password', formData.password);
+
+      const response = await authApi.login(formDataObj);
       localStorage.setItem('token', response.access_token);
-      // Force a page reload to update the navigation state
       window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to login');
