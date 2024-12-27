@@ -5,34 +5,50 @@ import { listsApi } from '../../utils/listsApi';
 const WatchedToggle = ({ movieId }) => {
   const { lists, loading, refreshLists } = useLists();
   const [isWatched, setIsWatched] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Update watched state when lists change
+  // Set initial watched state and update when lists change
   useEffect(() => {
+    if (!lists || loading) return;
+    
     const watchedList = lists.find(list => list.name === "Watched");
     if (watchedList) {
-      setIsWatched(watchedList.items.some(item => item.movie_id === movieId));
+      const isInWatchedList = watchedList.items.some(item => item.movie_id === movieId.toString());
+      setIsWatched(isInWatchedList);
     }
-  }, [lists, movieId]);
+  }, [lists, movieId, loading]);
 
   const handleToggleWatched = async () => {
+    if (isUpdating || loading) return;
+    
     try {
-      const { is_watched } = await listsApi.toggleWatched(movieId);
-      setIsWatched(is_watched);
-      refreshLists();
+      setIsUpdating(true);
+      const newWatchedState = !isWatched;
+      setIsWatched(newWatchedState); // Optimistic update
+      
+      const response = await listsApi.toggleWatched(movieId);
+      await refreshLists();
+      
+      if (response.is_watched !== newWatchedState) {
+        setIsWatched(response.is_watched); // Revert if server state differs
+      }
     } catch (err) {
       console.error('Failed to toggle watched status:', err);
+      setIsWatched(!isWatched); // Revert on error
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   return (
     <button
       onClick={handleToggleWatched}
-      disabled={loading}
+      disabled={loading || isUpdating}
       className={`p-2 rounded-full transition-colors duration-200 ${
         isWatched 
           ? 'bg-primary text-white hover:bg-primary/80' 
           : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-      }`}
+      } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
       aria-label={isWatched ? "Mark as unwatched" : "Mark as watched"}
     >
       {isWatched ? (

@@ -7,9 +7,8 @@
  * @param {Array} props.movies - Array of movie objects to display
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { movieApi } from '../../utils/api';
-import { getImageUrl } from '../../utils/image';
+import MovieCard from './MovieCard';
 
 const MovieList = ({ type }) => {
   const [movies, setMovies] = useState([]);
@@ -101,7 +100,7 @@ const MovieList = ({ type }) => {
       {showLeftButton && (
         <button
           onClick={() => handleScroll('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 text-white p-2 rounded-r opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-black/80 text-white p-2 rounded-r opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           aria-label="Scroll left"
         >
           <svg
@@ -124,7 +123,7 @@ const MovieList = ({ type }) => {
       {showRightButton && (
         <button
           onClick={() => handleScroll('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 text-white p-2 rounded-l opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-black/80 text-white p-2 rounded-l opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           aria-label="Scroll right"
         >
           <svg
@@ -146,7 +145,7 @@ const MovieList = ({ type }) => {
       {/* Scrollable container */}
       <div
         ref={scrollContainerRef}
-        className="overflow-x-auto scrollbar-hide"
+        className="overflow-x-auto scrollbar-hide relative"
       >
         <div className="flex gap-4 p-4">
           {isLoading
@@ -163,33 +162,12 @@ const MovieList = ({ type }) => {
                 </div>
               ))
             : movies.map((movie) => (
-                <Link
+                <div
                   key={movie.id}
-                  to={`/movies/${movie.id}`}
-                  className="flex-none w-[180px] bg-zinc-900 rounded-lg overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all"
+                  className="flex-none w-[180px]"
                 >
-                  <div className="aspect-[2/3] relative">
-                    <img
-                      src={getImageUrl(movie.poster_path)}
-                      alt={movie.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = '/placeholder.jpg';
-                      }}
-                    />
-                    <div className="absolute top-2 right-2 bg-black/75 text-yellow-400 px-2 py-1 rounded text-sm">
-                      ★ {movie.vote_average?.toFixed(1)}
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-sm line-clamp-2">
-                      {movie.title}
-                    </h3>
-                    <p className="text-gray-400 text-sm mt-1">
-                      {movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA'}
-                    </p>
-                  </div>
-                </Link>
+                  <MovieCard movie={movie} />
+                </div>
               ))}
         </div>
       </div>
