@@ -30,13 +30,19 @@ const SignupForm = () => {
     }
 
     try {
-      await authApi.signup({
+      const response = await authApi.signup({
         email: formData.email,
         username: formData.username,
         password: formData.password,
       });
-      // Redirect to login page after successful signup
-      navigate('/login');
+      
+      // Optionally auto-login after signup
+      const loginFormData = new FormData();
+      loginFormData.append('username', formData.email);
+      loginFormData.append('password', formData.password);
+      
+      await authApi.login(loginFormData);
+      window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to create account');
     }
