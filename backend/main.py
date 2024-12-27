@@ -23,8 +23,10 @@ async def lifespan(app: FastAPI):
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
+    # Set higher log levels for noisy modules
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     
     await init_db()
     yield
