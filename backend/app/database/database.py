@@ -3,6 +3,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
 from app.core.config import get_settings
 import logging
+from urllib.parse import urlparse, urlunparse
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -11,13 +12,20 @@ settings = get_settings()
 Base = declarative_base()
 
 def get_sync_engine():
-    sync_url = str(settings.DATABASE_URL).replace('postgresql+asyncpg', 'postgresql+psycopg2')
+    # Parse the URL to ensure correct format
+    parsed = urlparse(str(settings.DATABASE_URL))
+    # Force psycopg2 driver for sync operations
+    sync_url = urlunparse(parsed._replace(scheme='postgresql+psycopg2'))
     from sqlalchemy import create_engine
     return create_engine(sync_url, poolclass=NullPool)
 
 def get_async_engine():
+    # Parse the URL to ensure correct format
+    parsed = urlparse(str(settings.DATABASE_URL))
+    # Force asyncpg driver for async operations
+    async_url = urlunparse(parsed._replace(scheme='postgresql+asyncpg'))
     return create_async_engine(
-        settings.DATABASE_URL,
+        async_url,
         poolclass=NullPool,
     )
 
