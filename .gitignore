@@ -1,4 +1,5 @@
 # Node.js
+node_modules/
 /frontend/node_modules
 /frontend/build
 /.pnp

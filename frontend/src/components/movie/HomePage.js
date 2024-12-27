@@ -1,32 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { movieApi } from '../../utils/api';
+import React from 'react';
 import MovieList from './MovieList';
-import SearchBar from '../common/SearchBar';
 
 const HomePage = () => {
-  const [isSearching, setIsSearching] = useState(false);
-  const navigate = useNavigate();
-
-  const handleSearch = async (query) => {
-    if (!query.trim()) return;
-
-    setIsSearching(true);
-    try {
-      const response = await movieApi.searchMovies(query);
-      navigate('/search', { 
-        state: { 
-          results: response.results,
-          query: query 
-        } 
-      });
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="w-full px-6 py-8">
@@ -38,10 +13,6 @@ const HomePage = () => {
           <p className="text-gray-400 text-lg mb-8">
             Explore popular, top-rated, and upcoming movies
           </p>
-          <SearchBar 
-            onSearch={handleSearch} 
-            isSearching={isSearching} 
-          />
         </div>
 
         {/* Movie Lists */}
@@ -60,13 +31,6 @@ const HomePage = () => {
             <h2 className="text-2xl font-semibold mb-4">Upcoming Movies</h2>
             <MovieList type="upcoming" />
           </section>
-
-          {/* Movie News Section - Currently Hidden
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Movie News</h2>
-            <MovieList type="news" />
-          </section>
-          */}
         </div>
       </div>
     </div>
