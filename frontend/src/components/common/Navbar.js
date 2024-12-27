@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../utils/api';
+import Logo from './Logo';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -21,9 +22,7 @@ const Navbar = () => {
   return (
     <nav className="bg-zinc-900 border-b border-zinc-800">
       <div className="w-full px-6 py-3 flex justify-between items-center">
-        <Link to="/" className="text-white font-bold text-xl">
-          CineFiles
-        </Link>
+        <Logo />
         
         <div className="flex items-center space-x-6">
           <Link to="/" className="text-gray-300 hover:text-white">
