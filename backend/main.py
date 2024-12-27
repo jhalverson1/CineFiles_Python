@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import get_settings
 from app.database.database import init_db
-from app.routers import auth, movies, proxy, person
+from app.routers import auth, movies, proxy, person, lists
 import logging
 
 settings = get_settings()
@@ -47,6 +47,7 @@ app.include_router(auth.router, prefix=settings.API_V1_STR + "/auth", tags=["aut
 app.include_router(movies.router, prefix=settings.API_V1_STR + "/movies", tags=["movies"])
 app.include_router(proxy.router, prefix=settings.API_V1_STR + "/proxy", tags=["proxy"])
 app.include_router(person.router, prefix=settings.API_V1_STR + "/person", tags=["person"])
+app.include_router(lists.router, tags=["lists"])
 
 # Configure CORS
 app.add_middleware(
@@ -57,3 +58,9 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
     max_age=600
 )
+
+# Log all registered routes
+@app.on_event("startup")
+async def log_routes():
+    for route in app.routes:
+        logger.info(f"Registered route: {route.path}")

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List as PyList
+from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel
 
@@ -31,7 +31,7 @@ class List(ListBase):
     is_default: bool
     created_at: datetime
     updated_at: datetime
-    items: PyList[ListItem] = []
+    items: List[ListItem] = []
 
     class Config:
         from_attributes = True 

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from ..database.database import get_db
 from ..models.user import User
 from ..schemas.user import UserCreate, User as UserSchema
+from ..services.list_service import create_default_lists
 from ..utils.auth import (
     get_password_hash,
     create_access_token,
@@ -46,6 +47,9 @@ async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
+    
+    # Create default lists for new user
+    await create_default_lists(db, db_user)
     
     return db_user
 
