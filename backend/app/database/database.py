@@ -1,41 +1,55 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
-import os
+from app.core.config import get_settings
+import logging
+from urllib.parse import urlparse, urlunparse
 
-# Get the DATABASE_URL from environment variable, with a fallback for local development
-DATABASE_URL = os.getenv("DATABASE_URL")
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
-# Handle Railway's postgres:// vs postgresql:// URL scheme
-if DATABASE_URL:
-    # Replace postgres:// with postgresql:// for SQLAlchemy
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    
-    # Add async driver if not present
-    if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-
-# Fallback to local database if no DATABASE_URL is provided
-if not DATABASE_URL:
-    DATABASE_URL = "postgresql+asyncpg://postgres:postgres@db:5432/cinefiles"
-
-engine = create_async_engine(
-    DATABASE_URL,
-    poolclass=NullPool,
-)
-
-SessionLocal = sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
+# Create Base class for models
 Base = declarative_base()
 
+def get_sync_engine():
+    # Parse the URL to ensure correct format
+    parsed = urlparse(str(settings.DATABASE_URL))
+    # Force psycopg2 driver for sync operations
+    sync_url = urlunparse(parsed._replace(scheme='postgresql+psycopg2'))
+    from sqlalchemy import create_engine
+    return create_engine(sync_url, poolclass=NullPool)
+
+def get_async_engine():
+    # Parse the URL to ensure correct format
+    parsed = urlparse(str(settings.DATABASE_URL))
+    # Force asyncpg driver for async operations
+    async_url = urlunparse(parsed._replace(scheme='postgresql+asyncpg'))
+    return create_async_engine(
+        async_url,
+        poolclass=NullPool,
+    )
+
+# Create session factory
+def get_session_maker():
+    return sessionmaker(
+        get_async_engine(),
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
 async def get_db():
-    async with SessionLocal() as session:
+    session_maker = get_session_maker()
+    async with session_maker() as session:
         try:
             yield session
         finally:
-            await session.close() 
+            await session.close()
+
+async def init_db():
+    try:
+        engine = get_async_engine()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise 

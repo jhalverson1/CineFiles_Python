@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=cinefiles
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build: 
       context: ./backend
@@ -21,11 +35,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      sh -c "cd /app &&
-             sleep 5 &&
-             python -m alembic upgrade head &&
-             uvicorn main:app --host 0.0.0.0 --port 8080 --reload"
 
   frontend:
     build:
@@ -43,22 +52,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     command: npm start
-
-  db:
-    image: postgres:15
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=cinefiles
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    depends_on:
+      - backend
 
 volumes:
   postgres_data: 

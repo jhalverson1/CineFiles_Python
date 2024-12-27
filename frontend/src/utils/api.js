@@ -49,6 +49,11 @@ export const authApi = {
   login: (credentials) => api.post('/api/auth/login', credentials),
   signup: (userData) => api.post('/api/auth/signup', userData),
   verifyToken: () => api.get('/api/auth/verify'),
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return Promise.resolve();
+  },
 };
 
 export default api; 

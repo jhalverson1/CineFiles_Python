@@ -1,15 +1,15 @@
 import asyncpraw
-import os
-from dotenv import load_dotenv
+from app.core.config import get_settings
 import logging
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 async def scrape_movie_news():
     try:
         reddit = asyncpraw.Reddit(
-            client_id=os.getenv('REDDIT_CLIENT_ID'),
-            client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
+            client_id=settings.REDDIT_CLIENT_ID,
+            client_secret=settings.REDDIT_CLIENT_SECRET,
             user_agent="CineFiles/1.0"
         )
         
@@ -34,4 +34,4 @@ async def scrape_movie_news():
         
     except Exception as e:
         logger.error(f"Error in scrape_movie_news: {str(e)}", exc_info=True)
-        return []
+        return [] 

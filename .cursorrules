@@ -14,6 +14,7 @@ All code should be written to work in docker for development and on railway for 
   
   Python/FastAPI
   - Use def for pure functions and async def for asynchronous operations.
+  - Use Alembic for database migrations.
   - Use type hints for all function signatures. Prefer Pydantic models over raw dictionaries for input validation.
   - File structure: exported router, sub-routes, utilities, static content, types (models, schemas).
   - Avoid unnecessary curly braces in conditional statements.
