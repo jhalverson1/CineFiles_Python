@@ -21,18 +21,17 @@ def get_async_engine():
         poolclass=NullPool,
     )
 
-# Create engines
-engine = get_async_engine()
-sync_engine = get_sync_engine()
-
-SessionLocal = sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+# Create session factory
+def get_session_maker():
+    return sessionmaker(
+        get_async_engine(),
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
 
 async def get_db():
-    async with SessionLocal() as session:
+    session_maker = get_session_maker()
+    async with session_maker() as session:
         try:
             yield session
         finally:
@@ -40,6 +39,7 @@ async def get_db():
 
 async def init_db():
     try:
+        engine = get_async_engine()
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
     except Exception as e:
