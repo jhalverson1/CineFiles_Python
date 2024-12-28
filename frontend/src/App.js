@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import MovieDetails from './components/movie/MovieDetails';
 import HomePage from './components/movie/HomePage';
 import LoginForm from './components/auth/LoginForm';
@@ -33,6 +34,23 @@ function App() {
               <Route path="*" element={<HomePage />} />
             </Routes>
           </main>
+          <Toaster 
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: '#27272A',
+                color: '#fff',
+                borderRadius: '8px',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#10B981',
+                  secondary: '#fff',
+                },
+              },
+              duration: 2000,
+            }}
+          />
         </div>
       </ListsProvider>
     </Router>
