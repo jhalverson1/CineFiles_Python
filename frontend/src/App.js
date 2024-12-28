@@ -23,36 +23,39 @@ function App() {
   return (
     <Router>
       <ListsProvider>
-        <div className="app min-h-screen bg-black">
-          <Navbar />
-          <main className="w-full">
-            <Routes>
-              <Route exact path="/" element={<HomePage />} />
-              <Route path="/movies/:id" element={<MovieDetails />} />
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/signup" element={<SignupForm />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/my-lists" element={<MyLists />} />
-              <Route path="*" element={<HomePage />} />
-            </Routes>
-          </main>
-          <Toaster 
-            position="top-center"
-            toastOptions={{
-              style: {
-                background: '#27272A',
-                color: '#fff',
-                borderRadius: '8px',
-              },
-              success: {
-                iconTheme: {
-                  primary: '#10B981',
-                  secondary: '#fff',
+        <div className="app min-h-screen bg-[#001810] relative">
+          <div className="absolute inset-0 bg-felt-texture bg-felt opacity-50 pointer-events-none z-0" />
+          <div className="relative z-10">
+            <Navbar />
+            <main className="w-full">
+              <Routes>
+                <Route exact path="/" element={<HomePage />} />
+                <Route path="/movies/:id" element={<MovieDetails />} />
+                <Route path="/login" element={<LoginForm />} />
+                <Route path="/signup" element={<SignupForm />} />
+                <Route path="/search" element={<SearchResults />} />
+                <Route path="/my-lists" element={<MyLists />} />
+                <Route path="*" element={<HomePage />} />
+              </Routes>
+            </main>
+            <Toaster 
+              position="top-center"
+              toastOptions={{
+                style: {
+                  background: '#27272A',
+                  color: '#fff',
+                  borderRadius: '8px',
                 },
-              },
-              duration: 2000,
-            }}
-          />
+                success: {
+                  iconTheme: {
+                    primary: '#10B981',
+                    secondary: '#fff',
+                  },
+                },
+                duration: 2000,
+              }}
+            />
+          </div>
         </div>
       </ListsProvider>
     </Router>

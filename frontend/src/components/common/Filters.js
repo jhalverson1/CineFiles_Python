@@ -23,7 +23,9 @@ const Filters = ({ hideWatched, setHideWatched }) => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`p-2 rounded-lg transition-colors ${
-          isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+          isOpen 
+            ? 'bg-background-active text-primary' 
+            : 'bg-background-secondary text-text-disabled hover:text-primary'
         }`}
         aria-label="Toggle filters"
       >
@@ -31,21 +33,25 @@ const Filters = ({ hideWatched, setHideWatched }) => {
       </button>
       
       {isOpen && (
-        <div className="absolute top-[calc(100%+0.5rem)] left-0 w-64 p-3 bg-zinc-800 rounded-lg shadow-lg border border-zinc-700/50">
+        <div className="absolute top-[calc(100%+0.5rem)] left-0 w-64 p-3 bg-background-secondary rounded-lg shadow-lg border border-border">
           <button
             onClick={() => setHideWatched(!hideWatched)}
             className="flex items-center gap-2 focus:outline-none group w-full"
             role="checkbox"
             aria-checked={hideWatched}
           >
-            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${hideWatched ? 'bg-rose-500 border-rose-400' : 'border-gray-400 group-hover:border-gray-300'}`}>
+            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+              hideWatched 
+                ? 'bg-primary border-primary/80' 
+                : 'border-text-disabled group-hover:border-text-secondary'
+            }`}>
               {hideWatched && (
-                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-3 h-3 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               )}
             </div>
-            <span className="text-rose-100 font-medium group-hover:text-rose-50">
+            <span className="text-primary font-medium group-hover:text-text-secondary">
               Hide Watched Movies
             </span>
           </button>

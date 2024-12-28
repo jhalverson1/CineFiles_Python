@@ -216,18 +216,18 @@ const MyLists = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 text-primary">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">My Lists</h1>
+        <h1 className="text-3xl font-bold pl-2 border-l-[6px] border-primary">My Lists</h1>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          className="bg-background-secondary hover:bg-background-active text-primary px-4 py-2 rounded transition-colors"
         >
           Create New List
         </button>
@@ -236,22 +236,22 @@ const MyLists = () => {
       {/* Lists Accordion */}
       <div className="space-y-4">
         {lists.map(list => (
-          <div key={list.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+          <div key={list.id} className="bg-background-secondary/50 backdrop-blur-sm rounded-lg shadow-md overflow-hidden border border-border">
             {/* List Header */}
             <div 
-              className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between"
+              className="p-4 cursor-pointer hover:bg-background-active transition-colors flex items-center justify-between"
               onClick={() => toggleList(list.id)}
             >
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">{list.name}</h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    <p className="text-text-secondary text-sm">
                       {list.description || 'No description'}
                     </p>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">
+                    <span className="text-text-secondary text-sm">
                       {list.items.length} movies
                     </span>
                     <svg 
@@ -272,7 +272,7 @@ const MyLists = () => {
                       e.stopPropagation();
                       startEdit(list);
                     }}
-                    className="text-blue-500 hover:text-blue-600"
+                    className="text-primary hover:text-text-secondary transition-colors"
                   >
                     Edit
                   </button>
@@ -281,7 +281,7 @@ const MyLists = () => {
                       e.stopPropagation();
                       handleDeleteList(list);
                     }}
-                    className="text-red-500 hover:text-red-600"
+                    className="text-red-500 hover:text-red-600 transition-colors"
                   >
                     Delete
                   </button>
@@ -291,18 +291,18 @@ const MyLists = () => {
 
             {/* List Items */}
             {expandedListId === list.id && (
-              <div className="border-t border-gray-200 dark:border-gray-700">
+              <div className="border-t border-border">
                 {loadingMovies ? (
                   <div className="p-8 text-center">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                    <p className="mt-2 text-gray-500 dark:text-gray-400">Loading movies...</p>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                    <p className="mt-2 text-text-secondary">Loading movies...</p>
                   </div>
                 ) : list.items.length > 0 ? (
-                  <div className="grid grid-cols-1 divide-y divide-gray-200 dark:divide-gray-700">
+                  <div className="grid grid-cols-1 divide-y divide-border">
                     {list.items.map(item => renderListItem(item, list.id))}
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  <div className="p-4 text-center text-text-secondary">
                     No movies in this list yet
                   </div>
                 )}
@@ -314,8 +314,8 @@ const MyLists = () => {
 
       {/* Create/Edit Modal */}
       {(showCreateModal || editingList) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-background-secondary rounded-lg p-6 w-full max-w-md border border-border">
             <h2 className="text-2xl font-bold mb-4">
               {editingList ? 'Edit List' : 'Create New List'}
             </h2>
@@ -328,7 +328,7 @@ const MyLists = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary text-primary"
                   required
                 />
               </div>
@@ -339,7 +339,7 @@ const MyLists = () => {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-primary text-primary"
                   rows="3"
                 />
               </div>
@@ -347,13 +347,13 @@ const MyLists = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="px-4 py-2 text-text-secondary hover:text-primary transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                  className="bg-background-secondary hover:bg-background-active text-primary px-4 py-2 rounded transition-colors"
                 >
                   {editingList ? 'Save Changes' : 'Create List'}
                 </button>

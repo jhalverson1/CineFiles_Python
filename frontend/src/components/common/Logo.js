@@ -14,7 +14,7 @@ const Logo = () => {
           WebkitFontSmoothing: 'antialiased'
         }}
       />
-      <span className="text-2xl font-bold" style={{ color: '#C5B358' }}>
+      <span className="text-2xl font-bold text-[#A37E2C]">
         CineFiles
       </span>
     </Link>

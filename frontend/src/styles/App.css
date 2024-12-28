@@ -47,24 +47,3 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
-
-/* Primary color for hover effects */
-.text-primary {
-  color: #6366f1;
-}
-
-.bg-primary {
-  background-color: #6366f1;
-}
-
-.hover\:bg-primary\/80:hover {
-  background-color: rgba(99, 102, 241, 0.8);
-}
-
-.hover\:text-primary:hover {
-  color: #6366f1;
-}
-
-.ring-primary {
-  --tw-ring-color: #6366f1;
-}
