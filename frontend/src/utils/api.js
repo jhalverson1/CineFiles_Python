@@ -55,9 +55,11 @@ export const authApi = {
   }),
   signup: (userData) => api.post('/api/auth/signup', userData),
   verifyToken: () => api.get('/api/auth/verify'),
+  getCurrentUser: () => api.get('/api/auth/me'),
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('username');
     return Promise.resolve();
   },
 };

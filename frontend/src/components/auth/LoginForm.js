@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../utils/api';
 
 const LoginForm = () => {
@@ -30,6 +30,11 @@ const LoginForm = () => {
 
       const response = await authApi.login(formDataObj);
       localStorage.setItem('token', response.access_token);
+      
+      // Fetch user information
+      const userInfo = await authApi.getCurrentUser();
+      localStorage.setItem('username', userInfo.username);
+      
       window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to login');
@@ -79,13 +84,22 @@ const LoginForm = () => {
             </div>
           </div>
 
-          <div>
+          <div className="flex flex-col space-y-4">
             <button
               type="submit"
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Sign in
             </button>
+            
+            <div className="text-center">
+              <Link 
+                to="/signup" 
+                className="text-sm text-indigo-600 hover:text-indigo-500"
+              >
+                Don't have an account? Sign up!
+              </Link>
+            </div>
           </div>
         </form>
       </div>
