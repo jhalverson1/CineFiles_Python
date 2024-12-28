@@ -27,13 +27,13 @@ const useResponsiveDefaults = () => {
 const HomePage = () => {
   const isMobile = useResponsiveDefaults();
   const [hideWatched, setHideWatched] = useState(false);
-  const [viewMode, setViewMode] = useState(isMobile ? 'scroll' : 'scroll');
-  const [isCompact, setIsCompact] = useState(true);
+  const [viewMode, setViewMode] = useState('scroll');
+  const [isCompact, setIsCompact] = useState(isMobile);
 
   // Update view mode and compact state when screen size changes
   useEffect(() => {
     setViewMode('scroll');
-    setIsCompact(true);
+    setIsCompact(isMobile);
   }, [isMobile]);
 
   return (
