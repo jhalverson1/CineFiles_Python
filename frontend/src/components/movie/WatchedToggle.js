@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLists } from '../../contexts/ListsContext';
 import { listsApi } from '../../utils/listsApi';
+import toast from 'react-hot-toast';
 import EyeIcon from '../common/EyeIcon';
 
 const WatchedToggle = ({ movieId }) => {
@@ -32,9 +33,36 @@ const WatchedToggle = ({ movieId }) => {
       if (response.is_watched !== newWatchedState) {
         setIsWatched(response.is_watched); // Revert if server state differs
       }
+      
+      if (newWatchedState) {
+        toast.success('Watched', {
+          icon: '✓',
+          style: {
+            background: '#065f46',
+            color: '#fff',
+            borderRadius: '8px',
+          }
+        });
+      } else {
+        toast('Unwatched', {
+          icon: '×',
+          style: {
+            background: '#7f1d1d',
+            color: '#fff',
+            borderRadius: '8px',
+          }
+        });
+      }
     } catch (err) {
       console.error('Failed to toggle watched status:', err);
       setIsWatched(!isWatched); // Revert on error
+      toast.error('Update failed', {
+        style: {
+          background: '#7f1d1d',
+          color: '#fff',
+          borderRadius: '8px',
+        }
+      });
     } finally {
       setIsUpdating(false);
     }
