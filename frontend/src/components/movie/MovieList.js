@@ -6,18 +6,22 @@
  * @param {Object} props
  * @param {Array} props.movies - Array of movie objects to display
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { movieApi } from '../../utils/api';
 import MovieCard from './MovieCard';
+import { useLists } from '../../contexts/ListsContext';
+import { AnimatePresence, motion } from 'framer-motion';
 
-const MovieList = ({ type }) => {
-  const [movies, setMovies] = useState([]);
+const MovieList = ({ type, hideWatched }) => {
+  const [allMovies, setAllMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showLeftButton, setShowLeftButton] = useState(false);
   const [showRightButton, setShowRightButton] = useState(false);
   const scrollContainerRef = useRef(null);
+  const { lists, loading: listsLoading } = useLists();
 
+  // Fetch movies only when type changes
   useEffect(() => {
     const fetchMovies = async () => {
       setIsLoading(true);
@@ -41,7 +45,7 @@ const MovieList = ({ type }) => {
             throw new Error('Invalid movie list type');
         }
         console.log(`Fetched ${type} movies:`, response);
-        setMovies(response.results || []);
+        setAllMovies(response.results || []);
       } catch (err) {
         console.error(`Error fetching ${type} movies:`, err);
         setError(err.message);
@@ -51,7 +55,18 @@ const MovieList = ({ type }) => {
     };
 
     fetchMovies();
-  }, [type]);
+  }, [type]); // Only depend on type
+
+  // Filter movies client-side when hideWatched or lists change
+  const displayedMovies = useMemo(() => {
+    if (!hideWatched || !lists) return allMovies;
+    
+    const watchedList = lists.find(list => list.name === "Watched");
+    if (!watchedList) return allMovies;
+    
+    const watchedMovieIds = new Set(watchedList.items.map(item => item.movie_id));
+    return allMovies.filter(movie => !watchedMovieIds.has(movie.id.toString()));
+  }, [allMovies, hideWatched, lists]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -74,7 +89,7 @@ const MovieList = ({ type }) => {
         container.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [movies]);
+  }, [displayedMovies]);
 
   const handleScroll = (direction) => {
     if (scrollContainerRef.current) {
@@ -161,14 +176,25 @@ const MovieList = ({ type }) => {
                   </div>
                 </div>
               ))
-            : movies.map((movie) => (
-                <div
-                  key={movie.id}
-                  className="flex-none w-[180px]"
-                >
-                  <MovieCard movie={movie} />
-                </div>
-              ))}
+            : (
+              <AnimatePresence mode="popLayout">
+                {displayedMovies.map((movie) => (
+                  <motion.div
+                    key={movie.id}
+                    className="flex-none w-[180px]"
+                    initial={{ opacity: 1, scale: 1 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.8,
+                      transition: { duration: 0.2 }
+                    }}
+                    layout
+                  >
+                    <MovieCard movie={movie} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
         </div>
       </div>
     </div>
