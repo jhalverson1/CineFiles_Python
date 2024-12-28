@@ -43,6 +43,7 @@ export const movieApi = {
   getMovieCredits: (id) => api.get(`/api/movies/${id}/credits`),
   getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
   getPersonDetails: (id) => api.get(`/api/person/${id}`),
+  getMovieWatchProviders: (id) => api.get(`/api/movies/${id}/watch-providers`),
 };
 
 export const authApi = {

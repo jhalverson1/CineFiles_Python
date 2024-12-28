@@ -11,6 +11,7 @@ Features:
 - Cast and crew information
 - Movie trailers and videos
 - Movie news aggregation from various sources
+- Watch providers information
 
 All movie data is sourced from TMDB API, while news is scraped from configured news sources.
 Responses maintain TMDB's original structure for consistency and completeness.
@@ -214,4 +215,38 @@ async def get_movie_videos(movie_id: int):
             get_tmdb_url(f"movie/{movie_id}/videos"),
             headers=HEADERS
         )
-        return response.json() 
+        return response.json()
+
+@router.get("/{movie_id}/watch-providers")
+async def get_movie_watch_providers(movie_id: int, region: str = "US"):
+    """
+    Retrieve streaming availability information for a specific movie.
+    
+    Args:
+        movie_id: TMDB ID of the movie
+        region: ISO 3166-1 country code (default: "US")
+    
+    Returns:
+        dict: Watch provider information including:
+            - Streaming platforms
+            - Rental options
+            - Purchase options
+            - Free options (if available)
+            - Links to watch
+    
+    Notes:
+        - Results are region-specific
+        - Includes provider logos and direct links
+        - Data is provided by JustWatch through TMDB
+    """
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            get_tmdb_url(f"movie/{movie_id}/watch/providers"),
+            headers=HEADERS
+        )
+        data = response.json()
+        
+        # Extract region-specific data if available
+        if "results" in data and region in data["results"]:
+            return data["results"][region]
+        return {"error": "No watch provider data available for this region"} 

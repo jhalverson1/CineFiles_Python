@@ -10,14 +10,15 @@ import { useParams, Link } from 'react-router-dom';
 import { movieApi } from '../../utils/api';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
 import { getImageUrl } from '../../utils/image';
-import AddToListButton from './AddToListButton';
 import WatchedToggle from './WatchedToggle';
+import WatchProviders from './WatchProviders';
 
 function MovieDetails() {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
   const [credits, setCredits] = useState(null);
   const [videos, setVideos] = useState(null);
+  const [watchProviders, setWatchProviders] = useState(null);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showAllCast, setShowAllCast] = useState(false);
 
@@ -27,12 +28,14 @@ function MovieDetails() {
     Promise.all([
       movieApi.getMovieDetails(id),
       movieApi.getMovieCredits(id),
-      movieApi.getMovieVideos(id)
+      movieApi.getMovieVideos(id),
+      movieApi.getMovieWatchProviders(id)
     ])
-      .then(([movieData, creditsData, videosData]) => {
+      .then(([movieData, creditsData, videosData, providersData]) => {
         setMovie(movieData);
         setCredits(creditsData);
         setVideos(videosData);
+        setWatchProviders(providersData);
         document.title = `${movieData.title} - Movie Details`;
       })
       .catch(error => {
@@ -100,44 +103,62 @@ function MovieDetails() {
 
       <div className="w-[95%] max-w-[1200px] mx-auto py-8">
         {/* Movie Header Section */}
-        <div className="flex flex-col md:flex-row gap-8 mb-10">
+        <div className="flex flex-col md:flex-row gap-12 mb-10">
+          {/* Movie Poster */}
           <img
             src={getImageUrl(movie.poster_path, 'w500')}
             alt={movie.title}
-            className="w-[300px] h-[450px] rounded-lg shadow-lg object-cover"
+            className="w-[300px] h-[450px] rounded-md object-cover"
           />
-          <div className="flex-1 text-white">
-            <div className="flex items-center gap-4 mb-2">
-              <h1 className="text-4xl font-bold">
-                {movie.title} <span className="text-gray-400">({releaseYear})</span>
-              </h1>
-              <div className="flex-shrink-0">
-                <WatchedToggle movieId={id} />
+
+          {/* Movie Info */}
+          <div className="flex-1">
+            <div className="flex items-start justify-between mb-8">
+              <div>
+                <h1 className="text-5xl font-light text-white mb-3">
+                  {movie.title}
+                </h1>
+                <p className="text-2xl text-gray-400 font-light">
+                  {releaseYear}
+                </p>
+              </div>
+              <WatchedToggle movieId={id} />
+            </div>
+
+            {/* Movie Metadata */}
+            <div className="flex items-center gap-8 mb-8 text-gray-400 text-sm tracking-wide">
+              {director && (
+                <div>
+                  <span className="block uppercase mb-1">Director</span>
+                  <span className="text-white">{director.name}</span>
+                </div>
+              )}
+              <div>
+                <span className="block uppercase mb-1">Runtime</span>
+                <span className="text-white">{movie.runtime} minutes</span>
+              </div>
+              <div>
+                <span className="block uppercase mb-1">Rating</span>
+                <span className="text-white">{movie.vote_average.toFixed(1)}</span>
               </div>
             </div>
-            {director && (
-              <p className="text-lg text-gray-300 mb-4">
-                Directed by {director.name}
-              </p>
-            )}
-            <div className="text-gray-300 mb-4">
-              <span>{movie.runtime} minutes</span>
-              <span className="mx-2">•</span>
-              <span>{movie.vote_average.toFixed(1)}/10</span>
-            </div>
-            {trailer && (
-              <div className="flex justify-start mb-6">
+
+            {/* Watch Options */}
+            <div className="flex flex-wrap items-center gap-4 mb-10">
+              {trailer && (
                 <button 
                   onClick={() => setShowTrailer(true)}
-                  className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/80 transition-colors duration-200 flex items-center gap-2"
+                  className="px-6 py-2.5 border border-white/20 text-white rounded-sm hover:bg-white/5 transition-colors duration-200 flex items-center gap-2 text-sm tracking-wide"
                 >
-                  <span className="text-lg">▶</span> Watch Trailer
+                  Watch Trailer
                 </button>
-              </div>
-            )}
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Overview</h2>
-              <p className="text-gray-300 leading-relaxed">{movie.overview}</p>
+              )}
+              {watchProviders && <WatchProviders providers={watchProviders} />}
+            </div>
+
+            {/* Overview */}
+            <div className="border-t border-white/10 pt-8">
+              <p className="text-gray-300 leading-relaxed text-lg font-light">{movie.overview}</p>
             </div>
           </div>
         </div>
@@ -216,10 +237,6 @@ function MovieDetails() {
             <p><span className="font-semibold">Budget:</span> ${movie.budget.toLocaleString()}</p>
             <p><span className="font-semibold">Revenue:</span> ${movie.revenue.toLocaleString()}</p>
           </div>
-        </div>
-
-        <div className="mt-4">
-          <AddToListButton movieId={id} />
         </div>
       </div>
     </div>
