@@ -11,7 +11,7 @@ import { movieApi } from '../../utils/api';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
 import { getImageUrl } from '../../utils/image';
 import WatchedToggle from './WatchedToggle';
-import WatchlistToggle from './WatchlistToggle';
+import AddToListButton from './AddToListButton';
 import WatchProviders from './WatchProviders';
 
 function MovieDetails() {
@@ -125,7 +125,7 @@ function MovieDetails() {
               </div>
               <div className="flex gap-2">
                 <WatchedToggle movieId={id} />
-                <WatchlistToggle movieId={id} />
+                <AddToListButton movieId={id} />
               </div>
             </div>
 

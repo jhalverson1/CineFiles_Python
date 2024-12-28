@@ -61,6 +61,17 @@ const MyLists = () => {
 
   const handleCreateList = async (e) => {
     e.preventDefault();
+    
+    // Check for duplicate list name (case-insensitive)
+    const isDuplicate = lists.some(list => 
+      list.name.toLowerCase() === formData.name.toLowerCase()
+    );
+    
+    if (isDuplicate) {
+      toast.error('A list with this name already exists');
+      return;
+    }
+
     try {
       const response = await createList(formData.name, formData.description);
       setLists([...lists, response]);
@@ -78,6 +89,18 @@ const MyLists = () => {
 
   const handleUpdateList = async (e) => {
     e.preventDefault();
+    
+    // Check for duplicate list name (case-insensitive), excluding the current list
+    const isDuplicate = lists.some(list => 
+      list.id !== editingList.id && 
+      list.name.toLowerCase() === formData.name.toLowerCase()
+    );
+    
+    if (isDuplicate) {
+      toast.error('A list with this name already exists');
+      return;
+    }
+
     try {
       const response = await updateList(editingList.id, formData);
       setLists(lists.map(list => 

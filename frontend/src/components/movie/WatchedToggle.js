@@ -4,7 +4,7 @@ import { listsApi } from '../../utils/listsApi';
 import toast from 'react-hot-toast';
 import EyeIcon from '../common/EyeIcon';
 
-const WatchedToggle = ({ movieId }) => {
+const WatchedToggle = ({ movieId, isCompact = false }) => {
   const { lists, loading, refreshLists } = useLists();
   const [isWatched, setIsWatched] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -19,7 +19,10 @@ const WatchedToggle = ({ movieId }) => {
     }
   }, [lists, movieId, loading]);
 
-  const handleToggleWatched = async () => {
+  const handleToggleWatched = async (e) => {
+    e.preventDefault(); // Prevent navigation
+    e.stopPropagation(); // Stop event bubbling
+    
     if (isUpdating || loading) return;
     
     try {
@@ -72,14 +75,14 @@ const WatchedToggle = ({ movieId }) => {
     <button
       onClick={handleToggleWatched}
       disabled={loading || isUpdating}
-      className={`bg-black/75 rounded-md p-1.5 transition-colors
+      className={`${isCompact ? 'p-1' : 'p-1.5'} bg-black/75 rounded-md transition-colors
         ${isWatched 
           ? 'text-green-400 hover:text-green-300' 
           : 'text-white/50 hover:text-white/75'
         } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
       aria-label={isWatched ? "Mark as unwatched" : "Mark as watched"}
     >
-      <EyeIcon />
+      <EyeIcon className={isCompact ? 'w-4 h-4' : 'w-5 h-5'} />
     </button>
   );
 };

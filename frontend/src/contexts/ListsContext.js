@@ -29,9 +29,9 @@ export const ListsProvider = ({ children }) => {
     fetchLists();
   }, [refreshTrigger, fetchLists]);
 
-  const addToList = useCallback(async (listId, movieId, notes = '') => {
+  const addToList = useCallback(async (listId, data) => {
     try {
-      await listsApi.addToList(listId, { movie_id: movieId, notes });
+      await listsApi.addToList(listId, data);
       await fetchLists(); // Refresh lists
     } catch (err) {
       setError(err.message);
