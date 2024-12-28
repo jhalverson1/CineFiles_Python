@@ -101,14 +101,14 @@ const MovieCard = ({ movie, isCompact = false }) => {
           <button 
             onClick={handleToggleWatched}
             disabled={isUpdating || loading}
-            className={`absolute top-2 right-2 z-20 bg-black/75 rounded-md ${isCompact ? 'p-0.5' : 'p-1'} transition-colors
+            className={`absolute top-2 right-2 z-20 bg-black/75 rounded-md ${isCompact ? 'p-1' : 'p-1'} transition-colors
               ${isWatched 
                 ? 'text-green-400 hover:text-green-300' 
                 : 'text-white/50 hover:text-white/75'
               } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={isWatched ? "Mark as unwatched" : "Mark as watched"}
           >
-            <EyeIcon className={isCompact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+            <EyeIcon className={isCompact ? 'w-5 h-5' : 'w-5 h-5'} />
           </button>
 
           <img
