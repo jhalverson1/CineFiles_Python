@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL,
@@ -17,6 +17,8 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Log the full URL being requested
+    console.log('Making request to:', `${baseURL}${config.url}`);
     return config;
   },
   (error) => {
@@ -28,7 +30,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
+    console.error('API Error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method
+    });
     return Promise.reject(error);
   }
 );
@@ -67,6 +74,40 @@ export const authApi = {
 
 export const getUserById = async (id) => {
   return await api.get(`/users/${id}`);
+};
+
+// List Management
+export const getLists = async () => {
+  const response = await api.get('/api/lists');
+  return response;
+};
+
+export const getList = async (listId) => {
+  const response = await api.get(`/api/lists/${listId}`);
+  return response;
+};
+
+export const createList = async (name, description = '') => {
+  const response = await api.post('/api/lists', { name, description });
+  return response;
+};
+
+export const updateList = async (listId, { name, description }) => {
+  const response = await api.patch(`/api/lists/${listId}`, { name, description });
+  return response;
+};
+
+export const deleteList = async (listId) => {
+  await api.delete(`/api/lists/${listId}`);
+};
+
+export const addMovieToList = async (listId, movieId, notes = '') => {
+  const response = await api.post(`/api/lists/${listId}/items`, { movie_id: movieId, notes });
+  return response;
+};
+
+export const removeMovieFromList = async (listId, movieId) => {
+  await api.delete(`/api/lists/${listId}/items/${movieId}`);
 };
 
 export default api; 

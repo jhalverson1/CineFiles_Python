@@ -92,6 +92,20 @@ class ListCreate(ListBase):
     """
     pass
 
+class ListUpdate(BaseModel):
+    """
+    Schema for updating existing movie lists.
+    
+    This schema defines the fields that can be updated for an existing list.
+    All fields are optional since updates may modify only some fields.
+    
+    Attributes:
+        name (str, optional): New name for the list
+        description (str, optional): New description for the list
+    """
+    name: Optional[str] = None
+    description: Optional[str] = None
+
 class List(ListBase):
     """
     Complete list representation for API responses.

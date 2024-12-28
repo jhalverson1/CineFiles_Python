@@ -14,6 +14,7 @@ import HomePage from './components/movie/HomePage';
 import LoginForm from './components/auth/LoginForm';
 import SignupForm from './components/auth/SignupForm';
 import SearchResults from './components/movie/SearchResults';
+import MyLists from './components/movie/MyLists';
 import Navbar from './components/common/Navbar';
 import './styles/App.css';
 import { ListsProvider } from './contexts/ListsContext';
@@ -31,6 +32,7 @@ function App() {
               <Route path="/login" element={<LoginForm />} />
               <Route path="/signup" element={<SignupForm />} />
               <Route path="/search" element={<SearchResults />} />
+              <Route path="/my-lists" element={<MyLists />} />
               <Route path="*" element={<HomePage />} />
             </Routes>
           </main>

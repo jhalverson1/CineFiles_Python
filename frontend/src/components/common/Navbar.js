@@ -150,6 +150,13 @@ const Navbar = () => {
                 {/* Desktop Dropdown Menu */}
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-[#1a1a1a] border border-gray-800 focus:outline-none">
+                    <Link
+                      to="/my-lists"
+                      className="block px-4 py-2 text-sm text-[#C5B358] hover:text-[#D6C36A] hover:bg-[#2a2a2a] transition-colors"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      My Lists
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-[#C5B358] hover:text-[#D6C36A] hover:bg-[#2a2a2a] transition-colors"
@@ -235,6 +242,13 @@ const Navbar = () => {
         {isDropdownOpen && (
           <div className="md:hidden px-4 py-2 bg-[#1a1a1a] border-t border-gray-800">
             <div className="flex flex-col space-y-2">
+              <Link
+                to="/my-lists"
+                className="text-left text-[#C5B358] hover:text-[#D6C36A] hover:bg-[#2a2a2a] py-2 text-sm transition-colors rounded-md px-2"
+                onClick={() => setIsDropdownOpen(false)}
+              >
+                My Lists
+              </Link>
               <button
                 onClick={handleLogout}
                 className="text-left text-[#C5B358] hover:text-[#D6C36A] hover:bg-[#2a2a2a] py-2 text-sm transition-colors rounded-md px-2"
