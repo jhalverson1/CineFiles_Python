@@ -34,9 +34,9 @@ api.interceptors.response.use(
 );
 
 export const movieApi = {
-  getPopularMovies: () => api.get('/api/movies/popular'),
-  getTopRatedMovies: () => api.get('/api/movies/top-rated'),
-  getUpcomingMovies: () => api.get('/api/movies/upcoming'),
+  getPopularMovies: (page = 1) => api.get(`/api/movies/popular?page=${page}`),
+  getTopRatedMovies: (page = 1) => api.get(`/api/movies/top-rated?page=${page}`),
+  getUpcomingMovies: (page = 1) => api.get(`/api/movies/upcoming?page=${page}`),
   getMovieNews: () => api.get('/api/movies/news'),
   searchMovies: (query) => api.get(`/api/movies/search?query=${encodeURIComponent(query)}`),
   getMovieDetails: (id) => api.get(`/api/movies/${id}`),

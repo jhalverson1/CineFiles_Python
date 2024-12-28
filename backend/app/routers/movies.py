@@ -27,9 +27,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/popular")
-async def get_popular_movies():
+async def get_popular_movies(page: int = 1):
     """
     Retrieve a list of currently popular movies.
+    
+    Args:
+        page: Page number for pagination (default: 1)
     
     Returns:
         dict: JSON response containing:
@@ -45,14 +48,18 @@ async def get_popular_movies():
     async with httpx.AsyncClient() as client:
         response = await client.get(
             get_tmdb_url("movie/popular"),
+            params={"page": page},
             headers=HEADERS
         )
         return response.json()
 
 @router.get("/top-rated")
-async def get_top_rated_movies():
+async def get_top_rated_movies(page: int = 1):
     """
     Retrieve a list of top-rated movies of all time.
+    
+    Args:
+        page: Page number for pagination (default: 1)
     
     Returns:
         dict: JSON response containing:
@@ -68,14 +75,18 @@ async def get_top_rated_movies():
     async with httpx.AsyncClient() as client:
         response = await client.get(
             get_tmdb_url("movie/top_rated"),
+            params={"page": page},
             headers=HEADERS
         )
         return response.json()
 
 @router.get("/upcoming")
-async def get_upcoming_movies():
+async def get_upcoming_movies(page: int = 1):
     """
     Retrieve a list of upcoming movie releases.
+    
+    Args:
+        page: Page number for pagination (default: 1)
     
     Returns:
         dict: JSON response containing:
@@ -91,6 +102,7 @@ async def get_upcoming_movies():
     async with httpx.AsyncClient() as client:
         response = await client.get(
             get_tmdb_url("movie/upcoming"),
+            params={"page": page},
             headers=HEADERS
         )
         return response.json()

@@ -17,7 +17,7 @@ const StarIcon = () => (
   </svg>
 );
 
-const MovieCard = ({ movie }) => {
+const MovieCard = ({ movie, isCompact = false }) => {
   const { lists, loading, refreshLists } = useLists();
   const [isWatched, setIsWatched] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -32,7 +32,8 @@ const MovieCard = ({ movie }) => {
     }
   }, [lists, movie.id, loading]);
 
-  const handleToggleWatched = async () => {
+  const handleToggleWatched = async (e) => {
+    e.preventDefault(); // Prevent navigation when clicking the eye icon
     if (isUpdating || loading) return;
     
     try {
@@ -82,36 +83,36 @@ const MovieCard = ({ movie }) => {
   };
 
   return (
-    <div className="relative w-[180px] group">
-      {/* Rating Badge */}
-      <div className="absolute top-2 left-2 z-20 flex items-center bg-black/75 rounded-md px-2 py-1">
-        <div className="flex items-center text-yellow-400 text-xs">
-          <StarIcon />
-          <span className="ml-0.5">{movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}</span>
-        </div>
-      </div>
-
-      {/* Eye Icon Button */}
-      <button 
-        onClick={handleToggleWatched}
-        disabled={isUpdating || loading}
-        className={`absolute top-2 right-2 z-20 bg-black/75 rounded-md p-1 transition-colors
-          ${isWatched 
-            ? 'text-green-400 hover:text-green-300' 
-            : 'text-white/50 hover:text-white/75'
-          } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-        aria-label={isWatched ? "Mark as unwatched" : "Mark as watched"}
-      >
-        <EyeIcon />
-      </button>
-
+    <div className={`relative ${isCompact ? 'w-[120px]' : 'w-[180px]'} group`}>
       <Link 
         to={`/movies/${movie.id}`}
-        className="block bg-zinc-900 rounded-lg overflow-hidden relative z-10"
+        className="block bg-zinc-900 rounded-lg overflow-hidden relative z-10 h-full"
       >
         <div className="aspect-[2/3] relative">
+          {/* Rating Badge */}
+          <div className={`absolute top-2 left-2 z-20 flex items-center bg-black/75 rounded-md px-1.5 ${isCompact ? 'py-0.5' : 'py-1'}`}>
+            <div className="flex items-center text-yellow-400 text-xs">
+              <StarIcon />
+              <span className="ml-0.5">{movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}</span>
+            </div>
+          </div>
+
+          {/* Eye Icon Button */}
+          <button 
+            onClick={handleToggleWatched}
+            disabled={isUpdating || loading}
+            className={`absolute top-2 right-2 z-20 bg-black/75 rounded-md ${isCompact ? 'p-0.5' : 'p-1'} transition-colors
+              ${isWatched 
+                ? 'text-green-400 hover:text-green-300' 
+                : 'text-white/50 hover:text-white/75'
+              } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            aria-label={isWatched ? "Mark as unwatched" : "Mark as watched"}
+          >
+            <EyeIcon className={isCompact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+          </button>
+
           <img
-            src={getImageUrl(movie.poster_path, 'w500')}
+            src={getImageUrl(movie.poster_path, isCompact ? 'w342' : 'w500')}
             alt={movie.title}
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -119,9 +120,11 @@ const MovieCard = ({ movie }) => {
             }}
           />
         </div>
-        <div className="p-4">
-          <h3 className="text-white font-medium truncate text-sm">{movie.title}</h3>
-          <p className="text-gray-400 text-xs">
+        <div className={`${isCompact ? 'p-2' : 'p-4'}`}>
+          <h3 className={`text-white font-medium truncate ${isCompact ? 'text-xs' : 'text-sm'}`}>
+            {movie.title}
+          </h3>
+          <p className={`text-gray-400 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
             {movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA'}
           </p>
         </div>
