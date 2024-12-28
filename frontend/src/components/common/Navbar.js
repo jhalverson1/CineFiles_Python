@@ -76,22 +76,23 @@ const Navbar = () => {
                 placeholder="Search for movies..."
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="w-full h-8 px-3 py-1 text-sm rounded-md 
+                className="w-full h-8 px-3 pr-8 py-1 text-sm rounded-md 
                          bg-[#27272A] text-white
-                         focus:outline-none"
+                         focus:outline-none
+                         [&::-webkit-search-cancel-button]:hidden"
                 aria-label="Search"
               />
               <button 
                 type="submit"
                 disabled={!searchQuery.trim() || isSearching}
-                className={`h-7 px-4 text-sm font-medium text-white
-                         rounded-md transition-colors
-                         absolute right-[2px] top-[2px]
+                className={`absolute right-2 top-1/2 transform -translate-y-1/2
+                         transition-opacity
                          ${searchQuery.trim() && !isSearching
-                           ? 'bg-[#6D28D9] hover:bg-[#5B21B6] cursor-pointer' 
-                           : 'bg-[#6D28D9]/50 cursor-not-allowed'}`}
+                           ? 'opacity-100 cursor-pointer' 
+                           : 'opacity-50 cursor-not-allowed'}`}
+                aria-label={isSearching ? 'Searching...' : 'Search'}
               >
-                {isSearching ? 'Searching...' : 'Search'}
+                <SearchIcon />
               </button>
             </form>
             
