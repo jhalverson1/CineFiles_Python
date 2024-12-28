@@ -111,7 +111,9 @@ function MovieDetails() {
               <h1 className="text-4xl font-bold">
                 {movie.title} <span className="text-gray-400">({releaseYear})</span>
               </h1>
-              <WatchedToggle movieId={id} />
+              <div className="flex-shrink-0">
+                <WatchedToggle movieId={id} />
+              </div>
             </div>
             {director && (
               <p className="text-lg text-gray-300 mb-4">

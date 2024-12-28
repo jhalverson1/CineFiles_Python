@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../../utils/image';
-import WatchedToggle from './WatchedToggle';
+import { useLists } from '../../contexts/ListsContext';
+import { listsApi } from '../../utils/listsApi';
+import EyeIcon from '../common/EyeIcon';
 
 const StarIcon = () => (
   <svg 
@@ -14,36 +16,42 @@ const StarIcon = () => (
   </svg>
 );
 
-const EllipsisIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    fill="currentColor" 
-    className="w-4 h-4"
-  >
-    <path fillRule="evenodd" d="M4.5 12a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm6 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm6 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clipRule="evenodd" />
-  </svg>
-);
-
 const MovieCard = ({ movie }) => {
-  const [showActions, setShowActions] = useState(false);
-  const menuRef = useRef(null);
-  const buttonRef = useRef(null);
+  const { lists, loading, refreshLists } = useLists();
+  const [isWatched, setIsWatched] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        menuRef.current && 
-        !menuRef.current.contains(event.target) &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setShowActions(false);
-      }
-    };
+    if (!lists || loading) return;
+    
+    const watchedList = lists.find(list => list.name === "Watched");
+    if (watchedList) {
+      const isInWatchedList = watchedList.items.some(item => item.movie_id === movie.id.toString());
+      setIsWatched(isInWatchedList);
+    }
+  }, [lists, movie.id, loading]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const handleToggleWatched = async () => {
+    if (isUpdating || loading) return;
+    
+    try {
+      setIsUpdating(true);
+      const newWatchedState = !isWatched;
+      setIsWatched(newWatchedState); // Optimistic update
+      
+      const response = await listsApi.toggleWatched(movie.id);
+      await refreshLists();
+      
+      if (response.is_watched !== newWatchedState) {
+        setIsWatched(response.is_watched); // Revert if server state differs
+      }
+    } catch (err) {
+      console.error('Failed to toggle watched status:', err);
+      setIsWatched(!isWatched); // Revert on error
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className="relative w-[180px] group">
@@ -55,29 +63,20 @@ const MovieCard = ({ movie }) => {
         </div>
       </div>
 
-      {/* Actions Menu */}
-      <div className="absolute top-2 right-2 z-20">
-        <div className="relative">
-          <button 
-            ref={buttonRef}
-            onClick={() => setShowActions(!showActions)}
-            className="bg-black/75 rounded-md p-1.5 text-white hover:text-gray-300 transition-colors"
-            aria-label="Show actions"
-          >
-            <EllipsisIcon />
-          </button>
-          
-          {showActions && (
-            <div 
-              ref={menuRef}
-              className="absolute top-0 right-0 translate-x-1 -translate-y-full mt-1 w-36 bg-zinc-800/95 rounded-md shadow-lg overflow-hidden backdrop-blur-sm"
-            >
-              <WatchedToggle movieId={movie.id} />
-            </div>
-          )}
-        </div>
-      </div>
-      
+      {/* Eye Icon Button */}
+      <button 
+        onClick={handleToggleWatched}
+        disabled={isUpdating || loading}
+        className={`absolute top-2 right-2 z-20 bg-black/75 rounded-md p-1 transition-colors
+          ${isWatched 
+            ? 'text-green-400 hover:text-green-300' 
+            : 'text-white/50 hover:text-white/75'
+          } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        aria-label={isWatched ? "Mark as unwatched" : "Mark as watched"}
+      >
+        <EyeIcon />
+      </button>
+
       <Link 
         to={`/movies/${movie.id}`}
         className="block bg-zinc-900 rounded-lg overflow-hidden relative z-10"
