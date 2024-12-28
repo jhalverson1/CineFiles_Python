@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MovieList from './MovieList';
 import Filters from '../common/Filters';
+import { useLocation } from 'react-router-dom';
 
 // Custom hook for responsive design
 const useResponsiveDefaults = () => {
@@ -25,10 +26,20 @@ const useResponsiveDefaults = () => {
 };
 
 const HomePage = () => {
+  const location = useLocation();
   const isMobile = useResponsiveDefaults();
-  const [hideWatched, setHideWatched] = useState(false);
+  const [hideWatched, setHideWatched] = useState(true);
   const [viewMode, setViewMode] = useState('scroll');
   const [isCompact, setIsCompact] = useState(isMobile);
+  const [key, setKey] = useState(0); // Add a key to force re-render
+
+  // Reset state when navigating to home from home
+  useEffect(() => {
+    setHideWatched(true);
+    setViewMode('scroll');
+    setIsCompact(isMobile);
+    setKey(prev => prev + 1); // Increment key to force re-render of MovieList components
+  }, [location.key]); // location.key changes on each navigation
 
   // Update view mode and compact state when screen size changes
   useEffect(() => {
@@ -40,9 +51,11 @@ const HomePage = () => {
     <div className="min-h-screen text-white bg-[#1E1118]">
       {/* Hero Section with Controls */}
       <div className="w-full px-4 py-8 sticky top-0 z-10 bg-[#1E1118]/95 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12">
           <div className="flex items-center justify-between gap-4">
-            <Filters hideWatched={hideWatched} setHideWatched={setHideWatched} />
+            <div className="relative">
+              <Filters hideWatched={hideWatched} setHideWatched={setHideWatched} />
+            </div>
             
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
@@ -97,11 +110,12 @@ const HomePage = () => {
       </div>
 
       {/* Movie Lists */}
-      <div className="space-y-12 px-6">
+      <div className="space-y-12 container mx-auto px-4 md:px-8 lg:px-12">
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Popular Movies</h2>
+          <h2 className="text-2xl font-semibold mb-4">Hidden Gems</h2>
           <MovieList 
-            type="popular" 
+            key={`hidden-gems-${key}`}
+            type="hidden-gems" 
             hideWatched={hideWatched} 
             viewMode={viewMode}
             isCompact={isCompact}
@@ -111,6 +125,7 @@ const HomePage = () => {
         <section>
           <h2 className="text-2xl font-semibold mb-4">Top Rated Movies</h2>
           <MovieList 
+            key={`top-rated-${key}`}
             type="top-rated" 
             hideWatched={hideWatched} 
             viewMode={viewMode}
@@ -121,6 +136,7 @@ const HomePage = () => {
         <section>
           <h2 className="text-2xl font-semibold mb-4">Upcoming Movies</h2>
           <MovieList 
+            key={`upcoming-${key}`}
             type="upcoming" 
             hideWatched={hideWatched} 
             viewMode={viewMode}

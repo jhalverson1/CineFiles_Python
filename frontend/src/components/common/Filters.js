@@ -1,30 +1,40 @@
 import React from 'react';
 
+const FilterIcon = ({ className = "w-5 h-5" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+  </svg>
+);
+
 const Filters = ({ hideWatched, setHideWatched }) => {
-  const [isOpen, setIsOpen] = React.useState(true);
+  const [isOpen, setIsOpen] = React.useState(false);
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white/5 rounded-lg overflow-hidden">
+    <div className="flex flex-col gap-2">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between text-rose-100 hover:bg-white/5 transition-colors"
+        className={`p-2 rounded-lg transition-colors ${
+          isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+        }`}
+        aria-label="Toggle filters"
       >
-        <span className="font-medium">Filters</span>
-        <svg
-          className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <FilterIcon />
       </button>
       
       {isOpen && (
-        <div className="px-4 py-3 border-t border-white/10">
+        <div className="absolute top-[calc(100%+0.5rem)] left-0 w-64 p-3 bg-zinc-800 rounded-lg shadow-lg border border-zinc-700/50">
           <button
             onClick={() => setHideWatched(!hideWatched)}
-            className="flex items-center gap-2 focus:outline-none group"
+            className="flex items-center gap-2 focus:outline-none group w-full"
             role="checkbox"
             aria-checked={hideWatched}
           >

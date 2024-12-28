@@ -48,7 +48,7 @@ async def get_popular_movies(page: int = 1):
     async with httpx.AsyncClient() as client:
         response = await client.get(
             get_tmdb_url("movie/popular"),
-            params={"page": page},
+            params={"page": page, "include_adult": "false"},
             headers=HEADERS
         )
         return response.json()
@@ -75,7 +75,7 @@ async def get_top_rated_movies(page: int = 1):
     async with httpx.AsyncClient() as client:
         response = await client.get(
             get_tmdb_url("movie/top_rated"),
-            params={"page": page},
+            params={"page": page, "include_adult": "false"},
             headers=HEADERS
         )
         return response.json()
@@ -102,7 +102,7 @@ async def get_upcoming_movies(page: int = 1):
     async with httpx.AsyncClient() as client:
         response = await client.get(
             get_tmdb_url("movie/upcoming"),
-            params={"page": page},
+            params={"page": page, "include_adult": "false"},
             headers=HEADERS
         )
         return response.json()
@@ -118,12 +118,56 @@ async def get_movie_news():
             - url: Link to full article
             - source: Name of the news source
             - date: Publication date
-    
-    Notes:
-        - News is scraped from multiple configured sources
-        - Results are sorted by publication date (newest first)
     """
     return await scrape_movie_news()
+
+@router.get("/hidden-gems")
+async def get_hidden_gems(page: int = 1):
+    """
+    Retrieve a curated list of hidden gem movies.
+    
+    These are high-quality movies (rating >= 7.5) that aren't blockbusters,
+    released in the last 20 years.
+    
+    Args:
+        page: Page number for pagination (default: 1)
+    
+    Returns:
+        dict: JSON response containing:
+            - page: Current page number
+            - results: List of movie objects with basic information
+            - total_pages: Total number of available pages
+            - total_results: Total number of movies
+    """
+    from datetime import datetime, timedelta
+    twenty_years_ago = (datetime.now() - timedelta(days=20*365)).strftime("%Y-%m-%d")
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                get_tmdb_url("discover/movie"),
+                params={
+                    "page": str(page),
+                    "sort_by": "vote_average.desc",
+                    "vote_average.gte": 7.5,
+                    "vote_count.gte": 5000,
+                    "vote_count.lte": 20000,
+                    "primary_release_date.gte": twenty_years_ago,
+                    "language": "en-US",
+                    "include_adult": "false",
+                    "with_release_type": "3|2",
+                    "with_original_language": "en"
+                },
+                headers=HEADERS
+            )
+            
+            response.raise_for_status()
+            return response.json()
+            
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/search")
 async def search_movies(query: str):
@@ -139,15 +183,11 @@ async def search_movies(query: str):
             - results: List of matching movies
             - total_pages: Total number of available pages
             - total_results: Total number of matching movies
-    
-    Notes:
-        - Searches through movie titles, original titles, and alternative titles
-        - Results are sorted by relevance to the search query
     """
     async with httpx.AsyncClient() as client:
         response = await client.get(
             get_tmdb_url("search/movie"),
-            params={"query": query},
+            params={"query": query, "include_adult": "false"},
             headers=HEADERS
         )
         return response.json()
@@ -167,10 +207,6 @@ async def get_movie_details(movie_id: int):
             - Associated companies and countries
             - Genres and spoken languages
             - Ratings and vote counts
-    
-    Notes:
-        - Provides the most detailed view of a movie
-        - Includes all available metadata from TMDB
     """
     async with httpx.AsyncClient() as client:
         response = await client.get(

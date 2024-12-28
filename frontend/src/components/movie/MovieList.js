@@ -42,6 +42,9 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
           case 'upcoming':
             response = await movieApi.getUpcomingMovies(page);
             break;
+          case 'hidden-gems':
+            response = await movieApi.getHiddenGems(page);
+            break;
           case 'news':
             response = await movieApi.getMovieNews(page);
             break;
@@ -69,14 +72,21 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
 
   // Filter movies client-side when hideWatched or lists change
   const displayedMovies = useMemo(() => {
-    if (!hideWatched || !lists) return allMovies;
+    if (!hideWatched || !lists || lists.length === 0) return allMovies;
     
     const watchedList = lists.find(list => list.name === "Watched");
     if (!watchedList) return allMovies;
     
-    const watchedMovieIds = new Set(watchedList.items.map(item => item.movie_id));
-    return allMovies.filter(movie => !watchedMovieIds.has(movie.id.toString()));
-  }, [allMovies, hideWatched, lists]);
+    const watchedMovieIds = new Set(watchedList.items?.map(item => item.movie_id) || []);
+    const filteredMovies = allMovies.filter(movie => !watchedMovieIds.has(movie.id.toString()));
+
+    // If we're hiding watched movies and don't have enough movies, fetch more
+    if (hideWatched && !isLoading && hasMore && filteredMovies.length < 20) {
+      setPage(prev => prev + 1);
+    }
+
+    return filteredMovies;
+  }, [allMovies, hideWatched, lists, isLoading, hasMore]);
 
   useEffect(() => {
     if (viewMode !== 'scroll') return;

@@ -120,13 +120,15 @@ const MovieCard = ({ movie, isCompact = false }) => {
             }}
           />
         </div>
-        <div className={`${isCompact ? 'p-2' : 'p-4'}`}>
-          <h3 className={`text-white font-medium truncate ${isCompact ? 'text-xs' : 'text-sm'}`}>
-            {movie.title}
-          </h3>
-          <p className={`text-gray-400 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
-            {movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA'}
-          </p>
+        <div className={`${isCompact ? 'p-2' : 'p-3'} space-y-0.5`}>
+          <div className="flex items-baseline gap-1.5">
+            <h3 className={`text-white font-medium truncate flex-1 ${isCompact ? 'text-xs' : 'text-sm'}`}>
+              {movie.title}
+            </h3>
+            <span className={`text-zinc-500 shrink-0 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
+              {movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA'}
+            </span>
+          </div>
         </div>
       </Link>
     </div>
