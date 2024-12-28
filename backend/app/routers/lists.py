@@ -27,7 +27,8 @@ from ..services.list_service import (
     create_list, 
     get_user_lists, 
     add_movie_to_list,
-    toggle_watched_status
+    toggle_watched_status,
+    toggle_watchlist_status
 )
 from ..utils.auth import get_current_user
 
@@ -160,3 +161,29 @@ async def toggle_movie_watched(
     """
     is_watched = await toggle_watched_status(db, current_user.id, movie_id)
     return {"is_watched": is_watched} 
+
+@router.post("/watchlist/{movie_id}")
+async def toggle_movie_watchlist(
+    movie_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Toggle whether a movie is in the user's watchlist.
+    
+    Args:
+        movie_id: TMDB ID of the movie
+        current_user: Authenticated user from JWT token
+        db: Database session
+    
+    Returns:
+        dict: Contains:
+            - in_watchlist: Boolean indicating if movie is in watchlist
+    
+    Notes:
+        - Automatically creates "Watchlist" list if it doesn't exist
+        - Adds/removes movie from user's watchlist
+        - Status is toggled: not in list -> in list, in list -> not in list
+    """
+    in_watchlist = await toggle_watchlist_status(db, current_user.id, movie_id)
+    return {"in_watchlist": in_watchlist} 

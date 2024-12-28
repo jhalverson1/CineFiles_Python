@@ -11,6 +11,7 @@ import { movieApi } from '../../utils/api';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
 import { getImageUrl } from '../../utils/image';
 import WatchedToggle from './WatchedToggle';
+import WatchlistToggle from './WatchlistToggle';
 import WatchProviders from './WatchProviders';
 
 function MovieDetails() {
@@ -122,7 +123,10 @@ function MovieDetails() {
                   {releaseYear}
                 </p>
               </div>
-              <WatchedToggle movieId={id} />
+              <div className="flex gap-2">
+                <WatchedToggle movieId={id} />
+                <WatchlistToggle movieId={id} />
+              </div>
             </div>
 
             {/* Movie Metadata */}

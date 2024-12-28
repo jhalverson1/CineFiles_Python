@@ -5,4 +5,5 @@ export const listsApi = {
   createList: (data) => api.post('/api/lists', data),
   addToList: (listId, data) => api.post(`/api/lists/${listId}/items`, data),
   toggleWatched: (movieId) => api.post(`/api/lists/watched/${movieId}`),
+  toggleWatchlist: (movieId) => api.post(`/api/lists/watchlist/${movieId}`),
 }; 

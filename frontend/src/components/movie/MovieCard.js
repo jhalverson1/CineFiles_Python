@@ -5,6 +5,7 @@ import { useLists } from '../../contexts/ListsContext';
 import { listsApi } from '../../utils/listsApi';
 import toast from 'react-hot-toast';
 import EyeIcon from '../common/EyeIcon';
+import WatchlistToggle from './WatchlistToggle';
 
 const StarIcon = () => (
   <svg 
@@ -89,19 +90,11 @@ const MovieCard = ({ movie, isCompact = false }) => {
         className="block bg-zinc-900 rounded-lg overflow-hidden relative z-10 h-full"
       >
         <div className="aspect-[2/3] relative">
-          {/* Rating Badge */}
-          <div className={`absolute top-2 left-2 z-20 flex items-center bg-black/75 rounded-md px-1.5 ${isCompact ? 'py-0.5' : 'py-1'}`}>
-            <div className="flex items-center text-yellow-400 text-xs">
-              <StarIcon />
-              <span className="ml-0.5">{movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}</span>
-            </div>
-          </div>
-
-          {/* Eye Icon Button */}
+          {/* Watched Toggle - Top Left */}
           <button 
             onClick={handleToggleWatched}
             disabled={isUpdating || loading}
-            className={`absolute top-2 right-2 z-20 bg-black/75 rounded-md ${isCompact ? 'p-1' : 'p-1'} transition-colors
+            className={`absolute top-2 left-2 z-20 bg-black/75 rounded-md ${isCompact ? 'p-1' : 'p-1'} transition-colors
               ${isWatched 
                 ? 'text-green-400 hover:text-green-300' 
                 : 'text-white/50 hover:text-white/75'
@@ -110,6 +103,19 @@ const MovieCard = ({ movie, isCompact = false }) => {
           >
             <EyeIcon className={isCompact ? 'w-5 h-5' : 'w-5 h-5'} />
           </button>
+
+          {/* Watchlist Toggle - Top Right */}
+          <div className="absolute top-2 right-2 z-20">
+            <WatchlistToggle movieId={movie.id} />
+          </div>
+
+          {/* Rating Badge - Bottom Left */}
+          <div className={`absolute bottom-2 left-2 z-20 flex items-center bg-black/75 rounded-md px-1.5 ${isCompact ? 'py-0.5' : 'py-1'}`}>
+            <div className="flex items-center text-yellow-400 text-xs">
+              <StarIcon />
+              <span className="ml-0.5">{movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}</span>
+            </div>
+          </div>
 
           <img
             src={getImageUrl(movie.poster_path, isCompact ? 'w342' : 'w500')}

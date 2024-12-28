@@ -191,11 +191,12 @@ async def toggle_watched_status(db: AsyncSession, user_id: UUID, movie_id: str) 
         - Automatically creates Watched list if needed
         - Removes movie if already watched
         - Adds movie if not watched
+        - When marking as watched, removes from watchlist if present
         - Returns new status for UI updates
     """
     watched_list = await get_or_create_watched_list(db, user_id)
     
-    # Check if movie is already in the list
+    # Check if movie is already in the watched list
     query = select(ListItem).where(
         (ListItem.list_id == watched_list.id) & 
         (ListItem.movie_id == movie_id)
@@ -212,6 +213,98 @@ async def toggle_watched_status(db: AsyncSession, user_id: UUID, movie_id: str) 
         # Add to watched list
         list_item = ListItem(
             list_id=watched_list.id,
+            movie_id=movie_id
+        )
+        db.add(list_item)
+        
+        # Remove from watchlist if present
+        watchlist = await get_or_create_watchlist(db, user_id)
+        watchlist_query = select(ListItem).where(
+            (ListItem.list_id == watchlist.id) & 
+            (ListItem.movie_id == movie_id)
+        )
+        watchlist_result = await db.execute(watchlist_query)
+        watchlist_item = watchlist_result.scalar_one_or_none()
+        
+        if watchlist_item:
+            await db.delete(watchlist_item)
+        
+        await db.commit()
+        return True
+
+async def get_or_create_watchlist(db: AsyncSession, user_id: UUID) -> List:
+    """
+    Retrieve or create the special "Watchlist" list for a user.
+    
+    Args:
+        db: Database session
+        user_id: UUID of the user
+    
+    Returns:
+        List: The user's Watchlist
+    
+    Notes:
+        - Creates the list if it doesn't exist
+        - Marked as a default list (is_default=True)
+        - Used by the watchlist toggle feature
+        - Ensures exactly one Watchlist per user
+    """
+    query = select(List).where(
+        (List.user_id == user_id) & (List.name == "Watchlist")
+    )
+    result = await db.execute(query)
+    watchlist = result.scalar_one_or_none()
+    
+    if not watchlist:
+        watchlist = List(
+            user_id=user_id,
+            name="Watchlist",
+            description="Movies you want to watch",
+            is_default=True
+        )
+        db.add(watchlist)
+        await db.commit()
+        await db.refresh(watchlist)
+    
+    return watchlist
+
+async def toggle_watchlist_status(db: AsyncSession, user_id: UUID, movie_id: str) -> bool:
+    """
+    Toggle whether a movie is in a user's watchlist.
+    
+    Args:
+        db: Database session
+        user_id: UUID of the user
+        movie_id: TMDB ID of the movie
+    
+    Returns:
+        bool: New watchlist status (True if in watchlist, False if not)
+    
+    Notes:
+        - Automatically creates Watchlist if needed
+        - Removes movie if already in watchlist
+        - Adds movie if not in watchlist
+        - Returns new status for UI updates
+    """
+    watchlist = await get_or_create_watchlist(db, user_id)
+    
+    # Check if movie is already in the list
+    query = select(ListItem).where(
+        (ListItem.list_id == watchlist.id) & 
+        (ListItem.movie_id == movie_id)
+    )
+    result = await db.execute(query)
+    list_item = result.scalar_one_or_none()
+    
+    if list_item:
+        # Remove from watchlist
+        await db.delete(list_item)
+        await db.commit()
+        return False
+    else:
+        # Add to watchlist
+        list_item = ListItem(
+            list_id=watchlist.id,
             movie_id=movie_id
         )
         db.add(list_item)
