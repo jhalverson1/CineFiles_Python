@@ -1,3 +1,21 @@
+"""
+List Models
+
+This module defines the SQLAlchemy models for movie lists and list items.
+It provides the data structure for user-created movie collections and watchlists.
+
+The module includes two main models:
+- List: Represents a collection of movies (e.g., "Watchlist", "Favorites")
+- ListItem: Represents a movie entry within a list
+
+Features:
+- UUID-based primary keys for security
+- Automatic timestamp management
+- Lazy loading of relationships
+- Unique constraints to prevent duplicates
+- Support for default system lists
+"""
+
 from datetime import datetime
 from uuid import UUID, uuid4
 from sqlalchemy import Column, ForeignKey, String, Boolean, DateTime, Text, UniqueConstraint
@@ -10,6 +28,29 @@ from typing import Optional
 from ..database.database import Base
 
 class List(Base):
+    """
+    SQLAlchemy model representing a movie list.
+    
+    A list is a collection of movies created by a user. It can be either
+    a system-generated default list (like "Watched") or a custom user list.
+    
+    Attributes:
+        id (UUID): Primary key, automatically generated UUID4
+        user_id (UUID): Foreign key to the owner's user record
+        name (str): Name of the list (max 100 chars)
+        description (str, optional): Optional description of the list
+        is_default (bool): Whether this is a system-generated default list
+        created_at (datetime): Timestamp of list creation
+        updated_at (datetime): Timestamp of last list update
+        items (relationship): One-to-many relationship with ListItem model
+        user (relationship): Many-to-one relationship with User model
+    
+    Notes:
+        - Each user can have multiple lists
+        - Lists are automatically deleted when the user is deleted
+        - Default lists are created automatically for new users
+        - List items are loaded eagerly by default
+    """
     __tablename__ = "lists"
 
     id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
@@ -25,6 +66,26 @@ class List(Base):
     user = relationship("User", back_populates="lists")
 
 class ListItem(Base):
+    """
+    SQLAlchemy model representing a movie entry in a list.
+    
+    Each ListItem represents a single movie within a user's list,
+    along with any notes or metadata specific to that entry.
+    
+    Attributes:
+        id (UUID): Primary key, automatically generated UUID4
+        list_id (UUID): Foreign key to the parent list
+        movie_id (str): TMDB ID of the movie
+        added_at (datetime): Timestamp when movie was added to list
+        notes (str, optional): Optional user notes about the movie
+        list (relationship): Many-to-one relationship with List model
+    
+    Notes:
+        - A movie can only appear once in a given list (enforced by constraint)
+        - The same movie can appear in different lists
+        - Movie IDs are stored as strings to match TMDB's format
+        - Items are automatically deleted when their parent list is deleted
+    """
     __tablename__ = "list_items"
 
     id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
