@@ -182,8 +182,16 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
                     className={`flex-none ${isCompact ? 'w-[120px]' : 'w-[180px]'}`}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
+                    exit={{ 
+                      opacity: 0,
+                      scale: 0.8,
+                      y: -20,
+                      transition: {
+                        duration: 0.3,
+                        ease: [0.4, 0, 0.2, 1]
+                      }
+                    }}
+                    layout
                   >
                     <MovieCard movie={movie} isCompact={isCompact} />
                   </motion.div>
@@ -226,8 +234,16 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
                 className="w-full"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
+                exit={{ 
+                  opacity: 0,
+                  scale: 0.8,
+                  y: -20,
+                  transition: {
+                    duration: 0.3,
+                    ease: [0.4, 0, 0.2, 1]
+                  }
+                }}
+                layout
               >
                 <MovieCard movie={movie} isCompact={isCompact} />
               </motion.div>

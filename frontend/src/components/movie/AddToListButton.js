@@ -1,12 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLists } from '../../contexts/ListsContext';
 import toast from 'react-hot-toast';
 
 const AddToListButton = ({ movieId, isCompact = false }) => {
   const { lists, addToList, loading } = useLists();
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const filteredLists = lists.filter(list => list.name !== "Watched");
+
+  const isMovieInList = (list) => {
+    return list.items?.some(item => item.movie_id === movieId.toString());
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (buttonRef.current && !buttonRef.current.contains(event.target) &&
+          dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleButtonClick = (e) => {
     e.preventDefault(); // Prevent navigation
@@ -19,7 +38,6 @@ const AddToListButton = ({ movieId, isCompact = false }) => {
     e.stopPropagation(); // Stop event bubbling
     
     try {
-      // Ensure movieId is a string and send it in the correct format
       const data = {
         movie_id: String(movieId),
         notes: ''
@@ -49,6 +67,7 @@ const AddToListButton = ({ movieId, isCompact = false }) => {
   return (
     <div className="relative" onClick={e => e.stopPropagation()}>
       <button
+        ref={buttonRef}
         onClick={handleButtonClick}
         className={`${isCompact ? 'p-1' : 'p-1.5'} bg-black/75 rounded-md text-white/50 hover:text-white/75 transition-colors`}
         disabled={loading}
@@ -66,7 +85,12 @@ const AddToListButton = ({ movieId, isCompact = false }) => {
 
       {isOpen && (
         <div 
-          className="absolute z-20 mt-2 w-48 rounded-lg shadow-lg bg-zinc-900 ring-1 ring-white/10"
+          ref={dropdownRef}
+          className="fixed z-50 w-48 rounded-lg shadow-lg bg-zinc-900 ring-1 ring-white/10"
+          style={{
+            bottom: buttonRef.current ? window.innerHeight - buttonRef.current.getBoundingClientRect().top + 4 : 0,
+            left: buttonRef.current ? buttonRef.current.getBoundingClientRect().left - 20 : 0,
+          }}
           onClick={e => e.stopPropagation()}
         >
           <div className="py-1" role="menu">
@@ -80,7 +104,24 @@ const AddToListButton = ({ movieId, isCompact = false }) => {
                   className="block w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white"
                   role="menuitem"
                 >
-                  {list.name}
+                  <div className="flex items-center justify-between">
+                    <span>{list.name}</span>
+                    {isMovieInList(list) && (
+                      <svg 
+                        className="w-4 h-4 text-green-500" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M5 13l4 4L19 7" 
+                        />
+                      </svg>
+                    )}
+                  </div>
                 </button>
               ))
             )}
