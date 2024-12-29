@@ -32,8 +32,8 @@ const HomePage = () => {
   const navigate = useNavigate();
   const isMobile = useResponsiveDefaults();
   const [hideWatched, setHideWatched] = useState(false);
-  const [viewMode, setViewMode] = useState('grid');
-  const [isCompact, setIsCompact] = useState(false);
+  const [viewMode, setViewMode] = useState('scroll');
+  const [isCompact, setIsCompact] = useState(isMobile);
   const [key, setKey] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -43,15 +43,14 @@ const HomePage = () => {
   // Reset state when navigating to home from home
   useEffect(() => {
     setHideWatched(false);
-    setViewMode('grid');
-    setIsCompact(false);
+    setViewMode('scroll');
+    setIsCompact(isMobile);
     setKey(prev => prev + 1);
-  }, [location.key]);
+  }, [location.key, isMobile]);
 
   // Update view mode and compact state when screen size changes
   useEffect(() => {
-    setViewMode('grid');
-    setIsCompact(false);
+    setIsCompact(isMobile);
   }, [isMobile]);
 
   // Handle scroll events

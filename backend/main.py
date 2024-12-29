@@ -22,10 +22,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import get_settings
 from app.database.database import init_db
 from app.routers import auth, movies, proxy, person, lists
+from app.core.logging_config import configure_logging
+import logging.config
 import logging
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+# Configure logging
+logging.config.dictConfig(configure_logging())
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,6 +58,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600
 )
 
 # API Routes

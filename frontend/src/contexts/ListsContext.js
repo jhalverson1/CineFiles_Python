@@ -10,11 +10,25 @@ export const ListsProvider = ({ children }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchLists = useCallback(async () => {
+    console.log('ListsContext: Starting fetchLists');
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      console.log('ListsContext: Fetching lists with auth state:', {
+        hasToken: !!token,
+        tokenFirstChars: token ? token.substring(0, 10) + '...' : 'none'
+      });
       const data = await listsApi.getLists();
+      console.log('ListsContext: Lists fetched successfully:', {
+        listCount: data.length
+      });
       setLists(data);
     } catch (err) {
+      console.error('ListsContext: Error fetching lists:', {
+        error: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -26,6 +40,7 @@ export const ListsProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    console.log('ListsContext: useEffect triggered, calling fetchLists');
     fetchLists();
   }, [refreshTrigger, fetchLists]);
 

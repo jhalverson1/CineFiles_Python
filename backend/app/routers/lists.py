@@ -17,8 +17,9 @@ Lists are identified by UUIDs and support custom names and descriptions.
 
 from typing import List as PyList
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 from ..database.database import get_db
 from ..models.user import User
@@ -36,8 +37,9 @@ from ..services.list_service import (
 )
 from ..utils.auth import get_current_user
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
-    prefix="/api/lists",
     tags=["lists"]
 )
 
@@ -73,29 +75,45 @@ async def create_new_list(
 
 @router.get("", response_model=PyList[List])
 async def get_lists(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Retrieve all movie lists belonging to the authenticated user.
-    
-    Args:
-        current_user: Authenticated user from JWT token
-        db: Database session
-    
-    Returns:
-        List[List]: Array of user's lists, each containing:
-            - id: List UUID
-            - name: List name
-            - description: List description
-            - created_at: Creation timestamp
-            - user_id: Owner's user ID
-    
-    Notes:
-        - Includes both default and custom-created lists
-        - Lists are ordered by creation date (newest first)
     """
-    return await get_user_lists(db, current_user.id)
+    logger.info("GET /api/lists request received", extra={
+        "user_id": str(current_user.id),
+        "user_email": current_user.email,
+        "headers": dict(request.headers),
+        "auth": request.headers.get("authorization", "no auth header")
+    })
+    
+    try:
+        # Check if user has any lists
+        lists = await get_user_lists(db, current_user.id)
+        
+        # If no lists exist, create default lists
+        if not lists:
+            logger.info("No lists found for user, creating defaults", extra={
+                "user_id": str(current_user.id)
+            })
+            await create_default_lists(db, current_user)
+            lists = await get_user_lists(db, current_user.id)
+        
+        logger.info("Successfully retrieved lists for user", extra={
+            "user_id": str(current_user.id),
+            "list_count": len(lists),
+            "list_names": [lst.name for lst in lists]
+        })
+        return lists
+    except Exception as e:
+        logger.error("Error retrieving lists", extra={
+            "user_id": str(current_user.id),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
+        raise
 
 @router.post("/{list_id}/items", response_model=ListItem)
 async def add_to_list(

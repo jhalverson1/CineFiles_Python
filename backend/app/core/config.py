@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "CineFiles"
     DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
+    APP_ENV: str = os.getenv("APP_ENV", "development")
     
     # CORS settings
     CORS_ORIGINS: List[str] = [

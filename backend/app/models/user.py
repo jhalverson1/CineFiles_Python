@@ -12,11 +12,13 @@ The User model includes:
 """
 
 from datetime import datetime
-from sqlalchemy import Boolean, Column, String, DateTime
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
+from uuid import UUID, uuid4
+from sqlalchemy import String, Boolean, DateTime, func
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import Optional, List as PyList
 
-from ..db.base import Base
+from ..database.database import Base
 
 class User(Base):
     """
@@ -34,11 +36,13 @@ class User(Base):
     """
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, server_default=func.uuid_generate_v4())
-    email = Column(String, unique=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=True)  # Make username optional
-    hashed_password = Column(String, nullable=True)  # Nullable for Google auth users
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    last_login = Column(DateTime(timezone=True), nullable=True) 
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    username: Mapped[str] = mapped_column(String, unique=True)
+    hashed_password: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Use string reference to avoid circular import
+    lists: Mapped[PyList["List"]] = relationship("List", back_populates="user", lazy="selectin") 

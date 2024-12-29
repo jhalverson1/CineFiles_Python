@@ -21,8 +21,15 @@ def configure_logging() -> Dict[str, Any]:
                 "stream": "ext://sys.stdout",
             },
         },
+        "loggers": {
+            "app.routers.proxy": {
+                "handlers": ["console"],
+                "level": "WARNING",
+                "propagate": False,
+            },
+        },
         "root": {
             "handlers": ["console"],
-            "level": "INFO" if settings.APP_ENV == "production" else "DEBUG",
+            "level": "INFO",
         },
     } 
