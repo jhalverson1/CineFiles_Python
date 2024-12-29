@@ -9,7 +9,6 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 from app.schemas.token import Token
 from app.services import user_service
-from app.schemas.auth import GoogleAuthRequest
 
 router = APIRouter()
 
@@ -46,30 +45,4 @@ async def signup(
     
     # Create new user
     user = user_service.create_user(db=db, user_create=user_create)
-    return user
-
-@router.post("/google", response_model=Token)
-async def google_auth(
-    auth_request: GoogleAuthRequest,
-    db: Session = Depends(get_db)
-):
-    """
-    Handle Google authentication. This endpoint will:
-    1. Check if user exists by email
-    2. If not, create a new user with just the email
-    3. Return a JWT token
-    """
-    # Check if user exists
-    user = user_service.get_user_by_email(db, email=auth_request.email)
-    
-    if not user:
-        # Create new user with just email
-        user_create = UserCreate(
-            email=auth_request.email,
-            password=None  # No password for Google-authenticated users
-        )
-        user = user_service.create_user(db=db, user_create=user_create)
-    
-    # Create access token
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer", "username": user.email} 
+    return user 

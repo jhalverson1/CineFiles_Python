@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../utils/api';
-import { auth, googleProvider } from '../config/firebase';
-import { signInWithPopup, signOut } from 'firebase/auth';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -32,34 +30,14 @@ export const AuthProvider = ({ children }) => {
       return response;
     } catch (error) {
       console.error('Login error:', error);
-      throw error;
-    }
-  };
-
-  const loginWithGoogle = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      // Only send email to backend
-      const response = await authApi.googleAuth({
-        email: result.user.email
-      });
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
-      setIsLoggedIn(true);
-      setUsername(response.username);
-      return response;
-    } catch (error) {
-      console.error('Google login error:', error);
-      toast.error('Google login failed');
+      toast.error('Login failed');
       throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await signOut(auth);
-      localStorage.removeItem('token');
-      localStorage.removeItem('username');
+      await authApi.logout();
       setIsLoggedIn(false);
       setUsername('');
     } catch (error) {
@@ -73,7 +51,6 @@ export const AuthProvider = ({ children }) => {
     username,
     isLoading,
     login,
-    loginWithGoogle,
     logout
   };
 

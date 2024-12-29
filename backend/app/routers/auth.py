@@ -23,7 +23,6 @@ from ..database.database import get_db
 from ..models.user import User
 from ..schemas.user import UserCreate, UserResponse
 from ..schemas.token import Token
-from ..schemas.auth import GoogleAuthRequest
 from ..utils.auth import (
     get_password_hash,
     create_access_token,
@@ -115,63 +114,4 @@ async def read_users_me(current_user: Annotated[User, Depends(get_current_user)]
     Returns:
         UserSchema: Current user's profile information
     """
-    return current_user
-
-@router.post("/google", response_model=Token)
-async def google_auth(auth_request: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
-    """
-    Handle Google authentication.
-    
-    Args:
-        auth_request: Contains the Google-provided email
-        db: Database session dependency
-    
-    Returns:
-        Token: Contains access token and token type
-        
-    Notes:
-        - Creates a new user if the email doesn't exist
-        - Returns JWT token for authenticated requests
-    """
-    # Check if user exists
-    query = select(User).where(User.email == auth_request.email)
-    result = await db.execute(query)
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        # Create new user with email prefix as username
-        username = auth_request.email.split('@')[0]
-        # Check if username exists
-        username_query = select(User).where(User.username == username)
-        username_result = await db.execute(username_query)
-        existing_username = username_result.scalar_one_or_none()
-        
-        # If username exists, append a number
-        if existing_username:
-            base_username = username
-            counter = 1
-            while True:
-                username = f"{base_username}{counter}"
-                username_query = select(User).where(User.username == username)
-                username_result = await db.execute(username_query)
-                if not username_result.scalar_one_or_none():
-                    break
-                counter += 1
-        
-        db_user = User(
-            email=auth_request.email,
-            username=username,
-            is_active=True
-        )
-        db.add(db_user)
-        await db.commit()
-        await db.refresh(db_user)
-        user = db_user
-    
-    # Update last login
-    user.last_login = datetime.utcnow()
-    await db.commit()
-    
-    # Create access token
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer", "username": user.email} 
+    return current_user 

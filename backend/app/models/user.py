@@ -27,8 +27,8 @@ class User(Base):
     Attributes:
         id (UUID): Primary key, auto-generated UUID
         email (str): Unique email address, indexed
-        username (str, optional): Optional username
-        hashed_password (str, optional): Bcrypt-hashed password, nullable for Google auth
+        username (str): Username for the user
+        hashed_password (str): Bcrypt-hashed password
         is_active (bool): Whether the user account is active
         created_at (datetime): Timestamp of account creation
         updated_at (datetime): Timestamp of last account update
@@ -39,10 +39,11 @@ class User(Base):
     id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     username: Mapped[str] = mapped_column(String, unique=True)
-    hashed_password: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    hashed_password: Mapped[str] = mapped_column(String)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Use string reference to avoid circular import
     lists: Mapped[PyList["List"]] = relationship("List", back_populates="user", lazy="selectin") 
