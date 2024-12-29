@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLists } from '../../contexts/ListsContext';
+import { removeMovieFromList } from '../../utils/api';
 import toast from 'react-hot-toast';
 
-const AddToListButton = ({ movieId, isCompact = false }) => {
+const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'bottom-left' }) => {
   const { lists, addToList, loading } = useLists();
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef(null);
@@ -33,28 +34,43 @@ const AddToListButton = ({ movieId, isCompact = false }) => {
     setIsOpen(!isOpen);
   };
 
-  const handleAddToList = async (e, listId, listName) => {
+  const handleListClick = async (e, list) => {
     e.preventDefault(); // Prevent navigation
     e.stopPropagation(); // Stop event bubbling
     
     try {
-      const data = {
-        movie_id: String(movieId),
-        notes: ''
-      };
-      await addToList(listId, data);
-      setIsOpen(false);
-      toast.success(`Added to ${listName}`, {
-        icon: '✓',
-        style: {
-          background: '#065f46',
-          color: '#fff',
-          borderRadius: '8px',
-        }
-      });
+      if (isMovieInList(list)) {
+        // Remove from list
+        await removeMovieFromList(list.id, movieId);
+        setIsOpen(false);
+        toast('Removed from ' + list.name, {
+          icon: '×',
+          style: {
+            background: '#7f1d1d',
+            color: '#fff',
+            borderRadius: '8px',
+          }
+        });
+      } else {
+        // Add to list
+        const data = {
+          movie_id: String(movieId),
+          notes: ''
+        };
+        await addToList(list.id, data);
+        setIsOpen(false);
+        toast.success(`Added to ${list.name}`, {
+          icon: '✓',
+          style: {
+            background: '#065f46',
+            color: '#fff',
+            borderRadius: '8px',
+          }
+        });
+      }
     } catch (err) {
-      console.error('Error adding to list:', err);
-      toast.error('Failed to add to list', {
+      console.error('Error updating list:', err);
+      toast.error('Failed to update list', {
         style: {
           background: '#7f1d1d',
           color: '#fff',
@@ -88,8 +104,13 @@ const AddToListButton = ({ movieId, isCompact = false }) => {
           ref={dropdownRef}
           className="fixed z-50 w-48 rounded-lg shadow-lg bg-zinc-900 ring-1 ring-white/10"
           style={{
-            bottom: buttonRef.current ? window.innerHeight - buttonRef.current.getBoundingClientRect().top + 4 : 0,
-            left: buttonRef.current ? buttonRef.current.getBoundingClientRect().left - 20 : 0,
+            ...(dropdownPosition === 'bottom-left' ? {
+              top: buttonRef.current ? buttonRef.current.getBoundingClientRect().bottom + 4 : 0,
+              left: buttonRef.current ? buttonRef.current.getBoundingClientRect().left - 172 : 0,
+            } : {
+              bottom: buttonRef.current ? window.innerHeight - buttonRef.current.getBoundingClientRect().top + 4 : 0,
+              left: buttonRef.current ? buttonRef.current.getBoundingClientRect().left : 0,
+            })
           }}
           onClick={e => e.stopPropagation()}
         >
@@ -100,7 +121,7 @@ const AddToListButton = ({ movieId, isCompact = false }) => {
               filteredLists.map((list) => (
                 <button
                   key={list.id}
-                  onClick={(e) => handleAddToList(e, list.id, list.name)}
+                  onClick={(e) => handleListClick(e, list)}
                   className="block w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white"
                   role="menuitem"
                 >

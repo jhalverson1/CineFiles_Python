@@ -45,7 +45,7 @@ const MovieCard = ({ movie, isCompact = false }) => {
         <div className="aspect-[2/3] relative">
           {/* Action Buttons */}
           <div className="absolute top-2 left-2 z-20">
-            <AddToListButton movieId={movie.id} isCompact={isCompact} />
+            <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
           </div>
           <div className="absolute top-0 right-0 z-20 w-16 h-16 flex items-start justify-end p-2" onClick={e => e.preventDefault()}>
             <WatchedToggle movieId={movie.id} isCompact={isCompact} />
