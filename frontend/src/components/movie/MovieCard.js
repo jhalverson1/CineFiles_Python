@@ -24,13 +24,13 @@ const MovieCard = ({ movie, isCompact = false }) => {
         className="block bg-zinc-900 rounded-lg overflow-hidden relative z-10 h-full"
       >
         <div className="aspect-[2/3] relative">
-          {/* Action Buttons */}
-          <div className="absolute top-2 left-2 z-20">
-            <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
-          </div>
-          <div className="absolute top-2 right-2 z-20 flex items-start justify-end gap-2">
-            <WatchedToggle movieId={movie.id} isCompact={isCompact} />
-            <WatchlistToggle movieId={movie.id} isCompact={isCompact} />
+          {/* Action Buttons Container with Animation */}
+          <div className="absolute top-0 left-0 right-0 z-20 p-2 transition-all duration-300 ease-in-out md:p-2">
+            <div className="flex justify-between items-start gap-2 group-hover:gap-1 group-focus-within:gap-1 group-active:gap-1 transition-all duration-300 group-hover:scale-125 group-focus-within:scale-125 group-active:scale-125 sm:group-hover:scale-100 sm:group-focus-within:scale-100 sm:group-active:scale-100 sm:group-hover:gap-2 sm:group-focus-within:gap-2 sm:group-active:gap-2">
+              <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
+              <WatchedToggle movieId={movie.id} isCompact={isCompact} />
+              <WatchlistToggle movieId={movie.id} isCompact={isCompact} />
+            </div>
           </div>
 
           {/* Movie Poster */}
