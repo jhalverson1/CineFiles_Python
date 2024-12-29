@@ -5,15 +5,15 @@
  * 
  * @component
  */
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { movieApi } from '../../utils/api';
 import MovieDetailsSkeleton from '../common/MovieDetailsSkeleton';
 import { getImageUrl } from '../../utils/image';
 import WatchedToggle from './WatchedToggle';
+import WatchlistToggle from './WatchlistToggle';
 import AddToListButton from './AddToListButton';
 import WatchProviders from './WatchProviders';
-import { useLists } from '../../contexts/ListsContext';
 
 function MovieDetails() {
   const { id } = useParams();
@@ -23,13 +23,6 @@ function MovieDetails() {
   const [watchProviders, setWatchProviders] = useState(null);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showAllCast, setShowAllCast] = useState(false);
-  const { lists, loading } = useLists();
-
-  const isInWatchlist = useMemo(() => {
-    if (!lists || loading) return false;
-    const watchlist = lists.find(list => list.name === "Watchlist");
-    return watchlist?.items?.some(item => item.movie_id === id.toString()) || false;
-  }, [lists, id, loading]);
 
   useEffect(() => {
     document.title = 'Loading Movie Details...';
@@ -120,19 +113,6 @@ function MovieDetails() {
               alt={movie.title}
               className="w-[300px] h-[450px] rounded-md object-cover"
             />
-            {/* Watchlist Bookmark */}
-            {isInWatchlist && (
-              <div className="absolute -top-2 -right-2 text-red-500 drop-shadow-lg z-30 pointer-events-none">
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  viewBox="0 0 24 24" 
-                  fill="currentColor" 
-                  className="w-8 h-8"
-                >
-                  <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clipRule="evenodd" />
-                </svg>
-              </div>
-            )}
           </div>
 
           {/* Movie Info */}
@@ -148,6 +128,7 @@ function MovieDetails() {
               </div>
               <div className="flex gap-2">
                 <WatchedToggle movieId={id} />
+                <WatchlistToggle movieId={id} />
                 <AddToListButton movieId={id} dropdownPosition="bottom-left" />
               </div>
             </div>

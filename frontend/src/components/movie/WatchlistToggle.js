@@ -2,9 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useLists } from '../../contexts/ListsContext';
 import { listsApi } from '../../utils/listsApi';
 import toast from 'react-hot-toast';
-import BookmarkIcon from '../common/BookmarkIcon';
 
-const WatchlistToggle = ({ movieId }) => {
+const BookmarkIcon = ({ className = "w-5 h-5" }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="currentColor" 
+    className={className}
+  >
+    <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clipRule="evenodd" />
+  </svg>
+);
+
+const WatchlistToggle = ({ movieId, isCompact = false }) => {
   const { lists, loading, refreshLists } = useLists();
   const [inWatchlist, setInWatchlist] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -20,7 +30,9 @@ const WatchlistToggle = ({ movieId }) => {
   }, [lists, movieId, loading]);
 
   const handleToggleWatchlist = async (e) => {
-    e.preventDefault(); // Prevent navigation when clicking the bookmark icon
+    e.preventDefault(); // Prevent navigation
+    e.stopPropagation(); // Stop event bubbling
+    
     if (isUpdating || loading) return;
     
     try {
@@ -28,12 +40,8 @@ const WatchlistToggle = ({ movieId }) => {
       const newWatchlistState = !inWatchlist;
       setInWatchlist(newWatchlistState); // Optimistic update
       
-      const response = await listsApi.toggleWatchlist(movieId);
+      await listsApi.toggleWatchlist(movieId);
       await refreshLists();
-      
-      if (response.in_watchlist !== newWatchlistState) {
-        setInWatchlist(response.in_watchlist); // Revert if server state differs
-      }
       
       if (newWatchlistState) {
         toast.success('Added to Watchlist', {
@@ -73,14 +81,14 @@ const WatchlistToggle = ({ movieId }) => {
     <button
       onClick={handleToggleWatchlist}
       disabled={loading || isUpdating}
-      className={`bg-black/75 rounded-md p-1.5 transition-colors
+      className={`${isCompact ? 'p-1' : 'p-1.5'} bg-black/75 rounded-md transition-colors
         ${inWatchlist 
-          ? 'text-yellow-400 hover:text-yellow-300' 
+          ? 'text-red-500 hover:text-red-400' 
           : 'text-white/50 hover:text-white/75'
         } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
       aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
     >
-      <BookmarkIcon />
+      <BookmarkIcon className={isCompact ? 'w-4 h-4' : 'w-5 h-5'} />
     </button>
   );
 };

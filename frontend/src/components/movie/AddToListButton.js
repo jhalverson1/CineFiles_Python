@@ -4,12 +4,12 @@ import { removeMovieFromList } from '../../utils/api';
 import toast from 'react-hot-toast';
 
 const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'bottom-left' }) => {
-  const { lists, addToList, loading } = useLists();
+  const { lists, addToList, loading, refreshLists } = useLists();
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  const filteredLists = lists.filter(list => list.name !== "Watched");
+  const filteredLists = lists.filter(list => !list.is_default);
 
   const isMovieInList = (list) => {
     return list.items?.some(item => item.movie_id === movieId.toString());
@@ -42,6 +42,7 @@ const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'botto
       if (isMovieInList(list)) {
         // Remove from list
         await removeMovieFromList(list.id, movieId);
+        await refreshLists();
         setIsOpen(false);
         toast('Removed from ' + list.name, {
           icon: '×',
