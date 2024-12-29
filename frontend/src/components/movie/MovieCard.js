@@ -25,17 +25,17 @@ const MovieCard = ({ movie, isCompact = false }) => {
       >
         <div className="aspect-[2/3] relative">
           {/* Action Buttons Container with Animation */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 transition-all duration-300 ease-in-out md:p-2 md:gap-2 group-hover:scale-125 sm:group-hover:scale-100">
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 transition-all duration-300 ease-in-out md:p-2 group-hover:scale-125 group-hover:gap-0.5 gap-2 sm:group-hover:scale-100 sm:group-hover:gap-2">
             {/* Left Button */}
-            <div className="flex-1 transition-transform duration-300 group-hover:-translate-x-2 sm:group-hover:translate-x-0">
+            <div className="flex-1 flex justify-start transition-all duration-300">
               <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
             </div>
             {/* Right Buttons */}
-            <div className="flex flex-1 justify-end gap-1 md:gap-2">
-              <div className="flex-1 flex justify-center transition-transform duration-300 group-hover:-translate-x-3 sm:group-hover:translate-x-0">
+            <div className="flex flex-1 justify-end gap-2 group-hover:gap-0.5 transition-all duration-300 sm:group-hover:gap-2">
+              <div className="flex-1 flex justify-center">
                 <WatchedToggle movieId={movie.id} isCompact={isCompact} />
               </div>
-              <div className="flex-1 flex justify-center transition-transform duration-300 group-hover:translate-x-2 sm:group-hover:translate-x-0">
+              <div className="flex-1 flex justify-center">
                 <WatchlistToggle movieId={movie.id} isCompact={isCompact} />
               </div>
             </div>
