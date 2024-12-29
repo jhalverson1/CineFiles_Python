@@ -25,7 +25,7 @@ const MovieCard = ({ movie, isCompact = false }) => {
       >
         <div className="aspect-[2/3] relative">
           {/* Action Buttons Container with Animation */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 transition-all duration-300 ease-in-out md:p-2 md:gap-2 group-focus-within:scale-110 sm:group-focus-within:scale-100">
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 transition-all duration-300 ease-in-out md:p-2 md:gap-2 group-hover:scale-125 sm:group-hover:scale-100">
             {/* Left Button */}
             <div className="flex-1">
               <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
