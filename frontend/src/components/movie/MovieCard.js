@@ -41,26 +41,28 @@ const MovieCard = ({ movie, isCompact = false }) => {
             className="w-full h-full object-cover"
             loading="lazy"
           />
-
-          {/* Rating Badge */}
-          {movie.vote_average > 0 && (
-            <div className="absolute bottom-2 left-2 flex items-center space-x-1 bg-black/75 text-white rounded-md px-1.5 py-0.5 text-xs font-medium">
-              <StarIcon />
-              <span>{movie.vote_average.toFixed(1)}</span>
-            </div>
-          )}
         </div>
 
-        {/* Movie Title */}
+        {/* Movie Title and Info */}
         <div className="p-2">
-          <h3 className="text-sm font-medium text-white line-clamp-2">
+          <h3 className="text-sm font-medium text-white truncate">
             {movie.title}
           </h3>
-          {movie.release_date && (
-            <p className="text-xs text-zinc-400 mt-1">
-              {new Date(movie.release_date).getFullYear()}
-            </p>
-          )}
+          <div className="flex justify-between items-center mt-1">
+            {movie.release_date ? (
+              <span className="text-xs text-zinc-400">
+                {new Date(movie.release_date).getFullYear()}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">—</span>
+            )}
+            {movie.vote_average > 0 && (
+              <div className="flex items-center space-x-1 text-zinc-400">
+                <StarIcon />
+                <span className="text-xs">{movie.vote_average.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
         </div>
       </Link>
     </div>
