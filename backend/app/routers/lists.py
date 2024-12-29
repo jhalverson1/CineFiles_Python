@@ -22,18 +22,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database.database import get_db
 from ..models.user import User
-from ..schemas.list_schemas import ListCreate, List, ListItemCreate, ListItem
+from ..schemas.list_schemas import ListCreate, List, ListItemCreate, ListItem, ListUpdate
 from ..services.list_service import (
     create_list, 
     get_user_lists, 
     add_movie_to_list,
     toggle_watched_status,
-    toggle_watchlist_status
+    toggle_watchlist_status,
+    get_list_by_id,
+    validate_list_name,
+    update_list,
+    delete_list
 )
 from ..utils.auth import get_current_user
 
 router = APIRouter(
-    prefix="/api/v1/lists",
+    prefix="/api/lists",
     tags=["lists"]
 )
 
@@ -187,3 +191,190 @@ async def toggle_movie_watchlist(
     """
     in_watchlist = await toggle_watchlist_status(db, current_user.id, movie_id)
     return {"in_watchlist": in_watchlist} 
+
+@router.get("/{list_id}", response_model=List)
+async def get_list(
+    list_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Retrieve a specific list by its ID.
+    
+    Args:
+        list_id: UUID of the list to retrieve
+        current_user: Authenticated user from JWT token
+        db: Database session
+    
+    Returns:
+        List: Complete list information with items
+    
+    Raises:
+        HTTPException: If list doesn't exist or user doesn't own it
+    
+    Notes:
+        - Verifies list ownership before returning
+        - Items are eagerly loaded for efficiency
+    """
+    list_obj = await get_list_by_id(db, list_id)
+    if not list_obj or list_obj.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="List not found"
+        )
+    return list_obj
+
+@router.patch("/{list_id}", response_model=List)
+async def update_list_details(
+    list_id: UUID,
+    list_data: ListUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update a list's name and/or description.
+    
+    Args:
+        list_id: UUID of the list to update
+        list_data: ListUpdate schema containing:
+            - name: Optional new name
+            - description: Optional new description
+        current_user: Authenticated user from JWT token
+        db: Database session
+    
+    Returns:
+        List: Updated list information
+    
+    Raises:
+        HTTPException: If list doesn't exist, user doesn't own it,
+                      or new name is already taken
+    
+    Notes:
+        - Verifies list ownership before updating
+        - Validates new name availability (case-insensitive)
+        - Only updates provided fields
+    """
+    # Verify list exists and user owns it
+    list_obj = await get_list_by_id(db, list_id)
+    if not list_obj or list_obj.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="List not found"
+        )
+    
+    # If name is being updated, validate it
+    if list_data.name:
+        name_available = await validate_list_name(
+            db, 
+            current_user.id, 
+            list_data.name,
+            exclude_list_id=list_id
+        )
+        if not name_available:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A list with this name already exists"
+            )
+    
+    updated_list = await update_list(
+        db,
+        list_id,
+        name=list_data.name,
+        description=list_data.description
+    )
+    return updated_list
+
+@router.delete("/{list_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_list_endpoint(
+    list_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Delete a list and all its items.
+    
+    Args:
+        list_id: UUID of the list to delete
+        current_user: Authenticated user from JWT token
+        db: Database session
+    
+    Raises:
+        HTTPException: If list doesn't exist, user doesn't own it,
+                      or it's a default list
+    
+    Notes:
+        - Verifies list ownership before deletion
+        - Prevents deletion of default lists
+        - Cascades deletion to all list items
+    """
+    # Verify list exists and user owns it
+    list_obj = await get_list_by_id(db, list_id)
+    if not list_obj or list_obj.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="List not found"
+        )
+    
+    # Prevent deletion of default lists
+    if list_obj.is_default:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete default lists"
+        )
+    
+    success = await delete_list(db, list_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete list"
+        ) 
+
+@router.delete("/{list_id}/items/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_from_list(
+    list_id: UUID,
+    movie_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Remove a movie from a specific list.
+    
+    Args:
+        list_id: UUID of the target list
+        movie_id: TMDB ID of the movie to remove
+        current_user: Authenticated user from JWT token
+        db: Database session
+    
+    Raises:
+        HTTPException: If user doesn't own the list or movie isn't in the list
+    
+    Notes:
+        - Verifies list ownership before removing
+        - Returns 204 No Content on success
+    """
+    # Verify list belongs to user
+    list_obj = await get_list_by_id(db, list_id)
+    if not list_obj or list_obj.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="List not found"
+        )
+    
+    # Find and delete the list item
+    from sqlalchemy import and_
+    from ..models.list_models import ListItem
+    
+    query = ListItem.__table__.delete().where(
+        and_(
+            ListItem.list_id == list_id,
+            ListItem.movie_id == movie_id
+        )
+    )
+    result = await db.execute(query)
+    await db.commit()
+    
+    if result.rowcount == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found in list"
+        ) 

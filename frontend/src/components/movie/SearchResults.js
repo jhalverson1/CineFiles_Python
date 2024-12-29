@@ -7,13 +7,13 @@ const SearchResults = () => {
   const { results, query } = location.state || { results: [], query: '' };
 
   return (
-    <div className="bg-black text-white min-h-screen">
+    <div className="min-h-screen text-primary">
       <div className="w-full px-6 py-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-2">
+          <h2 className="text-2xl font-semibold mb-2 pl-2 border-l-[6px] border-primary">
             Search Results for "{query}"
           </h2>
-          <p className="text-gray-400">
+          <p className="text-text-secondary">
             Found {results.length} {results.length === 1 ? 'result' : 'results'}
           </p>
         </div>
@@ -26,7 +26,7 @@ const SearchResults = () => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-400">No results found for "{query}"</p>
+            <p className="text-text-secondary">No results found for "{query}"</p>
           </div>
         )}
       </div>

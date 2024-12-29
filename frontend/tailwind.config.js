@@ -2,37 +2,46 @@
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html"
   ],
   theme: {
     extend: {
       colors: {
-        primary: '#8A2BE2',
-        secondary: '#e50914',
-        dark: {
-          DEFAULT: '#1a1a1a',
-          lighter: '#2a2a2a'
-        }
+        // Brand colors
+        gold: '#A37E2C',
+        green: {
+          DEFAULT: '#002419',
+          light: '#003D23',
+          dark: '#001A12',
+        },
+        // Semantic colors
+        primary: '#A37E2C',
+        background: {
+          DEFAULT: '#002419',
+          secondary: '#003D23',
+          active: '#001A12',
+          darker: '#001208',
+        },
+        text: {
+          primary: '#A37E2C',
+          secondary: '#A37E2C80',
+          disabled: '#A37E2C40',
+        },
+        border: {
+          DEFAULT: '#A37E2C20',
+          hover: '#A37E2C40',
+        },
       },
       animation: {
-        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'fade-in': 'fadeIn 0.3s ease-in forwards',
-        'spin-slow': 'spin 1s linear infinite'
+        'spin-slow': 'spin 3s linear infinite',
       },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' }
-        },
-        spin: {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' }
-        }
-      }
+      backgroundImage: {
+        'felt-texture': 'radial-gradient(#002419 1px, transparent 1px)',
+      },
+      backgroundSize: {
+        'felt': '4px 4px',
+      },
     },
   },
-  plugins: [
-    require('tailwind-scrollbar')({ nocompatible: true }),
-  ],
+  plugins: [],
 }
 

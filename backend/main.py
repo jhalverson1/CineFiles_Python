@@ -27,16 +27,6 @@ import logging
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
-class APIVersionMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware to handle API versioning.
-    Automatically redirects /api/ routes to /api/v1/ for version control.
-    """
-    async def dispatch(self, request: Request, call_next):
-        if request.url.path.startswith('/api/'):
-            request.scope["path"] = request.url.path.replace('/api/', '/api/v1/')
-        return await call_next(request)
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -72,14 +62,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add version middleware before routers
-app.add_middleware(APIVersionMiddleware)
-
 # Include routers with their respective prefixes and tags
-app.include_router(auth.router, prefix=settings.API_V1_STR + "/auth", tags=["auth"])
-app.include_router(movies.router, prefix=settings.API_V1_STR + "/movies", tags=["movies"])
-app.include_router(proxy.router, prefix=settings.API_V1_STR + "/proxy", tags=["proxy"])
-app.include_router(person.router, prefix=settings.API_V1_STR + "/person", tags=["person"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(movies.router, prefix="/api/movies", tags=["movies"])
+app.include_router(proxy.router, prefix="/api/proxy", tags=["proxy"])
+app.include_router(person.router, prefix="/api/person", tags=["person"])
 app.include_router(lists.router, tags=["lists"])
 
 # Configure CORS for frontend communication
@@ -87,9 +74,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
-    max_age=600
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 @app.on_event("startup")

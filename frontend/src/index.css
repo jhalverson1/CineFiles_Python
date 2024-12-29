@@ -9,8 +9,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #1a1a1a;
-  color: white;
+  @apply text-primary;
 }
 
 code {
@@ -25,4 +24,25 @@ code {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Primary color for hover effects */
+.text-theme-primary {
+  @apply text-primary;
+}
+
+.bg-theme-primary {
+  @apply bg-primary;
+}
+
+.hover\:bg-theme-primary\/80:hover {
+  @apply hover:bg-primary/80;
+}
+
+.hover\:text-theme-primary:hover {
+  @apply hover:text-primary;
+}
+
+.ring-theme-primary {
+  @apply ring-primary;
 }

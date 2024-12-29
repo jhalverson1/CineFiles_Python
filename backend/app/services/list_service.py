@@ -310,3 +310,116 @@ async def toggle_watchlist_status(db: AsyncSession, user_id: UUID, movie_id: str
         db.add(list_item)
         await db.commit()
         return True 
+
+async def get_list_by_id(db: AsyncSession, list_id: UUID) -> List:
+    """
+    Retrieve a single list by its ID.
+    
+    Args:
+        db: Database session
+        list_id: UUID of the list to retrieve
+    
+    Returns:
+        List: The requested list with items eagerly loaded
+    
+    Notes:
+        - Uses joinedload to prevent N+1 queries
+        - List ownership should be verified before using the result
+    """
+    query = (
+        select(List)
+        .options(joinedload(List.items))
+        .where(List.id == list_id)
+    )
+    result = await db.execute(query)
+    return result.unique().scalar_one_or_none()
+
+async def validate_list_name(db: AsyncSession, user_id: UUID, name: str, exclude_list_id: UUID = None) -> bool:
+    """
+    Check if a list name is available for a user.
+    
+    Args:
+        db: Database session
+        user_id: UUID of the user
+        name: Name to validate
+        exclude_list_id: Optional UUID of list to exclude from check (for updates)
+    
+    Returns:
+        bool: True if name is available, False if already taken
+    
+    Notes:
+        - Case-insensitive comparison
+        - Excludes specified list ID for update operations
+    """
+    query = select(List).where(
+        (List.user_id == user_id) & 
+        (List.name.ilike(name))
+    )
+    
+    if exclude_list_id:
+        query = query.where(List.id != exclude_list_id)
+    
+    result = await db.execute(query)
+    existing_list = result.scalar_one_or_none()
+    return existing_list is None
+
+async def update_list(
+    db: AsyncSession, 
+    list_id: UUID, 
+    name: str = None, 
+    description: str = None
+) -> List:
+    """
+    Update a list's name and/or description.
+    
+    Args:
+        db: Database session
+        list_id: UUID of the list to update
+        name: Optional new name for the list
+        description: Optional new description for the list
+    
+    Returns:
+        List: Updated list object
+    
+    Notes:
+        - List ownership and name availability should be verified before calling
+        - Only updates provided fields
+        - Commits transaction immediately
+    """
+    list_obj = await get_list_by_id(db, list_id)
+    if not list_obj:
+        return None
+        
+    if name is not None:
+        list_obj.name = name
+    if description is not None:
+        list_obj.description = description
+        
+    await db.commit()
+    await db.refresh(list_obj)
+    return list_obj
+
+async def delete_list(db: AsyncSession, list_id: UUID) -> bool:
+    """
+    Delete a list and all its items.
+    
+    Args:
+        db: Database session
+        list_id: UUID of the list to delete
+    
+    Returns:
+        bool: True if list was deleted, False if not found
+    
+    Notes:
+        - List ownership should be verified before calling
+        - Cannot delete default lists
+        - Cascades deletion to list items
+        - Commits transaction immediately
+    """
+    list_obj = await get_list_by_id(db, list_id)
+    if not list_obj or list_obj.is_default:
+        return False
+        
+    await db.delete(list_obj)
+    await db.commit()
+    return True 

@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../../utils/image';
 import { useLists } from '../../contexts/ListsContext';
-import { listsApi } from '../../utils/listsApi';
-import toast from 'react-hot-toast';
-import EyeIcon from '../common/EyeIcon';
-import WatchlistToggle from './WatchlistToggle';
+import WatchedToggle from './WatchedToggle';
+import AddToListButton from './AddToListButton';
 
 const StarIcon = () => (
   <svg 
@@ -18,70 +16,25 @@ const StarIcon = () => (
   </svg>
 );
 
+const BookmarkIcon = () => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="currentColor" 
+    className="w-8 h-8"
+  >
+    <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.583A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clipRule="evenodd" />
+  </svg>
+);
+
 const MovieCard = ({ movie, isCompact = false }) => {
-  const { lists, loading, refreshLists } = useLists();
-  const [isWatched, setIsWatched] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const { lists, loading } = useLists();
 
-  useEffect(() => {
-    if (!lists || loading) return;
-    
-    const watchedList = lists.find(list => list.name === "Watched");
-    if (watchedList) {
-      const isInWatchedList = watchedList.items.some(item => item.movie_id === movie.id.toString());
-      setIsWatched(isInWatchedList);
-    }
+  const isInWatchlist = useMemo(() => {
+    if (!lists || loading) return false;
+    const watchlist = lists.find(list => list.name === "Watchlist");
+    return watchlist?.items?.some(item => item.movie_id === movie.id.toString()) || false;
   }, [lists, movie.id, loading]);
-
-  const handleToggleWatched = async (e) => {
-    e.preventDefault(); // Prevent navigation when clicking the eye icon
-    if (isUpdating || loading) return;
-    
-    try {
-      setIsUpdating(true);
-      const newWatchedState = !isWatched;
-      setIsWatched(newWatchedState); // Optimistic update
-      
-      const response = await listsApi.toggleWatched(movie.id);
-      await refreshLists();
-      
-      if (response.is_watched !== newWatchedState) {
-        setIsWatched(response.is_watched); // Revert if server state differs
-      }
-
-      if (newWatchedState) {
-        toast.success('Watched', {
-          icon: '✓',
-          style: {
-            background: '#065f46',
-            color: '#fff',
-            borderRadius: '8px',
-          }
-        });
-      } else {
-        toast('Unwatched', {
-          icon: '×',
-          style: {
-            background: '#7f1d1d',
-            color: '#fff',
-            borderRadius: '8px',
-          }
-        });
-      }
-    } catch (err) {
-      console.error('Failed to toggle watched status:', err);
-      setIsWatched(!isWatched); // Revert on error
-      toast.error('Update failed', {
-        style: {
-          background: '#7f1d1d',
-          color: '#fff',
-          borderRadius: '8px',
-        }
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   return (
     <div className={`relative ${isCompact ? 'w-[120px]' : 'w-[180px]'} group`}>
@@ -90,50 +43,49 @@ const MovieCard = ({ movie, isCompact = false }) => {
         className="block bg-zinc-900 rounded-lg overflow-hidden relative z-10 h-full"
       >
         <div className="aspect-[2/3] relative">
-          {/* Watched Toggle - Top Left */}
-          <button 
-            onClick={handleToggleWatched}
-            disabled={isUpdating || loading}
-            className={`absolute top-2 left-2 z-20 bg-black/75 rounded-md ${isCompact ? 'p-1' : 'p-1'} transition-colors
-              ${isWatched 
-                ? 'text-green-400 hover:text-green-300' 
-                : 'text-white/50 hover:text-white/75'
-              } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            aria-label={isWatched ? "Mark as unwatched" : "Mark as watched"}
-          >
-            <EyeIcon className={isCompact ? 'w-5 h-5' : 'w-5 h-5'} />
-          </button>
-
-          {/* Watchlist Toggle - Top Right */}
-          <div className="absolute top-2 right-2 z-20">
-            <WatchlistToggle movieId={movie.id} />
+          {/* Action Buttons */}
+          <div className="absolute top-2 left-2 z-20">
+            <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
+          </div>
+          <div className="absolute top-0 right-0 z-20 w-16 h-16 flex items-start justify-end p-2" onClick={e => e.preventDefault()}>
+            <WatchedToggle movieId={movie.id} isCompact={isCompact} />
           </div>
 
-          {/* Rating Badge - Bottom Left */}
-          <div className={`absolute bottom-2 left-2 z-20 flex items-center bg-black/75 rounded-md px-1.5 ${isCompact ? 'py-0.5' : 'py-1'}`}>
-            <div className="flex items-center text-yellow-400 text-xs">
-              <StarIcon />
-              <span className="ml-0.5">{movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}</span>
+          {/* Watchlist Bookmark */}
+          {isInWatchlist && (
+            <div className="absolute top-0 right-0 text-red-500 drop-shadow-lg transform -translate-y-2 translate-x-2 z-30 pointer-events-none">
+              <BookmarkIcon />
             </div>
-          </div>
+          )}
 
+          {/* Movie Poster */}
           <img
-            src={getImageUrl(movie.poster_path, isCompact ? 'w342' : 'w500')}
+            src={getImageUrl(movie.poster_path)}
             alt={movie.title}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.src = '/placeholder.jpg';
-            }}
+            loading="lazy"
           />
         </div>
-        <div className={`${isCompact ? 'p-2' : 'p-3'} space-y-0.5`}>
-          <div className="flex items-baseline gap-1.5">
-            <h3 className={`text-white font-medium truncate flex-1 ${isCompact ? 'text-xs' : 'text-sm'}`}>
-              {movie.title}
-            </h3>
-            <span className={`text-zinc-500 shrink-0 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
-              {movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA'}
-            </span>
+
+        {/* Movie Title and Info */}
+        <div className="p-2">
+          <h3 className="text-sm font-medium text-white truncate">
+            {movie.title}
+          </h3>
+          <div className="flex justify-between items-center mt-1">
+            {movie.release_date ? (
+              <span className="text-xs text-zinc-400">
+                {new Date(movie.release_date).getFullYear()}
+              </span>
+            ) : (
+              <span className="text-xs text-zinc-400">—</span>
+            )}
+            {movie.vote_average > 0 && (
+              <div className="flex items-center space-x-1 text-zinc-400">
+                <StarIcon />
+                <span className="text-xs">{movie.vote_average.toFixed(1)}</span>
+              </div>
+            )}
           </div>
         </div>
       </Link>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../utils/api';
 import { movieApi } from '../../utils/api';
@@ -41,6 +41,7 @@ const ChevronDownIcon = () => (
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const searchContainerRef = useRef(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,6 +56,19 @@ const Navbar = () => {
     if (storedUsername) {
       setUsername(storedUsername);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setIsSearchBarOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -103,56 +117,77 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 h-14 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <nav className="fixed top-0 left-0 right-0 h-14 z-50 bg-background-darker border-b border-border">
         <div className="flex items-center justify-between h-full px-4">
           <Logo />
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
-            <form onSubmit={handleSearch} className="relative flex items-center w-56">
-              <input
-                type="search"
-                placeholder="Search for movies..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="w-full h-8 px-3 pr-8 py-1 text-sm rounded-md 
-                         bg-[#27272A] text-white
-                         focus:outline-none
-                         [&::-webkit-search-cancel-button]:hidden"
-                aria-label="Search"
-              />
-              <button 
-                type="submit"
-                disabled={!searchQuery.trim() || isSearching}
-                className={`absolute right-2 top-1/2 transform -translate-y-1/2
-                         transition-opacity
-                         ${searchQuery.trim() && !isSearching
-                           ? 'opacity-100 cursor-pointer' 
-                           : 'opacity-50 cursor-not-allowed'}`}
-                aria-label={isSearching ? 'Searching...' : 'Search'}
-              >
-                <SearchIcon />
-              </button>
-            </form>
-            
+            <div className="relative" ref={searchContainerRef}>
+              {!isSearchBarOpen ? (
+                <button
+                  onClick={toggleSearchBar}
+                  className="p-2 text-primary hover:text-text-secondary rounded-full hover:bg-background-secondary transition-colors"
+                  aria-label="Show search"
+                >
+                  <SearchIcon />
+                </button>
+              ) : (
+                <form onSubmit={handleSearch} className="relative flex items-center w-56">
+                  <input
+                    type="search"
+                    placeholder="Search for movies..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    className="w-full h-8 px-3 pr-8 py-1 text-sm rounded-md 
+                             bg-black text-white
+                             focus:outline-none focus:ring-1 focus:ring-primary
+                             [&::-webkit-search-cancel-button]:hidden
+                             placeholder:text-gray-400"
+                    aria-label="Search"
+                    autoFocus
+                  />
+                  <button 
+                    type="submit"
+                    disabled={!searchQuery.trim() || isSearching}
+                    className={`absolute right-2 top-1/2 transform -translate-y-1/2
+                             transition-opacity
+                             ${searchQuery.trim() && !isSearching
+                               ? 'opacity-100 cursor-pointer text-white' 
+                               : 'opacity-50 cursor-not-allowed text-gray-400'}`}
+                    aria-label={isSearching ? 'Searching...' : 'Search'}
+                  >
+                    <SearchIcon />
+                  </button>
+                </form>
+              )}
+            </div>
+
             {isLoggedIn ? (
               <div className="relative">
                 <button
                   onClick={toggleDropdown}
-                  className="flex items-center space-x-1 text-[#C5B358] hover:text-[#D6C36A] px-2 py-1 rounded-md transition-colors"
+                  className="flex items-center space-x-1 text-primary hover:text-text-secondary px-2 py-1 rounded-md transition-colors"
                   aria-label="Toggle user menu"
                   aria-expanded={isDropdownOpen}
                 >
                   <span className="text-sm font-medium">{username}</span>
-                  <ChevronDownIcon className="text-[#C5B358]" />
+                  <ChevronDownIcon className="text-primary" />
                 </button>
 
                 {/* Desktop Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-[#1a1a1a] border border-gray-800 focus:outline-none">
+                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-background-darker border border-border focus:outline-none">
+                    <Link
+                      to="/my-lists"
+                      className="block px-4 py-2 text-sm text-primary hover:text-text-secondary hover:bg-background-active transition-colors"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      My Lists
+                    </Link>
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-[#C5B358] hover:text-[#D6C36A] hover:bg-[#2a2a2a] transition-colors"
+                      className="block w-full text-left px-4 py-2 text-sm text-primary hover:text-text-secondary hover:bg-background-active transition-colors"
                     >
                       Logout
                     </button>
@@ -162,7 +197,7 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/login"
-                className="text-gray-300 hover:text-white"
+                className="text-primary hover:text-text-secondary"
               >
                 Login
               </Link>
@@ -170,10 +205,10 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center space-x-4">
+          <div className="flex md:hidden items-center space-x-4" ref={searchContainerRef}>
             <button
               onClick={toggleSearchBar}
-              className="p-2 text-gray-300 hover:text-white"
+              className="p-2 text-primary hover:text-text-secondary rounded-full hover:bg-background-secondary transition-colors"
               aria-label="Toggle search"
             >
               <SearchIcon />
@@ -181,17 +216,17 @@ const Navbar = () => {
             {isLoggedIn ? (
               <button
                 onClick={toggleDropdown}
-                className="flex items-center space-x-1 text-[#C5B358] hover:text-[#D6C36A] px-2 py-1 rounded-md transition-colors"
+                className="flex items-center space-x-1 text-primary hover:text-text-secondary px-2 py-1 rounded-md transition-colors"
                 aria-label="Toggle user menu"
                 aria-expanded={isDropdownOpen}
               >
                 <span className="text-sm font-medium">{username}</span>
-                <ChevronDownIcon className="text-[#C5B358]" />
+                <ChevronDownIcon className="text-primary" />
               </button>
             ) : (
               <Link
                 to="/login"
-                className="text-gray-300 hover:text-white text-sm font-medium"
+                className="text-primary hover:text-text-secondary text-sm font-medium"
               >
                 Login
               </Link>
@@ -201,7 +236,7 @@ const Navbar = () => {
 
         {/* Mobile Search Bar */}
         {isSearchBarOpen && (
-          <div className="md:hidden px-4 py-2 bg-background/95 border-t border-gray-800">
+          <div className="md:hidden px-4 py-2 bg-background-darker border-t border-border">
             <form onSubmit={handleSearch} className="relative flex items-center w-full">
               <input
                 type="search"
@@ -209,9 +244,10 @@ const Navbar = () => {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 className="w-full h-8 px-3 pr-8 py-1 text-sm rounded-md 
-                         bg-[#27272A] text-white
-                         focus:outline-none
-                         [&::-webkit-search-cancel-button]:hidden"
+                         bg-black text-white
+                         focus:outline-none focus:ring-1 focus:ring-primary
+                         [&::-webkit-search-cancel-button]:hidden
+                         placeholder:text-gray-400"
                 aria-label="Search"
                 autoFocus
               />
@@ -221,8 +257,8 @@ const Navbar = () => {
                 className={`absolute right-2 top-1/2 transform -translate-y-1/2
                          transition-opacity
                          ${searchQuery.trim() && !isSearching
-                           ? 'opacity-100 cursor-pointer' 
-                           : 'opacity-50 cursor-not-allowed'}`}
+                           ? 'opacity-100 cursor-pointer text-white' 
+                           : 'opacity-50 cursor-not-allowed text-gray-400'}`}
                 aria-label={isSearching ? 'Searching...' : 'Search'}
               >
                 <SearchIcon />
@@ -233,11 +269,18 @@ const Navbar = () => {
 
         {/* Mobile User Dropdown */}
         {isDropdownOpen && (
-          <div className="md:hidden px-4 py-2 bg-[#1a1a1a] border-t border-gray-800">
+          <div className="md:hidden px-4 py-2 bg-background-darker border-t border-border">
             <div className="flex flex-col space-y-2">
+              <Link
+                to="/my-lists"
+                className="text-left text-primary hover:text-text-secondary hover:bg-background-active py-2 text-sm transition-colors rounded-md px-2"
+                onClick={() => setIsDropdownOpen(false)}
+              >
+                My Lists
+              </Link>
               <button
                 onClick={handleLogout}
-                className="text-left text-[#C5B358] hover:text-[#D6C36A] hover:bg-[#2a2a2a] py-2 text-sm transition-colors rounded-md px-2"
+                className="text-left text-primary hover:text-text-secondary hover:bg-background-active py-2 text-sm transition-colors rounded-md px-2"
               >
                 Logout
               </button>

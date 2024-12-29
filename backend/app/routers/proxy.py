@@ -19,9 +19,11 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 import httpx
 import logging
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+settings = get_settings()
 
 @router.get("/image/{size}/{image_path:path}")
 async def proxy_image(size: str, image_path: str):
@@ -36,15 +38,7 @@ async def proxy_image(size: str, image_path: str):
         Response: Image binary data with appropriate headers:
             - Content-Type: Preserved from original image
             - Cache-Control: Set for long-term caching
-    
-    Raises:
-        HTTPException: If image cannot be retrieved or doesn't exist
-    
-    Notes:
-        - Automatically strips leading slashes from image path
-        - Sets year-long cache headers for performance
-        - Preserves original image format and quality
-        - Common sizes: 'original', 'w500', 'w300', 'w185', 'w92'
+            - Access-Control-Allow-Origin: Set for CORS
     """
     try:
         clean_path = image_path.lstrip('/')
@@ -52,10 +46,32 @@ async def proxy_image(size: str, image_path: str):
         async with httpx.AsyncClient() as client:
             response = await client.get(image_url)
             response.raise_for_status()
+            
+            headers = {
+                "Cache-Control": "public, max-age=31536000",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            }
+            
             return Response(
                 content=response.content,
                 media_type=response.headers.get("content-type", "image/jpeg"),
-                headers={"Cache-Control": "public, max-age=31536000"}
+                headers=headers
             )
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Image not found: {str(e)}") 
+        logger.error(f"Failed to proxy image: {str(e)}")
+        raise HTTPException(status_code=404, detail=f"Image not found: {str(e)}")
+
+@router.options("/image/{size}/{image_path:path}")
+async def proxy_image_options():
+    """Handle OPTIONS requests for CORS preflight"""
+    return Response(
+        content="",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "86400",
+        }
+    ) 

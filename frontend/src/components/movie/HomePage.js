@@ -31,15 +31,16 @@ const HomePage = () => {
   const [hideWatched, setHideWatched] = useState(true);
   const [viewMode, setViewMode] = useState('scroll');
   const [isCompact, setIsCompact] = useState(isMobile);
-  const [key, setKey] = useState(0); // Add a key to force re-render
+  const [key, setKey] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
 
   // Reset state when navigating to home from home
   useEffect(() => {
     setHideWatched(true);
     setViewMode('scroll');
     setIsCompact(isMobile);
-    setKey(prev => prev + 1); // Increment key to force re-render of MovieList components
-  }, [location.key]); // location.key changes on each navigation
+    setKey(prev => prev + 1);
+  }, [location.key]);
 
   // Update view mode and compact state when screen size changes
   useEffect(() => {
@@ -47,25 +48,49 @@ const HomePage = () => {
     setIsCompact(isMobile);
   }, [isMobile]);
 
+  // Handle scroll events
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > 0) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen text-white bg-[#1E1118]">
-      {/* Hero Section with Controls */}
-      <div className="w-full px-4 py-8 sticky top-0 z-10 bg-[#1E1118]/95 backdrop-blur-sm">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12">
-          <div className="flex items-center justify-between gap-4">
-            <div className="relative">
+    <div className="min-h-screen text-primary">
+      {/* Fixed Header Container */}
+      <div className={`fixed top-14 left-0 right-0 z-10 transition-transform duration-200 ${!isVisible ? '-translate-y-full' : 'translate-y-0'}`}>
+        {/* Header Background */}
+        <div className="relative w-full h-16 bg-background/80 backdrop-blur-sm border-b border-border">
+          {/* Content Container */}
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 h-full flex items-center justify-between">
+            {/* Filter Section */}
+            <div className="flex items-center">
               <Filters hideWatched={hideWatched} setHideWatched={setHideWatched} />
             </div>
-            
+
+            {/* Action Buttons */}
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
-              <div className="flex items-center bg-zinc-800 rounded-lg p-1">
+              <div className="flex items-center bg-background-secondary rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('scroll')}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'scroll'
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-background-active text-primary'
+                      : 'text-text-disabled hover:text-primary'
                   }`}
                   aria-label="Switch to scroll view"
                 >
@@ -77,8 +102,8 @@ const HomePage = () => {
                   onClick={() => setViewMode('grid')}
                   className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'grid'
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-background-active text-primary'
+                      : 'text-text-disabled hover:text-primary'
                   }`}
                   aria-label="Switch to grid view"
                 >
@@ -92,7 +117,7 @@ const HomePage = () => {
               {!isMobile && (
                 <button
                   onClick={() => setIsCompact(!isCompact)}
-                  className="p-2 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                  className="p-2 rounded-lg bg-background-secondary text-text-disabled hover:text-primary transition-colors"
                   aria-label={isCompact ? "Switch to expanded view" : "Switch to compact view"}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,10 +134,10 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Movie Lists */}
-      <div className="space-y-12 container mx-auto px-4 md:px-8 lg:px-12">
+      {/* Movie Lists - Add padding to account for fixed header height */}
+      <div className="space-y-12 container mx-auto px-4 md:px-8 lg:px-12 pt-24">
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Hidden Gems</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-primary pl-2 border-l-[6px] border-primary">Hidden Gems</h2>
           <MovieList 
             key={`hidden-gems-${key}`}
             type="hidden-gems" 
@@ -123,7 +148,7 @@ const HomePage = () => {
         </section>
 
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Top Rated Movies</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-primary pl-2 border-l-[6px] border-primary">Top Rated Movies</h2>
           <MovieList 
             key={`top-rated-${key}`}
             type="top-rated" 
@@ -134,7 +159,7 @@ const HomePage = () => {
         </section>
 
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Upcoming Movies</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-primary pl-2 border-l-[6px] border-primary">Upcoming Movies</h2>
           <MovieList 
             key={`upcoming-${key}`}
             type="upcoming" 
