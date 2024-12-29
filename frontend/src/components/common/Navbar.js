@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../utils/api';
 import { movieApi } from '../../utils/api';
@@ -41,6 +41,7 @@ const ChevronDownIcon = () => (
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const searchContainerRef = useRef(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,6 +56,19 @@ const Navbar = () => {
     if (storedUsername) {
       setUsername(storedUsername);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setIsSearchBarOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -109,32 +123,45 @@ const Navbar = () => {
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
-            <form onSubmit={handleSearch} className="relative flex items-center w-56">
-              <input
-                type="search"
-                placeholder="Search for movies..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="w-full h-8 px-3 pr-8 py-1 text-sm rounded-md 
-                         bg-background-secondary text-primary
-                         focus:outline-none focus:ring-1 focus:ring-primary
-                         [&::-webkit-search-cancel-button]:hidden
-                         placeholder:text-text-disabled"
-                aria-label="Search"
-              />
-              <button 
-                type="submit"
-                disabled={!searchQuery.trim() || isSearching}
-                className={`absolute right-2 top-1/2 transform -translate-y-1/2
-                         transition-opacity
-                         ${searchQuery.trim() && !isSearching
-                           ? 'opacity-100 cursor-pointer text-primary' 
-                           : 'opacity-50 cursor-not-allowed text-text-disabled'}`}
-                aria-label={isSearching ? 'Searching...' : 'Search'}
-              >
-                <SearchIcon />
-              </button>
-            </form>
+            <div className="relative" ref={searchContainerRef}>
+              {!isSearchBarOpen ? (
+                <button
+                  onClick={toggleSearchBar}
+                  className="p-2 text-primary hover:text-text-secondary rounded-full hover:bg-background-secondary transition-colors"
+                  aria-label="Show search"
+                >
+                  <SearchIcon />
+                </button>
+              ) : (
+                <form onSubmit={handleSearch} className="relative flex items-center w-56">
+                  <input
+                    type="search"
+                    placeholder="Search for movies..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    className="w-full h-8 px-3 pr-8 py-1 text-sm rounded-md 
+                             bg-black text-white
+                             focus:outline-none focus:ring-1 focus:ring-primary
+                             [&::-webkit-search-cancel-button]:hidden
+                             placeholder:text-gray-400"
+                    aria-label="Search"
+                    autoFocus
+                  />
+                  <button 
+                    type="submit"
+                    disabled={!searchQuery.trim() || isSearching}
+                    className={`absolute right-2 top-1/2 transform -translate-y-1/2
+                             transition-opacity
+                             ${searchQuery.trim() && !isSearching
+                               ? 'opacity-100 cursor-pointer text-white' 
+                               : 'opacity-50 cursor-not-allowed text-gray-400'}`}
+                    aria-label={isSearching ? 'Searching...' : 'Search'}
+                  >
+                    <SearchIcon />
+                  </button>
+                </form>
+              )}
+            </div>
 
             {isLoggedIn ? (
               <div className="relative">
@@ -178,10 +205,10 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center space-x-4">
+          <div className="flex md:hidden items-center space-x-4" ref={searchContainerRef}>
             <button
               onClick={toggleSearchBar}
-              className="p-2 text-primary hover:text-text-secondary"
+              className="p-2 text-primary hover:text-text-secondary rounded-full hover:bg-background-secondary transition-colors"
               aria-label="Toggle search"
             >
               <SearchIcon />
@@ -217,10 +244,10 @@ const Navbar = () => {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 className="w-full h-8 px-3 pr-8 py-1 text-sm rounded-md 
-                         bg-background-secondary text-primary
+                         bg-black text-white
                          focus:outline-none focus:ring-1 focus:ring-primary
                          [&::-webkit-search-cancel-button]:hidden
-                         placeholder:text-text-disabled"
+                         placeholder:text-gray-400"
                 aria-label="Search"
                 autoFocus
               />
@@ -230,8 +257,8 @@ const Navbar = () => {
                 className={`absolute right-2 top-1/2 transform -translate-y-1/2
                          transition-opacity
                          ${searchQuery.trim() && !isSearching
-                           ? 'opacity-100 cursor-pointer text-primary' 
-                           : 'opacity-50 cursor-not-allowed text-text-disabled'}`}
+                           ? 'opacity-100 cursor-pointer text-white' 
+                           : 'opacity-50 cursor-not-allowed text-gray-400'}`}
                 aria-label={isSearching ? 'Searching...' : 'Search'}
               >
                 <SearchIcon />
