@@ -64,6 +64,7 @@ export const authApi = {
   signup: (userData) => api.post('/api/auth/signup', userData),
   verifyToken: () => api.get('/api/auth/verify'),
   getCurrentUser: () => api.get('/api/auth/me'),
+  googleAuth: (data) => api.post('/api/auth/google', data),
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
