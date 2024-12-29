@@ -1,13 +1,15 @@
 import axios from 'axios';
 
-const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 const api = axios.create({
   baseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: true
 });
 
 // Add request interceptor to include auth token
@@ -15,10 +17,25 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Ensure Bearer prefix is present
+      const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      config.headers.Authorization = tokenWithBearer;
     }
-    // Log the full URL being requested
-    console.log('Making request to:', `${baseURL}${config.url}`);
+    
+    // Ensure consistent header format
+    config.headers = {
+      'Content-Type': 'application/json',
+      ...config.headers,
+    };
+
+    console.log('API Request:', {
+      url: `${baseURL}${config.url}`,
+      method: config.method,
+      hasToken: !!token,
+      tokenFirstChars: token ? token.substring(0, 10) + '...' : 'none',
+      headers: JSON.stringify(config.headers)
+    });
+
     return config;
   },
   (error) => {
@@ -28,13 +45,25 @@ api.interceptors.request.use(
 
 // Add response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    console.log('API Response:', {
+      url: `${baseURL}${response.config.url}`,
+      status: response.status,
+      hasData: !!response.data,
+      dataType: response.data ? typeof response.data : 'none',
+      headers: response.headers
+    });
+    return response.data;
+  },
   (error) => {
     console.error('API Error:', {
       status: error.response?.status,
       data: error.response?.data,
       url: error.config?.url,
-      method: error.config?.method
+      method: error.config?.method,
+      headers: error.config?.headers,
+      requestHeaders: error.config?.headers,
+      responseHeaders: error.response?.headers
     });
     return Promise.reject(error);
   }

@@ -22,67 +22,49 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import get_settings
 from app.database.database import init_db
 from app.routers import auth, movies, proxy, person, lists
+from app.core.logging_config import configure_logging
+import logging.config
 import logging
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
+# Configure logging
+logging.config.dictConfig(configure_logging())
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Manages the application lifecycle.
-    
-    Responsibilities:
-    - Configures logging with appropriate log levels
-    - Initializes database connection
-    - Handles graceful shutdown
-    
-    Args:
-        app: FastAPI application instance
+    Lifespan context manager for FastAPI application.
+    Handles startup and shutdown events.
     """
-    # Setup logging configuration
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
-    # Set higher log levels for noisy modules
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-    
+    # Startup
     await init_db()
     yield
-    logger.info("Shutting down application")
+    # Shutdown
+    # Add cleanup code here if needed
 
-# Initialize FastAPI application with configuration
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    debug=settings.DEBUG,
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json"
 )
 
-# Include routers with their respective prefixes and tags
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(movies.router, prefix="/api/movies", tags=["movies"])
-app.include_router(proxy.router, prefix="/api/proxy", tags=["proxy"])
-app.include_router(person.router, prefix="/api/person", tags=["person"])
-app.include_router(lists.router, tags=["lists"])
-
-# Configure CORS for frontend communication
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    max_age=3600
 )
 
-@app.on_event("startup")
-async def log_routes():
-    """
-    Logs all registered routes on application startup for debugging purposes.
-    """
-    for route in app.routes:
-        logger.info(f"Registered route: {route.path}")
+# API Routes
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(movies.router, prefix="/api/movies", tags=["movies"])
+app.include_router(proxy.router, prefix="/api/proxy", tags=["proxy"])
+app.include_router(person.router, prefix="/api/person", tags=["person"])
+app.include_router(lists.router, prefix="/api/lists", tags=["lists"])
