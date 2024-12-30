@@ -71,9 +71,51 @@ api.interceptors.response.use(
 
 export const movieApi = {
   getPopularMovies: (page = 1) => api.get(`/api/movies/popular?page=${page}`),
-  getTopRatedMovies: (page = 1) => api.get(`/api/movies/top-rated?page=${page}`),
-  getUpcomingMovies: (page = 1) => api.get(`/api/movies/upcoming?page=${page}`),
-  getHiddenGems: (page = 1) => api.get(`/api/movies/hidden-gems?page=${page}`),
+  getTopRatedMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    
+    if (filters.yearRange?.length === 2) {
+      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
+    }
+    if (filters.ratingRange?.length === 2) {
+      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
+    }
+    if (filters.popularityRange?.length === 2) {
+      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
+    }
+    
+    return api.get(`/api/movies/top-rated?${params.toString()}`);
+  },
+  getUpcomingMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    
+    if (filters.yearRange?.length === 2) {
+      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
+    }
+    if (filters.ratingRange?.length === 2) {
+      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
+    }
+    if (filters.popularityRange?.length === 2) {
+      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
+    }
+    
+    return api.get(`/api/movies/upcoming?${params.toString()}`);
+  },
+  getHiddenGems: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    
+    if (filters.yearRange?.length === 2) {
+      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
+    }
+    if (filters.ratingRange?.length === 2) {
+      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
+    }
+    if (filters.popularityRange?.length === 2) {
+      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
+    }
+    
+    return api.get(`/api/movies/hidden-gems?${params.toString()}`);
+  },
   getMovieNews: () => api.get('/api/movies/news'),
   searchMovies: (query) => api.get(`/api/movies/search?query=${encodeURIComponent(query)}`),
   getMovieDetails: (id) => api.get(`/api/movies/${id}`),

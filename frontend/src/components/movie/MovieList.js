@@ -39,6 +39,31 @@ const MovieList = ({
   const [showRightButton, setShowRightButton] = useState(false);
   const scrollContainerRef = useRef(null);
   const { lists, loading: listsLoading } = useLists();
+  
+  // Keep track of the current filter state to prevent race conditions
+  const currentFilters = useRef({
+    yearRange,
+    ratingRange,
+    popularityRange
+  });
+
+  // Update currentFilters ref when props change
+  useEffect(() => {
+    currentFilters.current = {
+      yearRange,
+      ratingRange,
+      popularityRange
+    };
+  }, [yearRange, ratingRange, popularityRange]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    if (!propMovies) {
+      setPage(1);
+      setAllMovies([]);
+      setHasMore(true);
+    }
+  }, [yearRange, ratingRange, popularityRange, propMovies]);
 
   // Fetch movies when type or page changes
   useEffect(() => {
@@ -55,6 +80,10 @@ const MovieList = ({
       
       setIsLoading(true);
       setError(null);
+      
+      // Use the current filter state from ref to prevent race conditions
+      const filters = { ...currentFilters.current };
+      
       try {
         let response;
         switch (type) {
@@ -62,13 +91,13 @@ const MovieList = ({
             response = await movieApi.getPopularMovies(page);
             break;
           case 'top-rated':
-            response = await movieApi.getTopRatedMovies(page);
+            response = await movieApi.getTopRatedMovies(page, filters);
             break;
           case 'upcoming':
-            response = await movieApi.getUpcomingMovies(page);
+            response = await movieApi.getUpcomingMovies(page, filters);
             break;
           case 'hidden-gems':
-            response = await movieApi.getHiddenGems(page);
+            response = await movieApi.getHiddenGems(page, filters);
             break;
           case 'news':
             response = await movieApi.getMovieNews(page);
@@ -76,14 +105,20 @@ const MovieList = ({
           default:
             throw new Error('Invalid movie list type');
         }
-        
-        if (page === 1) {
-          setAllMovies(response.results || []);
-        } else {
-          setAllMovies(prev => [...prev, ...(response.results || [])]);
+
+        // Verify the filters haven't changed during the request
+        if (
+          JSON.stringify(filters) === JSON.stringify(currentFilters.current) ||
+          type === 'popular' || 
+          type === 'news'
+        ) {
+          if (page === 1) {
+            setAllMovies(response.results || []);
+          } else {
+            setAllMovies(prev => [...prev, ...(response.results || [])]);
+          }
+          setHasMore(response.page < response.total_pages);
         }
-        
-        setHasMore(response.page < response.total_pages);
       } catch (err) {
         console.error(`Error fetching ${type} movies:`, err);
         setError(err.message);
@@ -93,9 +128,9 @@ const MovieList = ({
     };
 
     fetchMovies();
-  }, [type, page, propMovies]);
+  }, [type, page, propMovies, yearRange, ratingRange, popularityRange]);
 
-  // Filter movies client-side based on all filters
+  // Filter movies client-side based on excluded lists
   const displayedMovies = useMemo(() => {
     let filteredMovies = allMovies;
 
@@ -112,35 +147,14 @@ const MovieList = ({
       filteredMovies = filteredMovies.filter(movie => !excludedMovieIds.has(movie.id.toString()));
     }
 
-    // Apply year range filter
-    if (yearRange) {
-      filteredMovies = filteredMovies.filter(movie => {
-        const movieYear = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
-        return movieYear && movieYear >= yearRange[0] && movieYear <= yearRange[1];
-      });
-    }
-
-    // Apply rating filter
-    if (ratingRange) {
-      filteredMovies = filteredMovies.filter(movie => 
-        movie.vote_average >= ratingRange[0] && movie.vote_average <= ratingRange[1]
-      );
-    }
-
-    // Apply popularity filter
-    if (popularityRange) {
-      filteredMovies = filteredMovies.filter(movie =>
-        movie.vote_count >= popularityRange[0] && movie.vote_count <= popularityRange[1]
-      );
-    }
-
     // If we don't have enough movies after filtering, fetch more
     if (!isLoading && hasMore && filteredMovies.length < 20 && !propMovies) {
-      setPage(prev => prev + 1);
+      // Use setTimeout to prevent potential infinite loops
+      setTimeout(() => setPage(prev => prev + 1), 0);
     }
 
     return filteredMovies;
-  }, [allMovies, excludedLists, lists, isLoading, hasMore, yearRange, ratingRange, popularityRange]);
+  }, [allMovies, excludedLists, lists, isLoading, hasMore, propMovies]);
 
   useEffect(() => {
     if (viewMode !== 'scroll') return;
