@@ -1,9 +1,10 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../../utils/image';
 import WatchedToggle from './WatchedToggle';
 import WatchlistToggle from './WatchlistToggle';
 import AddToListButton from './AddToListButton';
+import { useLists } from '../../contexts/ListsContext';
 
 const StarIcon = () => (
   <svg 
@@ -16,27 +17,65 @@ const StarIcon = () => (
   </svg>
 );
 
-const MovieCard = ({ movie, isCompact = false }) => {
+const MovieCard = ({ 
+  movie, 
+  isCompact = false,
+  onRemove = null,
+  listId = null,
+  onWatchedToggle = null,
+  onWatchlistToggle = null
+}) => {
+  const navigate = useNavigate();
+  const { lists } = useLists();
+
+  // Check if this is a default list
+  const currentList = lists?.find(list => list.id === listId);
+  const isDefaultList = currentList?.is_default;
+
   return (
     <div className={`relative ${isCompact ? 'w-[120px]' : 'w-[180px]'} group`}>
       <Link 
         to={`/movies/${movie.id}`}
-        className="block bg-zinc-900 rounded-lg overflow-hidden relative z-10 h-full"
+        className="block bg-background-secondary rounded-lg overflow-hidden relative z-10 h-full"
       >
         <div className="aspect-[2/3] relative">
           {/* Action Buttons Container with Animation */}
           <div className={`absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 md:p-2 md:gap-2 ${!isCompact ? 'transition-all duration-300 ease-in-out group-hover:scale-125 sm:group-hover:scale-100' : ''}`}>
-            {/* Left Button */}
+            {/* Left Button - Show Delete button for non-default lists only, otherwise show Add to List */}
             <div className={`flex-1 ${!isCompact ? 'transition-transform duration-300 group-hover:-translate-x-2 sm:group-hover:translate-x-0' : ''}`}>
-              <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
+              {onRemove && !isDefaultList ? (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onRemove(movie.id);
+                  }}
+                  className="p-1.5 rounded-full bg-black/75 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                  aria-label="Remove from list"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              ) : (
+                <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
+              )}
             </div>
             {/* Right Buttons */}
             <div className="flex flex-1 justify-end gap-1 md:gap-2">
               <div className={`flex-1 flex justify-center ${!isCompact ? 'transition-transform duration-300 group-hover:-translate-x-3 sm:group-hover:translate-x-0' : ''}`}>
-                <WatchedToggle movieId={movie.id} isCompact={isCompact} />
+                <WatchedToggle 
+                  movieId={movie.id} 
+                  isCompact={isCompact}
+                  onToggle={onWatchedToggle}
+                />
               </div>
               <div className={`flex-1 flex justify-center ${!isCompact ? 'transition-transform duration-300 group-hover:translate-x-2 sm:group-hover:translate-x-0' : ''}`}>
-                <WatchlistToggle movieId={movie.id} isCompact={isCompact} />
+                <WatchlistToggle 
+                  movieId={movie.id} 
+                  isCompact={isCompact}
+                  onToggle={onWatchlistToggle}
+                />
               </div>
             </div>
           </div>
@@ -57,14 +96,14 @@ const MovieCard = ({ movie, isCompact = false }) => {
           </h3>
           <div className="flex justify-between items-center mt-1">
             {movie.release_date ? (
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-text-secondary">
                 {new Date(movie.release_date).getFullYear()}
               </span>
             ) : (
-              <span className="text-xs text-zinc-400">—</span>
+              <span className="text-xs text-text-secondary">—</span>
             )}
             {movie.vote_average > 0 && (
-              <div className="flex items-center space-x-1 text-zinc-400">
+              <div className="flex items-center space-x-1 text-yellow-400">
                 <StarIcon />
                 <span className="text-xs">{movie.vote_average.toFixed(1)}</span>
               </div>

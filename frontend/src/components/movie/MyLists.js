@@ -4,6 +4,8 @@ import { getLists, createList, updateList, deleteList, removeMovieFromList } fro
 import { movieApi } from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import { getImageUrl } from '../../utils/image';
+import MovieList from './MovieList';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const MyLists = () => {
   const [lists, setLists] = useState([]);
@@ -314,22 +316,67 @@ const MyLists = () => {
 
             {/* List Items */}
             {expandedListId === list.id && (
-              <div className="border-t border-border">
+              <motion.div 
+                className="border-t border-border"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+              >
                 {loadingMovies ? (
                   <div className="p-8 text-center">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                     <p className="mt-2 text-text-secondary">Loading movies...</p>
                   </div>
                 ) : list.items.length > 0 ? (
-                  <div className="grid grid-cols-1 divide-y divide-border">
-                    {list.items.map(item => renderListItem(item, list.id))}
+                  <div className="p-4">
+                    <MovieList
+                      movies={list.items.map(item => ({
+                        ...movieDetails[item.movie_id],
+                        listItemId: item.id // Add the list item ID for removal
+                      })).filter(Boolean)}
+                      viewMode="grid"
+                      isCompact={true}
+                      listId={list.id}
+                      onRemoveFromList={async (movieId) => {
+                        try {
+                          await removeMovieFromList(list.id, movieId);
+                          // Update local state to remove the movie
+                          setLists(lists.map(l => 
+                            l.id === list.id
+                              ? { ...l, items: l.items.filter(item => item.movie_id !== movieId.toString()) }
+                              : l
+                          ));
+                          toast.success('Movie removed from list');
+                        } catch (error) {
+                          console.error('Failed to remove movie:', error);
+                          toast.error('Failed to remove movie from list');
+                        }
+                      }}
+                      onWatchedToggle={list.name === 'Watched' ? async (movieId) => {
+                        // When a movie is unwatched in the Watched list, remove it from the list
+                        setLists(lists.map(l => 
+                          l.id === list.id
+                            ? { ...l, items: l.items.filter(item => item.movie_id !== movieId.toString()) }
+                            : l
+                        ));
+                      } : undefined}
+                      onWatchlistToggle={list.name === 'Watchlist' ? async (movieId) => {
+                        // When a movie is unbookmarked in the Watchlist, remove it from the list
+                        setLists(lists.map(l => 
+                          l.id === list.id
+                            ? { ...l, items: l.items.filter(item => item.movie_id !== movieId.toString()) }
+                            : l
+                        ));
+                      } : undefined}
+                    />
                   </div>
                 ) : (
                   <div className="p-4 text-center text-text-secondary">
                     No movies in this list yet
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
           </div>
         ))}

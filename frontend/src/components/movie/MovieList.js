@@ -12,7 +12,17 @@ import MovieCard from './MovieCard';
 import { useLists } from '../../contexts/ListsContext';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const MovieList = ({ type, movies: propMovies, hideWatched, viewMode = 'scroll', isCompact = false }) => {
+const MovieList = ({ 
+  type, 
+  movies: propMovies, 
+  hideWatched, 
+  viewMode = 'scroll', 
+  isCompact = false,
+  onRemoveFromList = null,
+  listId = null,
+  onWatchedToggle = null,
+  onWatchlistToggle = null
+}) => {
   // Force compact mode when grid view is selected
   const effectiveIsCompact = viewMode === 'grid' ? true : isCompact;
   
@@ -148,6 +158,17 @@ const MovieList = ({ type, movies: propMovies, hideWatched, viewMode = 'scroll',
     }
   };
 
+  const renderMovieCard = (movie) => (
+    <MovieCard 
+      movie={movie} 
+      isCompact={effectiveIsCompact}
+      onRemove={onRemoveFromList}
+      listId={listId}
+      onWatchedToggle={onWatchedToggle}
+      onWatchlistToggle={onWatchlistToggle}
+    />
+  );
+
   if (error) {
     return (
       <div className="text-red-500 text-center py-4">
@@ -204,7 +225,7 @@ const MovieList = ({ type, movies: propMovies, hideWatched, viewMode = 'scroll',
                     }}
                     layout
                   >
-                    <MovieCard movie={movie} isCompact={effectiveIsCompact} />
+                    {renderMovieCard(movie)}
                   </motion.div>
                 ))}
                 {hasMore && (
@@ -256,7 +277,7 @@ const MovieList = ({ type, movies: propMovies, hideWatched, viewMode = 'scroll',
                 }}
                 layout
               >
-                <MovieCard movie={movie} isCompact={effectiveIsCompact} />
+                {renderMovieCard(movie)}
               </motion.div>
             ))}
           </AnimatePresence>
