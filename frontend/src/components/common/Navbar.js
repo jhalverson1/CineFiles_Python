@@ -37,7 +37,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 h-14 z-50 bg-background-darker border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 h-14 z-50 bg-background-tertiary shadow-lg">
         <div className="flex items-center justify-between h-full px-4">
           <Logo />
           
@@ -47,27 +47,27 @@ const Navbar = () => {
               <div className="relative">
                 <button
                   onClick={toggleDropdown}
-                  className="flex items-center space-x-1 text-primary hover:text-text-secondary px-2 py-1 rounded-md transition-colors"
+                  className="flex items-center space-x-1 text-text-primary hover:text-text-secondary px-2 py-1 rounded-md transition-colors"
                   aria-label="Toggle user menu"
                   aria-expanded={isDropdownOpen}
                 >
                   <span className="text-sm font-medium">{username}</span>
-                  <ChevronDownIcon className="text-primary" />
+                  <ChevronDownIcon className="text-text-primary" />
                 </button>
 
                 {/* Desktop Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-background-darker border border-border focus:outline-none">
+                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-background-secondary border border-border focus:outline-none">
                     <Link
                       to="/my-lists"
-                      className="block px-4 py-2 text-sm text-primary hover:text-text-secondary hover:bg-background-active transition-colors"
+                      className="block px-4 py-2 text-sm text-text-primary hover:text-text-secondary hover:bg-background-primary transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       My Lists
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-primary hover:text-text-secondary hover:bg-background-active transition-colors"
+                      className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:text-text-secondary hover:bg-background-primary transition-colors"
                     >
                       Logout
                     </button>
@@ -77,7 +77,7 @@ const Navbar = () => {
             ) : (
               <Link
                 to="/login"
-                className="text-primary hover:text-text-secondary"
+                className="text-text-primary hover:text-text-secondary"
               >
                 Login
               </Link>
@@ -89,17 +89,17 @@ const Navbar = () => {
             {isLoggedIn ? (
               <button
                 onClick={toggleDropdown}
-                className="flex items-center space-x-1 text-primary hover:text-text-secondary px-2 py-1 rounded-md transition-colors"
+                className="flex items-center space-x-1 text-text-primary hover:text-text-secondary px-2 py-1 rounded-md transition-colors"
                 aria-label="Toggle user menu"
                 aria-expanded={isDropdownOpen}
               >
                 <span className="text-sm font-medium">{username}</span>
-                <ChevronDownIcon className="text-primary" />
+                <ChevronDownIcon className="text-text-primary" />
               </button>
             ) : (
               <Link
                 to="/login"
-                className="text-primary hover:text-text-secondary text-sm font-medium"
+                className="text-text-primary hover:text-text-secondary text-sm font-medium"
               >
                 Login
               </Link>
@@ -109,18 +109,18 @@ const Navbar = () => {
 
         {/* Mobile User Dropdown */}
         {isDropdownOpen && (
-          <div className="md:hidden px-4 py-2 bg-background-darker border-t border-border">
+          <div className="md:hidden px-4 py-2 bg-background-secondary border-t border-border">
             <div className="flex flex-col space-y-2">
               <Link
                 to="/my-lists"
-                className="text-left text-primary hover:text-text-secondary hover:bg-background-active py-2 text-sm transition-colors rounded-md px-2"
+                className="text-left text-text-primary hover:text-text-secondary hover:bg-background-primary py-2 text-sm transition-colors rounded-md px-2"
                 onClick={() => setIsDropdownOpen(false)}
               >
                 My Lists
               </Link>
               <button
                 onClick={handleLogout}
-                className="text-left text-primary hover:text-text-secondary hover:bg-background-active py-2 text-sm transition-colors rounded-md px-2"
+                className="text-left text-text-primary hover:text-text-secondary hover:bg-background-primary py-2 text-sm transition-colors rounded-md px-2"
               >
                 Logout
               </button>

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLists } from '../../contexts/ListsContext';
 import { removeMovieFromList } from '../../utils/api';
 import toast from 'react-hot-toast';
 
-const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'bottom-left' }) => {
+const AddToListButton = ({ movieId, isCompact = false }) => {
   const { lists, addToList, loading, refreshLists } = useLists();
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef(null);
@@ -29,18 +30,17 @@ const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'botto
   }, []);
 
   const handleButtonClick = (e) => {
-    e.preventDefault(); // Prevent navigation
-    e.stopPropagation(); // Stop event bubbling
+    e.preventDefault();
+    e.stopPropagation();
     setIsOpen(!isOpen);
   };
 
   const handleListClick = async (e, list) => {
-    e.preventDefault(); // Prevent navigation
-    e.stopPropagation(); // Stop event bubbling
+    e.preventDefault();
+    e.stopPropagation();
     
     try {
       if (isMovieInList(list)) {
-        // Remove from list
         await removeMovieFromList(list.id, movieId);
         await refreshLists();
         setIsOpen(false);
@@ -53,7 +53,6 @@ const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'botto
           }
         });
       } else {
-        // Add to list
         const data = {
           movie_id: String(movieId),
           notes: ''
@@ -82,7 +81,7 @@ const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'botto
   };
 
   return (
-    <div className="relative" onClick={e => e.stopPropagation()}>
+    <div className="relative">
       <button
         ref={buttonRef}
         onClick={handleButtonClick}
@@ -100,22 +99,16 @@ const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'botto
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div 
           ref={dropdownRef}
           className="fixed z-50 w-48 rounded-lg shadow-lg bg-zinc-900 ring-1 ring-white/10"
           style={{
-            ...(dropdownPosition === 'bottom-left' ? {
-              top: buttonRef.current ? buttonRef.current.getBoundingClientRect().bottom + 4 : 0,
-              left: buttonRef.current ? buttonRef.current.getBoundingClientRect().left - 172 : 0,
-            } : {
-              bottom: buttonRef.current ? window.innerHeight - buttonRef.current.getBoundingClientRect().top + 4 : 0,
-              left: buttonRef.current ? buttonRef.current.getBoundingClientRect().left : 0,
-            })
+            top: buttonRef.current?.getBoundingClientRect().bottom + 4,
+            left: buttonRef.current?.getBoundingClientRect().left,
           }}
-          onClick={e => e.stopPropagation()}
         >
-          <div className="py-1" role="menu">
+          <div className="py-1">
             {filteredLists.length === 0 ? (
               <div className="px-4 py-2 text-sm text-zinc-400">No lists available</div>
             ) : (
@@ -124,7 +117,6 @@ const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'botto
                   key={list.id}
                   onClick={(e) => handleListClick(e, list)}
                   className="block w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                  role="menuitem"
                 >
                   <div className="flex items-center justify-between">
                     <span>{list.name}</span>
@@ -148,7 +140,8 @@ const AddToListButton = ({ movieId, isCompact = false, dropdownPosition = 'botto
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

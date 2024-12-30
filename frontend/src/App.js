@@ -12,14 +12,17 @@ import { AuthProvider } from './contexts/AuthContext';
 import AppRoutes from './AppRoutes';
 import Navbar from './components/common/Navbar';
 import { Toaster } from 'react-hot-toast';
+import { colorVariants } from './utils/theme';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen bg-background text-primary">
+        <div className="min-h-screen bg-background-primary">
           <Navbar />
-          <AppRoutes />
+          <div className="min-h-screen bg-background-primary dot-texture text-text-primary">
+            <AppRoutes />
+          </div>
           <Toaster position="bottom-right" />
         </div>
       </AuthProvider>

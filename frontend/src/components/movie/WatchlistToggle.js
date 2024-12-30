@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLists } from '../../contexts/ListsContext';
 import { listsApi } from '../../utils/listsApi';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const BookmarkIcon = ({ className = "w-5 h-5" }) => (
   <svg 
@@ -78,18 +79,33 @@ const WatchlistToggle = ({ movieId, isCompact = false }) => {
   };
 
   return (
-    <button
+    <motion.button
       onClick={handleToggleWatchlist}
       disabled={loading || isUpdating}
       className={`${isCompact ? 'p-1' : 'p-1.5'} bg-black/75 rounded-md transition-colors
         ${inWatchlist 
           ? 'text-red-500 hover:text-red-400' 
           : 'text-white/50 hover:text-white/75'
-        } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        } ${(isUpdating || loading) ? 'opacity-50' : ''}`}
       aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+      whileTap={!(loading || isUpdating) ? { scale: 0.9 } : {}}
+      whileHover={!(loading || isUpdating) ? { scale: 1.05 } : {}}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
     >
-      <BookmarkIcon className={isCompact ? 'w-4 h-4' : 'w-5 h-5'} />
-    </button>
+      <motion.div
+        animate={{ 
+          scale: inWatchlist ? 1.1 : 1,
+          y: inWatchlist ? -2 : 0
+        }}
+        transition={{ 
+          type: "spring",
+          stiffness: 200,
+          damping: 10
+        }}
+      >
+        <BookmarkIcon className={isCompact ? 'w-4 h-4' : 'w-5 h-5'} />
+      </motion.div>
+    </motion.button>
   );
 };
 
