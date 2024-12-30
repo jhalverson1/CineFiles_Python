@@ -12,14 +12,14 @@ import MovieCard from './MovieCard';
 import { useLists } from '../../contexts/ListsContext';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }) => {
+const MovieList = ({ type, movies: propMovies, hideWatched, viewMode = 'scroll', isCompact = false }) => {
   // Force compact mode when grid view is selected
   const effectiveIsCompact = viewMode === 'grid' ? true : isCompact;
   
-  const [allMovies, setAllMovies] = useState([]);
+  const [allMovies, setAllMovies] = useState(propMovies || []);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(!propMovies);
+  const [isLoading, setIsLoading] = useState(!propMovies);
   const [error, setError] = useState(null);
   const [showLeftButton, setShowLeftButton] = useState(false);
   const [showRightButton, setShowRightButton] = useState(false);
@@ -28,6 +28,14 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
 
   // Fetch movies when type or page changes
   useEffect(() => {
+    // If we have propMovies, don't fetch
+    if (propMovies) {
+      setAllMovies(propMovies);
+      setHasMore(false);
+      setIsLoading(false);
+      return;
+    }
+
     const fetchMovies = async () => {
       if (!hasMore && page > 1) return;
       
@@ -71,7 +79,7 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
     };
 
     fetchMovies();
-  }, [type, page]);
+  }, [type, page, propMovies]);
 
   // Filter movies client-side when hideWatched or lists change
   const displayedMovies = useMemo(() => {

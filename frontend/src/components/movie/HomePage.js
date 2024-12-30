@@ -4,6 +4,7 @@ import Filters from '../common/Filters';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colorVariants } from '../../utils/theme';
 import { movieApi } from '../../utils/api';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Custom hook for responsive design
 const useResponsiveDefaults = () => {
@@ -39,6 +40,7 @@ const HomePage = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
 
   // Reset state when navigating to home from home
   useEffect(() => {
@@ -46,7 +48,19 @@ const HomePage = () => {
     setViewMode('scroll');
     setIsCompact(isMobile);
     setKey(prev => prev + 1);
+    setSearchResults(null);
+    setSearchQuery('');
+    setIsSearchOpen(false);
   }, [location.key, isMobile]);
+
+  // Handle search toggle
+  const handleSearchToggle = () => {
+    setIsSearchOpen(prev => !prev);
+    if (isSearchOpen) {
+      setSearchResults(null);
+      setSearchQuery('');
+    }
+  };
 
   // Update view mode and compact state when screen size changes
   useEffect(() => {
@@ -75,19 +89,18 @@ const HomePage = () => {
 
   const handleSearch = async (e) => {
     e?.preventDefault();
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
 
     setIsSearching(true);
     try {
       const response = await movieApi.searchMovies(searchQuery);
-      navigate('/search', { 
-        state: { 
-          results: response.results,
-          query: searchQuery 
-        } 
-      });
+      setSearchResults(response.results);
     } catch (error) {
       console.error('Search error:', error);
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -95,6 +108,9 @@ const HomePage = () => {
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
+    if (!e.target.value.trim()) {
+      setSearchResults(null);
+    }
   };
 
   return (
@@ -116,7 +132,7 @@ const HomePage = () => {
                 <Filters hideWatched={hideWatched} setHideWatched={setHideWatched} />
                 {/* Search Button */}
                 <button
-                  onClick={() => setIsSearchOpen(!isSearchOpen)}
+                  onClick={handleSearchToggle}
                   className={`p-2 rounded-lg transition-colors ${
                     isSearchOpen 
                       ? 'bg-background-tertiary text-text-primary' 
@@ -233,39 +249,85 @@ const HomePage = () => {
       </div>
 
       {/* Movie Lists - Add padding to account for fixed header height */}
-      <div className="space-y-12 container mx-auto px-4 md:px-8 lg:px-12 pt-24">
-        <section>
-          <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Hidden Gems</h2>
-          <MovieList 
-            key={`hidden-gems-${key}`}
-            type="hidden-gems" 
-            hideWatched={hideWatched} 
-            viewMode={viewMode}
-            isCompact={isCompact}
-          />
-        </section>
+      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 transition-[padding] duration-300 ease-in-out ${
+        isSearchOpen ? 'pt-40' : 'pt-24'
+      }`}>
+        <AnimatePresence mode="wait">
+          {searchResults !== null ? (
+            <motion.div
+              key="search-results"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <section>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                    Search Results for "{searchQuery}"
+                  </h2>
+                  <p className="text-text-secondary pl-2">
+                    Found {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
+                  </p>
+                </div>
+                {searchResults.length > 0 ? (
+                  <MovieList 
+                    key={`search-results-${searchQuery}`}
+                    movies={searchResults}
+                    hideWatched={hideWatched}
+                    viewMode={viewMode}
+                    isCompact={isCompact}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-text-secondary">No results found for "{searchQuery}"</p>
+                  </div>
+                )}
+              </section>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="default-lists"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <section>
+                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Hidden Gems</h2>
+                <MovieList 
+                  key={`hidden-gems-${key}`}
+                  type="hidden-gems" 
+                  hideWatched={hideWatched} 
+                  viewMode={viewMode}
+                  isCompact={isCompact}
+                />
+              </section>
 
-        <section>
-          <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Top Rated Movies</h2>
-          <MovieList 
-            key={`top-rated-${key}`}
-            type="top-rated" 
-            hideWatched={hideWatched} 
-            viewMode={viewMode}
-            isCompact={isCompact}
-          />
-        </section>
+              <section>
+                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Top Rated Movies</h2>
+                <MovieList 
+                  key={`top-rated-${key}`}
+                  type="top-rated" 
+                  hideWatched={hideWatched} 
+                  viewMode={viewMode}
+                  isCompact={isCompact}
+                />
+              </section>
 
-        <section>
-          <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Upcoming Movies</h2>
-          <MovieList 
-            key={`upcoming-${key}`}
-            type="upcoming" 
-            hideWatched={hideWatched} 
-            viewMode={viewMode}
-            isCompact={isCompact}
-          />
-        </section>
+              <section>
+                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Upcoming Movies</h2>
+                <MovieList 
+                  key={`upcoming-${key}`}
+                  type="upcoming" 
+                  hideWatched={hideWatched} 
+                  viewMode={viewMode}
+                  isCompact={isCompact}
+                />
+              </section>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
