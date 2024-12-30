@@ -21,7 +21,8 @@ const MovieList = ({
   onRemoveFromList = null,
   listId = null,
   onWatchedToggle = null,
-  onWatchlistToggle = null
+  onWatchlistToggle = null,
+  excludedLists = []
 }) => {
   // Force compact mode when grid view is selected
   const effectiveIsCompact = viewMode === 'grid' ? true : isCompact;
@@ -93,21 +94,26 @@ const MovieList = ({
 
   // Filter movies client-side when hideWatched or lists change
   const displayedMovies = useMemo(() => {
-    if (!hideWatched || !lists || lists.length === 0) return allMovies;
+    if (!lists || lists.length === 0 || !excludedLists?.length) return allMovies;
     
-    const watchedList = lists.find(list => list.name === "Watched");
-    if (!watchedList) return allMovies;
+    // Create a Set of movie IDs to exclude
+    const excludedMovieIds = new Set();
+    excludedLists.forEach(listId => {
+      const list = lists.find(l => l.id === listId);
+      if (list) {
+        list.items?.forEach(item => excludedMovieIds.add(item.movie_id.toString()));
+      }
+    });
     
-    const watchedMovieIds = new Set(watchedList.items?.map(item => item.movie_id) || []);
-    const filteredMovies = allMovies.filter(movie => !watchedMovieIds.has(movie.id.toString()));
+    const filteredMovies = allMovies.filter(movie => !excludedMovieIds.has(movie.id.toString()));
 
-    // If we're hiding watched movies and don't have enough movies, fetch more
-    if (hideWatched && !isLoading && hasMore && filteredMovies.length < 20) {
+    // If we don't have enough movies after filtering, fetch more
+    if (!isLoading && hasMore && filteredMovies.length < 20) {
       setPage(prev => prev + 1);
     }
 
     return filteredMovies;
-  }, [allMovies, hideWatched, lists, isLoading, hasMore]);
+  }, [allMovies, excludedLists, lists, isLoading, hasMore]);
 
   useEffect(() => {
     if (viewMode !== 'scroll') return;
