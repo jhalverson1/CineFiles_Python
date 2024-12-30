@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLists } from '../../contexts/ListsContext';
 import { listsApi } from '../../utils/listsApi';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const BookmarkIcon = ({ className = "w-5 h-5" }) => (
   <svg 
@@ -14,82 +15,48 @@ const BookmarkIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
-const WatchlistToggle = ({ movieId, isCompact = false }) => {
-  const { lists, loading, refreshLists } = useLists();
-  const [inWatchlist, setInWatchlist] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+const WatchlistToggle = ({ movieId, isCompact = false, onToggle }) => {
+  const { lists, refreshLists } = useLists();
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!lists || loading) return;
-    
-    const watchlist = lists.find(list => list.name === "Watchlist");
-    if (watchlist) {
-      const isInWatchlist = watchlist.items.some(item => item.movie_id === movieId.toString());
-      setInWatchlist(isInWatchlist);
-    }
-  }, [lists, movieId, loading]);
+  const watchlist = lists?.find(list => list.name === 'Watchlist');
+  const isInWatchlist = watchlist?.items?.some(item => item.movie_id === movieId.toString());
 
-  const handleToggleWatchlist = async (e) => {
-    e.preventDefault(); // Prevent navigation
-    e.stopPropagation(); // Stop event bubbling
+  const handleToggle = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    if (isUpdating || loading) return;
-    
+    setIsLoading(true);
     try {
-      setIsUpdating(true);
-      const newWatchlistState = !inWatchlist;
-      setInWatchlist(newWatchlistState); // Optimistic update
-      
-      await listsApi.toggleWatchlist(movieId);
+      await listsApi.toggleWatchlist(movieId.toString());
       await refreshLists();
-      
-      if (newWatchlistState) {
-        toast.success('Added to Watchlist', {
-          icon: '✓',
-          style: {
-            background: '#065f46',
-            color: '#fff',
-            borderRadius: '8px',
-          }
-        });
-      } else {
-        toast('Removed from Watchlist', {
-          icon: '×',
-          style: {
-            background: '#7f1d1d',
-            color: '#fff',
-            borderRadius: '8px',
-          }
-        });
-      }
-    } catch (err) {
-      console.error('Failed to toggle watchlist status:', err);
-      setInWatchlist(!inWatchlist); // Revert on error
-      toast.error('Update failed', {
-        style: {
-          background: '#7f1d1d',
-          color: '#fff',
-          borderRadius: '8px',
-        }
-      });
+      onToggle?.(movieId); // Call the callback if provided
+    } catch (error) {
+      console.error('Error toggling watchlist status:', error);
+      toast.error('Failed to update watchlist status');
     } finally {
-      setIsUpdating(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <button
-      onClick={handleToggleWatchlist}
-      disabled={loading || isUpdating}
+    <motion.button
+      onClick={handleToggle}
+      disabled={isLoading}
       className={`${isCompact ? 'p-1' : 'p-1.5'} bg-black/75 rounded-md transition-colors
-        ${inWatchlist 
-          ? 'text-red-500 hover:text-red-400' 
+        ${isInWatchlist 
+          ? 'text-yellow-400 hover:text-yellow-300' 
           : 'text-white/50 hover:text-white/75'
-        } ${(isUpdating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-      aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+        } ${isLoading ? 'opacity-50' : ''}`}
+      aria-label={isInWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+      whileTap={!isLoading ? { scale: 0.9 } : {}}
+      whileHover={!isLoading ? { scale: 1.05 } : {}}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
     >
-      <BookmarkIcon className={isCompact ? 'w-4 h-4' : 'w-5 h-5'} />
-    </button>
+      <svg className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 20 20">
+        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+      </svg>
+    </motion.button>
   );
 };
 

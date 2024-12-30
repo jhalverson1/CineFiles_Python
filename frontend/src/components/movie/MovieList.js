@@ -12,11 +12,24 @@ import MovieCard from './MovieCard';
 import { useLists } from '../../contexts/ListsContext';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }) => {
-  const [allMovies, setAllMovies] = useState([]);
+const MovieList = ({ 
+  type, 
+  movies: propMovies, 
+  hideWatched, 
+  viewMode = 'scroll', 
+  isCompact = false,
+  onRemoveFromList = null,
+  listId = null,
+  onWatchedToggle = null,
+  onWatchlistToggle = null
+}) => {
+  // Force compact mode when grid view is selected
+  const effectiveIsCompact = viewMode === 'grid' ? true : isCompact;
+  
+  const [allMovies, setAllMovies] = useState(propMovies || []);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(!propMovies);
+  const [isLoading, setIsLoading] = useState(!propMovies);
   const [error, setError] = useState(null);
   const [showLeftButton, setShowLeftButton] = useState(false);
   const [showRightButton, setShowRightButton] = useState(false);
@@ -25,6 +38,14 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
 
   // Fetch movies when type or page changes
   useEffect(() => {
+    // If we have propMovies, don't fetch
+    if (propMovies) {
+      setAllMovies(propMovies);
+      setHasMore(false);
+      setIsLoading(false);
+      return;
+    }
+
     const fetchMovies = async () => {
       if (!hasMore && page > 1) return;
       
@@ -68,7 +89,7 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
     };
 
     fetchMovies();
-  }, [type, page]);
+  }, [type, page, propMovies]);
 
   // Filter movies client-side when hideWatched or lists change
   const displayedMovies = useMemo(() => {
@@ -137,6 +158,17 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
     }
   };
 
+  const renderMovieCard = (movie) => (
+    <MovieCard 
+      movie={movie} 
+      isCompact={effectiveIsCompact}
+      onRemove={onRemoveFromList}
+      listId={listId}
+      onWatchedToggle={onWatchedToggle}
+      onWatchlistToggle={onWatchlistToggle}
+    />
+  );
+
   if (error) {
     return (
       <div className="text-red-500 text-center py-4">
@@ -179,7 +211,7 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
                 {displayedMovies.map((movie) => (
                   <motion.div
                     key={movie.id}
-                    className={`flex-none ${isCompact ? 'w-[120px]' : 'w-[180px]'}`}
+                    className={`flex-none ${effectiveIsCompact ? 'w-[120px]' : 'w-[180px]'}`}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ 
@@ -193,11 +225,11 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
                     }}
                     layout
                   >
-                    <MovieCard movie={movie} isCompact={isCompact} />
+                    {renderMovieCard(movie)}
                   </motion.div>
                 ))}
                 {hasMore && (
-                  <div className={`flex-none ${isCompact ? 'w-[60px]' : 'w-[90px]'} flex items-center justify-center`}>
+                  <div className={`flex-none ${effectiveIsCompact ? 'w-[60px]' : 'w-[90px]'} flex items-center justify-center`}>
                     {isLoading ? (
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/20" />
                     ) : (
@@ -223,7 +255,7 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
     return (
       <div>
         <div className={`grid ${
-          isCompact 
+          effectiveIsCompact 
             ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-0.5 px-0.5' 
             : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 px-2'
         }`}>
@@ -245,7 +277,7 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
                 }}
                 layout
               >
-                <MovieCard movie={movie} isCompact={isCompact} />
+                {renderMovieCard(movie)}
               </motion.div>
             ))}
           </AnimatePresence>
@@ -283,7 +315,7 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
       {isLoading && displayedMovies.length === 0 ? (
         <div className={viewMode === 'grid' 
           ? `grid ${
-              isCompact 
+              effectiveIsCompact 
                 ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-0.5 px-0.5'
                 : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 px-2'
             }`
@@ -295,7 +327,7 @@ const MovieList = ({ type, hideWatched, viewMode = 'scroll', isCompact = false }
               className={`${
                 viewMode === 'scroll' ? 'flex-none' : 'w-full'
               } ${
-                isCompact ? 'w-[120px]' : 'w-[180px]'
+                effectiveIsCompact ? 'w-[120px]' : 'w-[180px]'
               } bg-background-secondary rounded-lg overflow-hidden animate-pulse`}
             >
               <div className="aspect-[2/3] bg-background-active" />

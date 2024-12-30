@@ -1,30 +1,39 @@
-// Rolex-inspired theme colors
+// Dark elegant theme with subtle green tints
 export const theme = {
   colors: {
     // Main brand colors
-    gold: '#A37E2C',
-    green: {
-      DEFAULT: '#000201', // Almost pure black with minimal green tint
-      light: '#000302',   // Slightly lighter for contrast
-      dark: '#000100',    // Darkest shade for active states
+    emerald: {
+      DEFAULT: '#1A3B31', // Muted emerald
+      light: '#234A3E',   // Slightly lighter emerald
+      dark: '#0A1613',    // Very dark emerald, almost black
+      muted: '#1A3B3180'  // Transparent version for overlays
     },
+    gold: {
+      DEFAULT: '#C4A052', // Warm gold
+      light: '#D4B76B',   // Lighter gold for hover
+      dark: '#A68939',    // Darker gold for active states
+      muted: '#C4A05240'  // Transparent version for subtle elements
+    },
+    cream: '#F5F0E5',     // Warm cream for contrast
     // UI states
     text: {
-      primary: '#A37E2C',    // Gold for primary text
-      secondary: '#A37E2C80', // Gold with 50% opacity
-      disabled: '#A37E2C40',  // Gold with 25% opacity
+      primary: '#F5F0E5',    // Cream for primary text
+      secondary: '#F5F0E580', // Semi-transparent cream
+      disabled: '#F5F0E540',  // More transparent cream
+      inverse: '#1A3B31'      // Green for light backgrounds
     },
     background: {
-      primary: '#000201',    // Darker main background
-      secondary: '#000302',  // Secondary backgrounds
-      active: '#000100',     // Active/Selected states
+      primary: '#0C1311',    // Almost black with more noticeable green tint
+      secondary: '#111916',  // Slightly lighter dark background
+      tertiary: '#1A3B31',   // More visible green for highlights
+      accent: '#C4A05210'    // Very subtle gold tint
     },
     border: {
-      DEFAULT: '#A37E2C20',  // Default border color (gold with 12.5% opacity)
-      hover: '#A37E2C40',    // Border hover state
+      DEFAULT: '#C4A05220',  // Subtle gold border
+      hover: '#C4A05240',    // More visible on hover
+      active: '#C4A05260'    // Most visible for active states
     }
-  },
-  // Add other theme properties as needed (spacing, typography, etc.)
+  }
 };
 
 // Utility function to get nested color values
@@ -36,26 +45,33 @@ export const getColor = (path) => {
 export const colorVariants = {
   button: {
     primary: {
-      base: 'bg-[#000302] text-[#A37E2C]',
-      hover: 'hover:bg-[#000100] hover:text-[#A37E2C]',
-      active: 'active:bg-[#000100]',
+      base: 'bg-[#C4A052] text-[#0C1311]',
+      hover: 'hover:bg-[#D4B76B]',
+      active: 'active:bg-[#A68939]',
     },
     secondary: {
-      base: 'bg-transparent border border-[#A37E2C20] text-[#A37E2C]',
-      hover: 'hover:border-[#A37E2C40] hover:text-[#A37E2C]',
-      active: 'active:bg-[#000100]',
+      base: 'bg-transparent border border-[#C4A05240] text-[#C4A052]',
+      hover: 'hover:border-[#C4A05260] hover:bg-[#C4A05210]',
+      active: 'active:bg-[#C4A05220]',
     },
   },
   input: {
-    base: 'bg-[#000302] text-[#A37E2C] placeholder-[#A37E2C40]',
-    focus: 'focus:ring-1 focus:ring-[#A37E2C] focus:outline-none',
+    base: 'bg-[#111916] text-[#F5F0E5] placeholder-[#F5F0E580]',
+    focus: 'focus:ring-1 focus:ring-[#C4A052] focus:outline-none',
   },
   dropdown: {
-    base: 'bg-[#000302] border border-[#A37E2C20]',
-    hover: 'hover:bg-[#000100]',
+    base: 'bg-[#111916] border border-[#C4A05220]',
+    hover: 'hover:bg-[#1A3B31]',
   },
-  // Add felt texture utility classes
   feltTexture: {
-    base: 'relative before:absolute before:inset-0 before:bg-[radial-gradient(#000302_0.75px,transparent_0.75px)] before:bg-[length:3px_3px] before:opacity-50 before:pointer-events-none before:content-[""] before:-z-10',
+    base: 'felt-texture',
+  },
+  dotTexture: {
+    base: 'dot-texture',
+  },
+  layout: {
+    page: 'min-h-screen bg-[#0C1311] dot-texture text-[#F5F0E5]',
+    section: 'bg-[#111916] rounded-lg p-6',
+    card: 'bg-[#111916] rounded-lg p-4 border border-[#C4A05220]'
   }
 }; 
