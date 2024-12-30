@@ -33,6 +33,9 @@ const HomePage = () => {
   const navigate = useNavigate();
   const isMobile = useResponsiveDefaults();
   const [excludedLists, setExcludedLists] = useState([]);
+  const [yearRange, setYearRange] = useState(null);
+  const [ratingRange, setRatingRange] = useState(null);
+  const [popularityRange, setPopularityRange] = useState(null);
   const [viewMode, setViewMode] = useState('scroll');
   const [isCompact, setIsCompact] = useState(isMobile);
   const [key, setKey] = useState(0);
@@ -46,6 +49,9 @@ const HomePage = () => {
   // Reset state when navigating to home from home
   useEffect(() => {
     setExcludedLists([]);
+    setYearRange(null);
+    setRatingRange(null);
+    setPopularityRange(null);
     setViewMode('scroll');
     setIsCompact(isMobile);
     setKey(prev => prev + 1);
@@ -219,7 +225,13 @@ const HomePage = () => {
                 <div className="bg-black/75 rounded-xl border border-white/10 p-4">
                   <Filters 
                     excludedLists={excludedLists} 
-                    setExcludedLists={setExcludedLists} 
+                    setExcludedLists={setExcludedLists}
+                    yearRange={yearRange}
+                    setYearRange={setYearRange}
+                    ratingRange={ratingRange}
+                    setRatingRange={setRatingRange}
+                    popularityRange={popularityRange}
+                    setPopularityRange={setPopularityRange}
                   />
                 </div>
               </div>
@@ -327,6 +339,9 @@ const HomePage = () => {
                   key={`hidden-gems-${key}`}
                   type="hidden-gems" 
                   excludedLists={excludedLists}
+                  yearRange={yearRange}
+                  ratingRange={ratingRange}
+                  popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
                 />
@@ -338,6 +353,9 @@ const HomePage = () => {
                   key={`top-rated-${key}`}
                   type="top-rated" 
                   excludedLists={excludedLists}
+                  yearRange={yearRange}
+                  ratingRange={ratingRange}
+                  popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
                 />
@@ -349,6 +367,9 @@ const HomePage = () => {
                   key={`upcoming-${key}`}
                   type="upcoming" 
                   excludedLists={excludedLists}
+                  yearRange={yearRange}
+                  ratingRange={ratingRange}
+                  popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
                 />

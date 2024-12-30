@@ -22,7 +22,10 @@ const MovieList = ({
   listId = null,
   onWatchedToggle = null,
   onWatchlistToggle = null,
-  excludedLists = []
+  excludedLists = [],
+  yearRange = null,
+  ratingRange = null,
+  popularityRange = null
 }) => {
   // Force compact mode when grid view is selected
   const effectiveIsCompact = viewMode === 'grid' ? true : isCompact;
@@ -92,28 +95,52 @@ const MovieList = ({
     fetchMovies();
   }, [type, page, propMovies]);
 
-  // Filter movies client-side when hideWatched or lists change
+  // Filter movies client-side based on all filters
   const displayedMovies = useMemo(() => {
-    if (!lists || lists.length === 0 || !excludedLists?.length) return allMovies;
-    
-    // Create a Set of movie IDs to exclude
-    const excludedMovieIds = new Set();
-    excludedLists.forEach(listId => {
-      const list = lists.find(l => l.id === listId);
-      if (list) {
-        list.items?.forEach(item => excludedMovieIds.add(item.movie_id.toString()));
-      }
-    });
-    
-    const filteredMovies = allMovies.filter(movie => !excludedMovieIds.has(movie.id.toString()));
+    let filteredMovies = allMovies;
+
+    // Apply list exclusions
+    if (lists?.length > 0 && excludedLists?.length > 0) {
+      const excludedMovieIds = new Set();
+      excludedLists.forEach(listId => {
+        const list = lists.find(l => l.id === listId);
+        if (list) {
+          list.items?.forEach(item => excludedMovieIds.add(item.movie_id.toString()));
+        }
+      });
+      
+      filteredMovies = filteredMovies.filter(movie => !excludedMovieIds.has(movie.id.toString()));
+    }
+
+    // Apply year range filter
+    if (yearRange) {
+      filteredMovies = filteredMovies.filter(movie => {
+        const movieYear = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
+        return movieYear && movieYear >= yearRange[0] && movieYear <= yearRange[1];
+      });
+    }
+
+    // Apply rating filter
+    if (ratingRange) {
+      filteredMovies = filteredMovies.filter(movie => 
+        movie.vote_average >= ratingRange[0] && movie.vote_average <= ratingRange[1]
+      );
+    }
+
+    // Apply popularity filter
+    if (popularityRange) {
+      filteredMovies = filteredMovies.filter(movie =>
+        movie.vote_count >= popularityRange[0] && movie.vote_count <= popularityRange[1]
+      );
+    }
 
     // If we don't have enough movies after filtering, fetch more
-    if (!isLoading && hasMore && filteredMovies.length < 20) {
+    if (!isLoading && hasMore && filteredMovies.length < 20 && !propMovies) {
       setPage(prev => prev + 1);
     }
 
     return filteredMovies;
-  }, [allMovies, excludedLists, lists, isLoading, hasMore]);
+  }, [allMovies, excludedLists, lists, isLoading, hasMore, yearRange, ratingRange, popularityRange]);
 
   useEffect(() => {
     if (viewMode !== 'scroll') return;
