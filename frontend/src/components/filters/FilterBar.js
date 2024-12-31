@@ -68,7 +68,7 @@ const FilterBar = ({
       setIsLoadingSavedFilters(true);
       setError(null);
       const response = await filterSettingsApi.getFilterSettings();
-      setSavedFilters(response.data || []);
+      setSavedFilters(response || []);
     } catch (error) {
       console.error('Failed to load saved filters:', error);
       setError('Failed to load saved filters. Please try again.');
@@ -165,7 +165,7 @@ const FilterBar = ({
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 mb-4 justify-between">
+    <div className="flex flex-col md:flex-row gap-2 justify-between">
       {/* Backend Filters Group */}
       <div className="flex-1 flex flex-col md:flex-row gap-2">
         <div className="relative w-full md:w-auto" ref={genreRef}>
@@ -184,7 +184,7 @@ const FilterBar = ({
             </svg>
           </button>
           {genreOpen && (
-            <div className="absolute z-50 mt-2 w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
+            <div className="absolute z-50 mt-2 min-w-[200px] w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
               {isLoadingGenres ? (
                 <div className="flex items-center justify-center p-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -229,7 +229,7 @@ const FilterBar = ({
             </svg>
           </button>
           {yearOpen && (
-            <div className="absolute z-50 mt-2 w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
+            <div className="absolute z-50 mt-2 min-w-[300px] w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
               <div className="p-4">
                 <div className="flex flex-col md:flex-row items-center gap-3">
                   <select
@@ -273,7 +273,7 @@ const FilterBar = ({
             </svg>
           </button>
           {ratingOpen && (
-            <div className="absolute z-50 mt-2 w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
+            <div className="absolute z-50 mt-2 min-w-[200px] w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
               <div className="p-4">
                 <div className="flex flex-col md:flex-row items-center gap-3">
                   <select
@@ -317,7 +317,7 @@ const FilterBar = ({
             </svg>
           </button>
           {popularityOpen && (
-            <div className="absolute z-50 mt-2 w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
+            <div className="absolute z-50 mt-2 min-w-[300px] w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
               <div className="p-4">
                 <div className="flex flex-col md:flex-row items-center gap-3">
                   <select
@@ -364,8 +364,8 @@ const FilterBar = ({
 
       {/* Save Filter Modal */}
       {saveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div ref={saveModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div ref={saveModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md mt-20">
             <h3 className="text-lg font-medium mb-4">Save Filter</h3>
             {error && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
@@ -402,8 +402,8 @@ const FilterBar = ({
 
       {/* Load Filter Modal */}
       {loadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div ref={loadModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div ref={loadModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md mt-20">
             <h3 className="text-lg font-medium mb-4">Load Filter</h3>
             {error && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">

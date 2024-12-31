@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
+import logging
 
 from ..database.database import get_db
 from ..models.user import User
@@ -18,6 +19,7 @@ from ..schemas.filter_schemas import FilterSettingsCreate, FilterSettingsUpdate,
 from ..utils.auth import get_current_user
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("", response_model=FilterSettingsSchema)
 async def create_filter_setting(
@@ -60,9 +62,12 @@ async def get_filter_settings(
     Returns:
         List[FilterSettingsSchema]: List of user's filter settings
     """
+    logger.info(f"Fetching filter settings for user {current_user.id}")
     query = select(FilterSettings).where(FilterSettings.user_id == current_user.id)
     result = await db.execute(query)
-    return result.scalars().all()
+    filters = result.scalars().all()
+    logger.info(f"Found {len(filters)} filter settings for user {current_user.id}")
+    return filters
 
 @router.get("/{filter_setting_id}", response_model=FilterSettingsSchema)
 async def get_filter_setting(
