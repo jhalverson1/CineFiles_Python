@@ -57,7 +57,7 @@ const Navbar = () => {
 
                 {/* Desktop Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-background-primary border border-border/20 backdrop-blur-sm bg-opacity-95">
+                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-black border border-border/20">
                     <Link
                       to="/my-lists"
                       className="block px-4 py-2 text-sm text-text-primary hover:text-gold hover:bg-background-secondary/50 transition-colors"
