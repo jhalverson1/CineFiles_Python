@@ -21,7 +21,12 @@ const MovieList = ({
   onRemoveFromList = null,
   listId = null,
   onWatchedToggle = null,
-  onWatchlistToggle = null
+  onWatchlistToggle = null,
+  excludedLists = [],
+  yearRange = null,
+  ratingRange = null,
+  popularityRange = null,
+  selectedGenres = []
 }) => {
   // Force compact mode when grid view is selected
   const effectiveIsCompact = viewMode === 'grid' ? true : isCompact;
@@ -35,6 +40,33 @@ const MovieList = ({
   const [showRightButton, setShowRightButton] = useState(false);
   const scrollContainerRef = useRef(null);
   const { lists, loading: listsLoading } = useLists();
+  
+  // Keep track of the current filter state to prevent race conditions
+  const currentFilters = useRef({
+    yearRange,
+    ratingRange,
+    popularityRange,
+    genres: selectedGenres
+  });
+
+  // Update currentFilters ref when props change
+  useEffect(() => {
+    currentFilters.current = {
+      yearRange,
+      ratingRange,
+      popularityRange,
+      genres: selectedGenres
+    };
+  }, [yearRange, ratingRange, popularityRange, selectedGenres]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    if (!propMovies) {
+      setPage(1);
+      setAllMovies([]);
+      setHasMore(true);
+    }
+  }, [yearRange, ratingRange, popularityRange, selectedGenres, propMovies]);
 
   // Fetch movies when type or page changes
   useEffect(() => {
@@ -51,6 +83,10 @@ const MovieList = ({
       
       setIsLoading(true);
       setError(null);
+      
+      // Use the current filter state from ref to prevent race conditions
+      const filters = { ...currentFilters.current };
+      
       try {
         let response;
         switch (type) {
@@ -58,13 +94,13 @@ const MovieList = ({
             response = await movieApi.getPopularMovies(page);
             break;
           case 'top-rated':
-            response = await movieApi.getTopRatedMovies(page);
+            response = await movieApi.getTopRatedMovies(page, filters);
             break;
           case 'upcoming':
-            response = await movieApi.getUpcomingMovies(page);
+            response = await movieApi.getUpcomingMovies(page, filters);
             break;
           case 'hidden-gems':
-            response = await movieApi.getHiddenGems(page);
+            response = await movieApi.getHiddenGems(page, filters);
             break;
           case 'news':
             response = await movieApi.getMovieNews(page);
@@ -72,14 +108,20 @@ const MovieList = ({
           default:
             throw new Error('Invalid movie list type');
         }
-        
-        if (page === 1) {
-          setAllMovies(response.results || []);
-        } else {
-          setAllMovies(prev => [...prev, ...(response.results || [])]);
+
+        // Verify the filters haven't changed during the request
+        if (
+          JSON.stringify(filters) === JSON.stringify(currentFilters.current) ||
+          type === 'popular' || 
+          type === 'news'
+        ) {
+          if (page === 1) {
+            setAllMovies(response.results || []);
+          } else {
+            setAllMovies(prev => [...prev, ...(response.results || [])]);
+          }
+          setHasMore(response.page < response.total_pages);
         }
-        
-        setHasMore(response.page < response.total_pages);
       } catch (err) {
         console.error(`Error fetching ${type} movies:`, err);
         setError(err.message);
@@ -89,25 +131,33 @@ const MovieList = ({
     };
 
     fetchMovies();
-  }, [type, page, propMovies]);
+  }, [type, page, propMovies, yearRange, ratingRange, popularityRange, selectedGenres]);
 
-  // Filter movies client-side when hideWatched or lists change
+  // Filter movies client-side based on excluded lists
   const displayedMovies = useMemo(() => {
-    if (!hideWatched || !lists || lists.length === 0) return allMovies;
-    
-    const watchedList = lists.find(list => list.name === "Watched");
-    if (!watchedList) return allMovies;
-    
-    const watchedMovieIds = new Set(watchedList.items?.map(item => item.movie_id) || []);
-    const filteredMovies = allMovies.filter(movie => !watchedMovieIds.has(movie.id.toString()));
+    let filteredMovies = allMovies;
 
-    // If we're hiding watched movies and don't have enough movies, fetch more
-    if (hideWatched && !isLoading && hasMore && filteredMovies.length < 20) {
-      setPage(prev => prev + 1);
+    // Apply list exclusions
+    if (lists?.length > 0 && excludedLists?.length > 0) {
+      const excludedMovieIds = new Set();
+      excludedLists.forEach(listId => {
+        const list = lists.find(l => l.id === listId);
+        if (list) {
+          list.items?.forEach(item => excludedMovieIds.add(item.movie_id.toString()));
+        }
+      });
+      
+      filteredMovies = filteredMovies.filter(movie => !excludedMovieIds.has(movie.id.toString()));
+    }
+
+    // If we don't have enough movies after filtering, fetch more
+    if (!isLoading && hasMore && filteredMovies.length < 20 && !propMovies) {
+      // Use setTimeout to prevent potential infinite loops
+      setTimeout(() => setPage(prev => prev + 1), 0);
     }
 
     return filteredMovies;
-  }, [allMovies, hideWatched, lists, isLoading, hasMore]);
+  }, [allMovies, excludedLists, lists, isLoading, hasMore, propMovies]);
 
   useEffect(() => {
     if (viewMode !== 'scroll') return;

@@ -11,7 +11,7 @@ Features:
 """
 
 from functools import lru_cache
-from typing import List, Optional
+from typing import List
 from pydantic_settings import BaseSettings
 import os
 from dotenv import load_dotenv
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # External API settings
-    TMDB_BEARER_TOKEN: Optional[str] = None
+    TMDB_BEARER_TOKEN: str
 
     class Config:
         case_sensitive = True

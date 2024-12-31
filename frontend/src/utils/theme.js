@@ -23,9 +23,9 @@ export const theme = {
       inverse: '#1A3B31'      // Green for light backgrounds
     },
     background: {
-      primary: '#0C1311',    // Almost black with more noticeable green tint
-      secondary: '#111916',  // Slightly lighter dark background
-      tertiary: '#1A3B31',   // More visible green for highlights
+      primary: '#0A0D0C',    // Darker almost black with slight green tint
+      secondary: '#0E1210',  // Slightly lighter dark background
+      tertiary: '#0F1512',   // Dark background for navbar and highlights
       accent: '#C4A05210'    // Very subtle gold tint
     },
     border: {

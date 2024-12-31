@@ -22,9 +22,67 @@ import httpx
 from app.utils.tmdb import get_tmdb_url, HEADERS
 from app.utils.scraper import scrape_movie_news
 import logging
+from datetime import datetime, timedelta
+from typing import Optional, Tuple
+import json
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+@router.get("/genres")
+async def get_movie_genres():
+    """
+    Retrieve list of available movie genres from TMDB.
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            url = get_tmdb_url("genre/movie/list")
+            params = {"language": "en-US"}
+            logger.info(f"Fetching genres from TMDB: {url} with params {params}")
+            
+            response = await client.get(
+                url,
+                params=params,
+                headers=HEADERS
+            )
+            
+            if not response.is_success:
+                logger.error(f"TMDB API error response: {response.status_code} - {response.text}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"TMDB API error: {response.text}"
+                )
+                
+            data = response.json()
+            logger.info(f"Successfully fetched {len(data.get('genres', []))} genres from TMDB")
+            return data
+            
+        except httpx.HTTPError as e:
+            logger.error(f"TMDB API error in get_movie_genres: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected error in get_movie_genres: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+def parse_range_param(param: Optional[str]) -> Optional[Tuple]:
+    """Parse a string range parameter into a tuple.
+    
+    Args:
+        param: String in format "[min,max]" or None
+        
+    Returns:
+        Tuple of (min, max) or None if param is None
+    """
+    if not param:
+        return None
+    try:
+        # Remove brackets and split by comma
+        cleaned = param.strip('[]')
+        min_val, max_val = map(float, cleaned.split(','))
+        return (min_val, max_val)
+    except Exception as e:
+        logger.error(f"Error parsing range parameter {param}: {str(e)}")
+        return None
 
 @router.get("/popular")
 async def get_popular_movies(page: int = 1):
@@ -54,58 +112,132 @@ async def get_popular_movies(page: int = 1):
         return response.json()
 
 @router.get("/top-rated")
-async def get_top_rated_movies(page: int = 1):
+async def get_top_rated_movies(
+    page: int = 1,
+    year_range: Optional[str] = None,
+    rating_range: Optional[str] = None,
+    popularity_range: Optional[str] = None,
+    genres: Optional[str] = None
+):
     """
-    Retrieve a list of top-rated movies of all time.
+    Retrieve a list of top-rated movies using TMDB's discover API.
     
     Args:
         page: Page number for pagination (default: 1)
-    
-    Returns:
-        dict: JSON response containing:
-            - page: Current page number
-            - results: List of movie objects with basic information
-            - total_pages: Total number of available pages
-            - total_results: Total number of movies
-    
-    Notes:
-        - Results are sorted by vote average and minimum vote count
-        - Provides a curated list of critically acclaimed films
+        year_range: Optional tuple of (start_year, end_year)
+        rating_range: Optional tuple of (min_rating, max_rating)
+        popularity_range: Optional tuple of (min_votes, max_votes)
+        genres: Comma-separated list of genre IDs
     """
+    params = {
+        "page": str(page),
+        "sort_by": "vote_average.desc",
+        "vote_count.gte": "10000",
+        "vote_average.gte": "7.0",
+        "include_adult": "false",
+        "with_original_language": "en"
+    }
+
+    # Parse and add optional filters
+    if year_range:
+        year_tuple = parse_range_param(year_range)
+        if year_tuple:
+            params["primary_release_date.gte"] = f"{int(year_tuple[0])}-01-01"
+            params["primary_release_date.lte"] = f"{int(year_tuple[1])}-12-31"
+    
+    if rating_range:
+        rating_tuple = parse_range_param(rating_range)
+        if rating_tuple:
+            params["vote_average.gte"] = str(rating_tuple[0])
+            params["vote_average.lte"] = str(rating_tuple[1])
+    
+    if popularity_range:
+        popularity_tuple = parse_range_param(popularity_range)
+        if popularity_tuple:
+            params["vote_count.gte"] = str(int(popularity_tuple[0]))
+            params["vote_count.lte"] = str(int(popularity_tuple[1]))
+
+    if genres:
+        params["with_genres"] = genres.replace(",", "|")
+
     async with httpx.AsyncClient() as client:
-        response = await client.get(
-            get_tmdb_url("movie/top_rated"),
-            params={"page": page, "include_adult": "false"},
-            headers=HEADERS
-        )
-        return response.json()
+        try:
+            response = await client.get(
+                get_tmdb_url("discover/movie"),
+                params=params,
+                headers=HEADERS
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"TMDB API error in get_top_rated_movies: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
 
 @router.get("/upcoming")
-async def get_upcoming_movies(page: int = 1):
+async def get_upcoming_movies(
+    page: int = 1,
+    year_range: Optional[str] = None,
+    rating_range: Optional[str] = None,
+    popularity_range: Optional[str] = None,
+    genres: Optional[str] = None
+):
     """
-    Retrieve a list of upcoming movie releases.
+    Retrieve a list of upcoming movie releases using TMDB's discover API.
     
     Args:
         page: Page number for pagination (default: 1)
-    
-    Returns:
-        dict: JSON response containing:
-            - page: Current page number
-            - results: List of movie objects with basic information
-            - total_pages: Total number of available pages
-            - total_results: Total number of movies
-    
-    Notes:
-        - Results are sorted by release date
-        - Only includes movies with future release dates
+        year_range: Optional tuple of (start_year, end_year)
+        rating_range: Optional tuple of (min_rating, max_rating)
+        popularity_range: Optional tuple of (min_votes, max_votes)
+        genres: Comma-separated list of genre IDs
     """
+    today = datetime.now().strftime("%Y-%m-%d")
+    three_months_future = (datetime.now() + timedelta(days=90)).strftime("%Y-%m-%d")
+
+    params = {
+        "page": str(page),
+        "sort_by": "popularity.desc",
+        "primary_release_date.gte": today,
+        "primary_release_date.lte": three_months_future,
+        "include_adult": "false",
+        "with_release_type": "2|3",
+        "with_original_language": "en"
+    }
+
+    # Parse and add optional filters
+    if year_range:
+        year_tuple = parse_range_param(year_range)
+        if year_tuple:
+            # For upcoming movies, we only use the end_year as we already have a start date
+            params["primary_release_date.lte"] = f"{int(year_tuple[1])}-12-31"
+    
+    if rating_range:
+        rating_tuple = parse_range_param(rating_range)
+        if rating_tuple:
+            params["vote_average.gte"] = str(rating_tuple[0])
+            params["vote_average.lte"] = str(rating_tuple[1])
+    
+    if popularity_range:
+        popularity_tuple = parse_range_param(popularity_range)
+        if popularity_tuple:
+            params["vote_count.gte"] = str(int(popularity_tuple[0]))
+            params["vote_count.lte"] = str(int(popularity_tuple[1]))
+
+    if genres:
+        params["with_genres"] = genres.replace(",", "|")
+
     async with httpx.AsyncClient() as client:
-        response = await client.get(
-            get_tmdb_url("movie/upcoming"),
-            params={"page": page, "include_adult": "false"},
-            headers=HEADERS
-        )
-        return response.json()
+        try:
+            response = await client.get(
+                get_tmdb_url("discover/movie"),
+                params=params,
+                headers=HEADERS
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"TMDB API error in get_upcoming_movies: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
 
 @router.get("/news")
 async def get_movie_news():
@@ -122,42 +254,66 @@ async def get_movie_news():
     return await scrape_movie_news()
 
 @router.get("/hidden-gems")
-async def get_hidden_gems(page: int = 1):
+async def get_hidden_gems(
+    page: int = 1,
+    year_range: Optional[str] = None,
+    rating_range: Optional[str] = None,
+    popularity_range: Optional[str] = None,
+    genres: Optional[str] = None
+):
     """
     Retrieve a curated list of hidden gem movies.
     
-    These are high-quality movies (rating >= 7.5) that aren't blockbusters,
-    released in the last 20 years.
-    
     Args:
         page: Page number for pagination (default: 1)
-    
-    Returns:
-        dict: JSON response containing:
-            - page: Current page number
-            - results: List of movie objects with basic information
-            - total_pages: Total number of available pages
-            - total_results: Total number of movies
+        year_range: Optional tuple of (start_year, end_year)
+        rating_range: Optional tuple of (min_rating, max_rating)
+        popularity_range: Optional tuple of (min_votes, max_votes)
+        genres: Comma-separated list of genre IDs
     """
     from datetime import datetime, timedelta
     twenty_years_ago = (datetime.now() - timedelta(days=20*365)).strftime("%Y-%m-%d")
+    
+    params = {
+        "page": str(page),
+        "sort_by": "vote_average.desc",
+        "vote_average.gte": 7.5,
+        "vote_count.gte": 5000,
+        "vote_count.lte": 20000,
+        "primary_release_date.gte": twenty_years_ago,
+        "language": "en-US",
+        "include_adult": "false",
+        "with_release_type": "3|2",
+        "with_original_language": "en"
+    }
+
+    # Parse and add optional filters
+    if year_range:
+        year_tuple = parse_range_param(year_range)
+        if year_tuple:
+            params["primary_release_date.gte"] = f"{int(year_tuple[0])}-01-01"
+            params["primary_release_date.lte"] = f"{int(year_tuple[1])}-12-31"
+    
+    if rating_range:
+        rating_tuple = parse_range_param(rating_range)
+        if rating_tuple:
+            params["vote_average.gte"] = str(rating_tuple[0])
+            params["vote_average.lte"] = str(rating_tuple[1])
+    
+    if popularity_range:
+        popularity_tuple = parse_range_param(popularity_range)
+        if popularity_tuple:
+            params["vote_count.gte"] = str(int(popularity_tuple[0]))
+            params["vote_count.lte"] = str(int(popularity_tuple[1]))
+
+    if genres:
+        params["with_genres"] = genres.replace(",", "|")
     
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
                 get_tmdb_url("discover/movie"),
-                params={
-                    "page": str(page),
-                    "sort_by": "vote_average.desc",
-                    "vote_average.gte": 7.5,
-                    "vote_count.gte": 5000,
-                    "vote_count.lte": 20000,
-                    "primary_release_date.gte": twenty_years_ago,
-                    "language": "en-US",
-                    "include_adult": "false",
-                    "with_release_type": "3|2",
-                    "with_original_language": "en"
-                },
+                params=params,
                 headers=HEADERS
             )
             
@@ -165,8 +321,10 @@ async def get_hidden_gems(page: int = 1):
             return response.json()
             
         except httpx.HTTPError as e:
+            logger.error(f"TMDB API error in get_hidden_gems: {str(e)}")
             raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
         except Exception as e:
+            logger.error(f"Unexpected error in get_hidden_gems: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/search")

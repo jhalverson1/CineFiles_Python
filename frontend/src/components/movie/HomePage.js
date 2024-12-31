@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MovieList from './MovieList';
-import Filters from '../common/Filters';
+import FilterBar from '../filters/FilterBar';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colorVariants } from '../../utils/theme';
 import { movieApi } from '../../utils/api';
@@ -32,19 +32,27 @@ const HomePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useResponsiveDefaults();
-  const [hideWatched, setHideWatched] = useState(false);
+  const [excludedLists, setExcludedLists] = useState([]);
+  const [yearRange, setYearRange] = useState(null);
+  const [ratingRange, setRatingRange] = useState(null);
+  const [popularityRange, setPopularityRange] = useState(null);
   const [viewMode, setViewMode] = useState('scroll');
   const [isCompact, setIsCompact] = useState(isMobile);
   const [key, setKey] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
+  const [selectedGenres, setSelectedGenres] = useState([]);
 
   // Reset state when navigating to home from home
   useEffect(() => {
-    setHideWatched(false);
+    setExcludedLists([]);
+    setYearRange(null);
+    setRatingRange(null);
+    setPopularityRange(null);
     setViewMode('scroll');
     setIsCompact(isMobile);
     setKey(prev => prev + 1);
@@ -129,7 +137,19 @@ const HomePage = () => {
             <div className="flex items-center justify-between">
               {/* Left side - Filter and Search */}
               <div className="flex items-center gap-3">
-                <Filters hideWatched={hideWatched} setHideWatched={setHideWatched} />
+                <button
+                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    isFiltersOpen 
+                      ? 'bg-background-tertiary text-text-primary' 
+                      : 'bg-background-primary text-text-disabled hover:text-text-primary'
+                  }`}
+                  aria-label="Toggle filters"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                  </svg>
+                </button>
                 {/* Search Button */}
                 <button
                   onClick={handleSearchToggle}
@@ -200,6 +220,26 @@ const HomePage = () => {
               </div>
             </div>
 
+            {/* Expandable Filter Banner */}
+            {isFiltersOpen && (
+              <div className="pt-3 pb-2">
+                <div className="bg-black/75 rounded-xl border border-white/10 p-4">
+                  <FilterBar 
+                    excludedLists={excludedLists} 
+                    onExcludeListsChange={setExcludedLists}
+                    yearRange={yearRange}
+                    onYearRangeChange={setYearRange}
+                    ratingRange={ratingRange}
+                    onRatingRangeChange={setRatingRange}
+                    popularityRange={popularityRange}
+                    onPopularityRangeChange={setPopularityRange}
+                    selectedGenres={selectedGenres}
+                    onGenresChange={setSelectedGenres}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Expandable Search Bar */}
             {isSearchOpen && (
               <div className="pt-3 pb-2">
@@ -250,7 +290,10 @@ const HomePage = () => {
 
       {/* Movie Lists - Add padding to account for fixed header height */}
       <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 transition-[padding] duration-300 ease-in-out ${
-        isSearchOpen ? 'pt-40' : 'pt-24'
+        isSearchOpen && isFiltersOpen ? 'pt-72' : // Both open
+        isFiltersOpen ? 'pt-52' : // Only filters open
+        isSearchOpen ? 'pt-40' : // Only search open
+        'pt-24' // None open
       }`}>
         <AnimatePresence mode="wait">
           {searchResults !== null ? (
@@ -274,7 +317,7 @@ const HomePage = () => {
                   <MovieList 
                     key={`search-results-${searchQuery}`}
                     movies={searchResults}
-                    hideWatched={hideWatched}
+                    excludedLists={excludedLists}
                     viewMode={viewMode}
                     isCompact={isCompact}
                   />
@@ -294,35 +337,47 @@ const HomePage = () => {
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
               <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Hidden Gems</h2>
+                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Hidden Gems</h2>
                 <MovieList 
                   key={`hidden-gems-${key}`}
                   type="hidden-gems" 
-                  hideWatched={hideWatched} 
+                  excludedLists={excludedLists}
+                  yearRange={yearRange}
+                  ratingRange={ratingRange}
+                  popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
+                  selectedGenres={selectedGenres}
                 />
               </section>
 
               <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Top Rated Movies</h2>
+                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Top Rated Movies</h2>
                 <MovieList 
                   key={`top-rated-${key}`}
                   type="top-rated" 
-                  hideWatched={hideWatched} 
+                  excludedLists={excludedLists}
+                  yearRange={yearRange}
+                  ratingRange={ratingRange}
+                  popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
+                  selectedGenres={selectedGenres}
                 />
               </section>
 
               <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">Upcoming Movies</h2>
+                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Upcoming Movies</h2>
                 <MovieList 
                   key={`upcoming-${key}`}
                   type="upcoming" 
-                  hideWatched={hideWatched} 
+                  excludedLists={excludedLists}
+                  yearRange={yearRange}
+                  ratingRange={ratingRange}
+                  popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
+                  selectedGenres={selectedGenres}
                 />
               </section>
             </motion.div>
