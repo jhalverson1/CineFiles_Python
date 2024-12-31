@@ -50,6 +50,8 @@ const HomePage = () => {
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
+  const [excludeOpen, setExcludeOpen] = useState(false);
+  const excludeRef = React.useRef(null);
 
   // Fetch genres on component mount
   useEffect(() => {
@@ -155,6 +157,18 @@ const HomePage = () => {
     }
   };
 
+  // Handle click outside for exclude dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (excludeRef.current && !excludeRef.current.contains(event.target)) {
+        setExcludeOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div>
       {/* Fixed Header Container */}
@@ -198,6 +212,71 @@ const HomePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </button>
+
+                {/* Exclude Lists Filter */}
+                <div className="relative" ref={excludeRef}>
+                  <button
+                    onClick={() => setExcludeOpen(!excludeOpen)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      excludeOpen 
+                        ? 'bg-background-tertiary text-text-primary' 
+                        : 'bg-background-primary text-text-disabled hover:text-text-primary'
+                    }`}
+                    aria-label="Toggle exclude lists"
+                  >
+                    <div className="relative">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <circle cx="12" cy="12" r="10" strokeWidth={2} className="opacity-50" />
+                      </svg>
+                      {excludedLists.length > 0 && (
+                        <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center">
+                          <div className="absolute inline-flex h-full w-full animate-ping rounded-full bg-text-secondary/20 opacity-75"></div>
+                          <div className="relative inline-flex h-3 w-3 rounded-full bg-text-secondary/40"></div>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  {excludeOpen && (
+                    <div className="absolute z-[100] mt-2 w-64 bg-background-secondary/95 backdrop-blur-md border border-border/50 rounded-xl shadow-lg overflow-hidden">
+                      <div className="p-3 border-b border-border/10">
+                        <h3 className="font-medium text-sm text-text-primary mb-1">Exclude movies from lists</h3>
+                        <p className="text-xs text-text-secondary">Movies from selected lists will be hidden from results</p>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto scrollbar-hide py-1">
+                        {lists.map((list) => (
+                          <button
+                            key={list.id}
+                            className="w-full flex items-center px-4 py-3 md:py-2 hover:bg-background-active/50 cursor-pointer transition-colors duration-200 group text-left"
+                            onClick={() => setExcludedLists(
+                              excludedLists.includes(list.id)
+                                ? excludedLists.filter(id => id !== list.id)
+                                : [...excludedLists, list.id]
+                            )}
+                          >
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors mr-3 ${
+                              excludedLists.includes(list.id)
+                                ? 'bg-primary border-primary/80'
+                                : 'border-text-disabled/30 group-hover:border-text-disabled/50'
+                            }`}>
+                              {excludedLists.includes(list.id) && (
+                                <svg className="w-3 h-3 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-sm text-text-primary group-hover:text-text-primary/90">
+                              {list.name}
+                              <span className="ml-2 text-xs text-text-secondary px-2 py-0.5 rounded-full bg-background-tertiary/30">
+                                {list.items?.length || 0}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Right side - Action Buttons */}
@@ -259,8 +338,6 @@ const HomePage = () => {
               {isFiltersOpen && (
                 <div className="bg-black/75 rounded-xl border border-white/10 p-4">
                   <FilterBar 
-                    excludedLists={excludedLists} 
-                    onExcludeListsChange={setExcludedLists}
                     yearRange={yearRange}
                     onYearRangeChange={setYearRange}
                     ratingRange={ratingRange}
@@ -271,7 +348,6 @@ const HomePage = () => {
                     onGenresChange={setSelectedGenres}
                     genres={genres}
                     isLoadingGenres={isLoadingGenres}
-                    lists={lists}
                   />
                 </div>
               )}

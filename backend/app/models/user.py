@@ -46,4 +46,5 @@ class User(Base):
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Use string reference to avoid circular import
-    lists: Mapped[PyList["List"]] = relationship("List", back_populates="user", lazy="selectin") 
+    lists: Mapped[PyList["List"]] = relationship("List", back_populates="user", lazy="selectin")
+    filter_settings: Mapped[PyList["FilterSettings"]] = relationship("FilterSettings", back_populates="user", lazy="selectin") 
