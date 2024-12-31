@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { colorVariants } from '../../utils/theme';
 import { movieApi } from '../../utils/api';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useLists } from '../../contexts/ListsContext';
 
 // Custom hook for responsive design
 const useResponsiveDefaults = () => {
@@ -32,6 +33,7 @@ const HomePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useResponsiveDefaults();
+  const { lists } = useLists();
   const [excludedLists, setExcludedLists] = useState([]);
   const [yearRange, setYearRange] = useState(null);
   const [ratingRange, setRatingRange] = useState(null);
@@ -256,6 +258,7 @@ const HomePage = () => {
                     onGenresChange={setSelectedGenres}
                     genres={genres}
                     isLoadingGenres={isLoadingGenres}
+                    lists={lists}
                   />
                 </div>
               </div>
