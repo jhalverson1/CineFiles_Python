@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { movieApi } from '../../utils/api';
+import { movieApi, filterSettingsApi } from '../../utils/api';
 
 const FilterBar = ({
   yearRange,
@@ -10,23 +10,31 @@ const FilterBar = ({
   onPopularityRangeChange,
   selectedGenres = [],
   onGenresChange,
-  excludedLists = [],
-  onExcludeListsChange,
-  lists = [],
   genres = [],
   isLoadingGenres = true
 }) => {
   const [yearOpen, setYearOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   const [popularityOpen, setPopularityOpen] = useState(false);
-  const [excludeOpen, setExcludeOpen] = useState(false);
   const [genreOpen, setGenreOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [loadModalOpen, setLoadModalOpen] = useState(false);
+  const [filterName, setFilterName] = useState('');
+  const [savedFilters, setSavedFilters] = useState([]);
+  const [isLoadingSavedFilters, setIsLoadingSavedFilters] = useState(false);
+  const [error, setError] = useState(null);
   
   const genreRef = useRef(null);
   const yearRef = useRef(null);
   const ratingRef = useRef(null);
   const popularityRef = useRef(null);
-  const excludeRef = useRef(null);
+  const saveModalRef = useRef(null);
+  const loadModalRef = useRef(null);
+
+  // Load saved filters on mount
+  useEffect(() => {
+    loadSavedFilters();
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -43,8 +51,11 @@ const FilterBar = ({
       if (genreRef.current && !genreRef.current.contains(event.target)) {
         setGenreOpen(false);
       }
-      if (excludeRef.current && !excludeRef.current.contains(event.target)) {
-        setExcludeOpen(false);
+      if (saveModalRef.current && !saveModalRef.current.contains(event.target)) {
+        setSaveModalOpen(false);
+      }
+      if (loadModalRef.current && !loadModalRef.current.contains(event.target)) {
+        setLoadModalOpen(false);
       }
     };
 
@@ -52,8 +63,78 @@ const FilterBar = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const loadSavedFilters = async () => {
+    try {
+      setIsLoadingSavedFilters(true);
+      setError(null);
+      const response = await filterSettingsApi.getFilterSettings();
+      setSavedFilters(response.data || []);
+    } catch (error) {
+      console.error('Failed to load saved filters:', error);
+      setError('Failed to load saved filters. Please try again.');
+      setSavedFilters([]);
+    } finally {
+      setIsLoadingSavedFilters(false);
+    }
+  };
+
+  const handleSaveFilter = async () => {
+    if (!filterName.trim()) return;
+
+    try {
+      setError(null);
+      const filterData = {
+        name: filterName,
+        year_range: yearRange ? JSON.stringify(yearRange) : null,
+        rating_range: ratingRange ? JSON.stringify(ratingRange) : null,
+        popularity_range: popularityRange ? JSON.stringify(popularityRange) : null,
+        genres: selectedGenres && selectedGenres.length > 0 ? JSON.stringify(selectedGenres) : null,
+      };
+
+      await filterSettingsApi.createFilterSetting(filterData);
+      setSaveModalOpen(false);
+      setFilterName('');
+      await loadSavedFilters();
+    } catch (error) {
+      console.error('Failed to save filter:', error);
+      setError('Failed to save filter. Please try again.');
+    }
+  };
+
+  const handleLoadFilter = async (filter) => {
+    try {
+      setError(null);
+      const yearRangeValue = filter.year_range ? JSON.parse(filter.year_range) : null;
+      const ratingRangeValue = filter.rating_range ? JSON.parse(filter.rating_range) : null;
+      const popularityRangeValue = filter.popularity_range ? JSON.parse(filter.popularity_range) : null;
+      const genresValue = filter.genres ? JSON.parse(filter.genres) : [];
+
+      if (yearRangeValue) onYearRangeChange(yearRangeValue);
+      if (ratingRangeValue) onRatingRangeChange(ratingRangeValue);
+      if (popularityRangeValue) onPopularityRangeChange(popularityRangeValue);
+      if (genresValue) onGenresChange(genresValue);
+
+      setLoadModalOpen(false);
+    } catch (error) {
+      console.error('Failed to load filter:', error);
+      setError('Failed to load filter. Please try again.');
+    }
+  };
+
+  const handleDeleteFilter = async (id, event) => {
+    event.stopPropagation();
+    try {
+      setError(null);
+      await filterSettingsApi.deleteFilterSetting(id);
+      await loadSavedFilters();
+    } catch (error) {
+      console.error('Failed to delete filter:', error);
+      setError('Failed to delete filter. Please try again.');
+    }
+  };
+
   const getGenresText = () => {
-    if (selectedGenres.length === 0) return 'Genres';
+    if (!selectedGenres || selectedGenres.length === 0) return 'Genres';
     if (selectedGenres.length === 1) {
       const genre = genres.find(g => g.id === selectedGenres[0]);
       return genre ? genre.name : 'Genres';
@@ -76,14 +157,6 @@ const FilterBar = ({
     return `${popularityRange[0]} - ${popularityRange[1]}`;
   };
 
-  const getExcludeListsText = () => {
-    if (!excludedLists || excludedLists.length === 0) return 'Exclude Lists';
-    const excludedNames = lists
-      .filter(list => excludedLists.includes(list.id))
-      .map(list => list.name);
-    return excludedNames.join(', ');
-  };
-
   const handleGenreClick = (genreId) => {
     const newSelectedGenres = selectedGenres.includes(genreId)
       ? selectedGenres.filter(id => id !== genreId)
@@ -92,7 +165,7 @@ const FilterBar = ({
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 mb-4">
+    <div className="flex flex-col md:flex-row gap-2 mb-4 justify-between">
       {/* Backend Filters Group */}
       <div className="flex-1 flex flex-col md:flex-row gap-2">
         <div className="relative w-full md:w-auto" ref={genreRef}>
@@ -271,82 +344,113 @@ const FilterBar = ({
             </div>
           )}
         </div>
+      </div>
 
+      {/* Save/Load Buttons Group - Now outside the filters group */}
+      <div className="flex gap-2 md:ml-4">
         <button
-          className="w-full md:w-auto px-4 py-3 md:py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium mt-2 md:mt-0"
+          onClick={() => setSaveModalOpen(true)}
+          className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium"
         >
-          Apply Filters
+          Save Filter
+        </button>
+        <button
+          onClick={() => setLoadModalOpen(true)}
+          className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium"
+        >
+          Load Filter
         </button>
       </div>
 
-      {/* Client-side Exclude Lists Filter */}
-      <div className="relative w-full md:w-auto flex-none" ref={excludeRef}>
-        <button
-          onClick={() => setExcludeOpen(!excludeOpen)}
-          className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-tertiary hover:bg-background-tertiary/80 rounded-lg text-sm font-medium flex items-center justify-between md:justify-start gap-2 min-w-[120px] group border border-border/10"
-        >
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-text-secondary group-hover:text-text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            <span className="truncate">{getExcludeListsText()}</span>
-          </div>
-          <svg
-            className={`w-4 h-4 transform transition-transform ${excludeOpen ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-          <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center">
-            <div className="absolute inline-flex h-full w-full animate-ping rounded-full bg-text-secondary/20 opacity-75"></div>
-            <div className="relative inline-flex h-3 w-3 rounded-full bg-text-secondary/40"></div>
-          </div>
-        </button>
-        {excludeOpen && (
-          <div className="absolute z-[100] mt-2 w-full md:w-64 bg-background-secondary/95 backdrop-blur-md border border-border/50 rounded-xl shadow-lg overflow-hidden right-0">
-            <div className="p-2 border-b border-border/10 flex items-center gap-2">
-              <svg className="w-4 h-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              <span className="text-xs text-text-secondary">Updates instantly</span>
+      {/* Save Filter Modal */}
+      {saveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div ref={saveModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-4">Save Filter</h3>
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
+                {error}
+              </div>
+            )}
+            <input
+              type="text"
+              value={filterName}
+              onChange={(e) => setFilterName(e.target.value)}
+              placeholder="Enter filter name"
+              className="w-full px-4 py-2 bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20 mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setSaveModalOpen(false);
+                  setError(null);
+                }}
+                className="px-4 py-2 bg-background-tertiary hover:bg-background-tertiary/80 rounded-lg text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveFilter}
+                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium"
+              >
+                Save
+              </button>
             </div>
-            <div className="max-h-60 overflow-y-auto scrollbar-hide py-1">
-              {lists.map((list) => (
-                <button
-                  key={list.id}
-                  className="w-full flex items-center px-4 py-3 md:py-2 hover:bg-background-active/50 cursor-pointer transition-colors duration-200 group text-left"
-                  onClick={() => onExcludeListsChange(
-                    excludedLists.includes(list.id)
-                      ? excludedLists.filter(id => id !== list.id)
-                      : [...excludedLists, list.id]
-                  )}
-                >
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors mr-3 ${
-                    excludedLists.includes(list.id)
-                      ? 'bg-primary border-primary/80'
-                      : 'border-text-disabled/30 group-hover:border-text-disabled/50'
-                  }`}>
-                    {excludedLists.includes(list.id) && (
-                      <svg className="w-3 h-3 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </div>
+        </div>
+      )}
+
+      {/* Load Filter Modal */}
+      {loadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div ref={loadModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-4">Load Filter</h3>
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
+                {error}
+              </div>
+            )}
+            {isLoadingSavedFilters ? (
+              <div className="flex items-center justify-center p-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              </div>
+            ) : savedFilters.length === 0 ? (
+              <p className="text-text-secondary text-center py-4">No saved filters</p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {savedFilters.map((filter) => (
+                  <div
+                    key={filter.id}
+                    onClick={() => handleLoadFilter(filter)}
+                    className="flex items-center justify-between p-3 bg-background-tertiary/30 rounded-lg cursor-pointer hover:bg-background-active/50"
+                  >
+                    <span className="text-sm font-medium">{filter.name}</span>
+                    <button
+                      onClick={(e) => handleDeleteFilter(filter.id, e)}
+                      className="text-text-secondary hover:text-text-primary"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    )}
+                    </button>
                   </div>
-                  <span className="text-sm text-text-primary group-hover:text-text-primary/90">
-                    {list.name}
-                    <span className="ml-2 text-xs text-text-secondary px-2 py-0.5 rounded-full bg-background-tertiary/30">
-                      {list.items?.length || 0}
-                    </span>
-                  </span>
-                </button>
-              ))}
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => {
+                  setLoadModalOpen(false);
+                  setError(null);
+                }}
+                className="px-4 py-2 bg-background-tertiary hover:bg-background-tertiary/80 rounded-lg text-sm font-medium"
+              >
+                Close
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

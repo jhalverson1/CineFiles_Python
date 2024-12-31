@@ -206,4 +206,12 @@ export const removeMovieFromList = async (listId, movieId) => {
   await api.delete(`/api/lists/${listId}/items/${movieId}`);
 };
 
+export const filterSettingsApi = {
+  getFilterSettings: () => api.get('/api/filter-settings'),
+  getFilterSetting: (id) => api.get(`/api/filter-settings/${id}`),
+  createFilterSetting: (data) => api.post('/api/filter-settings', data),
+  updateFilterSetting: (id, data) => api.put(`/api/filter-settings/${id}`, data),
+  deleteFilterSetting: (id) => api.delete(`/api/filter-settings/${id}`),
+};
+
 export default api; 
