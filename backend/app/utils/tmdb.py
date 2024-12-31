@@ -23,29 +23,18 @@ TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
 # Standard headers for all TMDB API requests
 HEADERS = {
-    "Authorization": f"Bearer {settings.TMDB_BEARER_TOKEN}",
-    "accept": "application/json"
+    "accept": "application/json",
+    "Authorization": f"Bearer {settings.TMDB_BEARER_TOKEN}"
 }
 
-def get_tmdb_url(path: str) -> str:
+def get_tmdb_url(endpoint: str) -> str:
     """
-    Generate a complete TMDB API URL for a given endpoint path.
+    Construct a TMDB API URL for the given endpoint.
     
     Args:
-        path: API endpoint path (e.g., "movie/popular" or "search/movie")
-    
+        endpoint: API endpoint path (e.g., "movie/popular")
+        
     Returns:
-        str: Complete URL including base URL and path
-    
-    Examples:
-        >>> get_tmdb_url("movie/popular")
-        'https://api.themoviedb.org/3/movie/popular'
-        >>> get_tmdb_url("search/movie")
-        'https://api.themoviedb.org/3/search/movie'
-    
-    Notes:
-        - Automatically handles path normalization
-        - Used by all TMDB API requests in the application
-        - Does not include query parameters
+        str: Complete TMDB API URL
     """
-    return f"{TMDB_BASE_URL}/{path}" 
+    return f"{TMDB_BASE_URL}/{endpoint.lstrip('/')}" 

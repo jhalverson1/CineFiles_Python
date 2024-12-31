@@ -25,7 +25,8 @@ const MovieList = ({
   excludedLists = [],
   yearRange = null,
   ratingRange = null,
-  popularityRange = null
+  popularityRange = null,
+  selectedGenres = []
 }) => {
   // Force compact mode when grid view is selected
   const effectiveIsCompact = viewMode === 'grid' ? true : isCompact;
@@ -44,7 +45,8 @@ const MovieList = ({
   const currentFilters = useRef({
     yearRange,
     ratingRange,
-    popularityRange
+    popularityRange,
+    genres: selectedGenres
   });
 
   // Update currentFilters ref when props change
@@ -52,9 +54,10 @@ const MovieList = ({
     currentFilters.current = {
       yearRange,
       ratingRange,
-      popularityRange
+      popularityRange,
+      genres: selectedGenres
     };
-  }, [yearRange, ratingRange, popularityRange]);
+  }, [yearRange, ratingRange, popularityRange, selectedGenres]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -63,7 +66,7 @@ const MovieList = ({
       setAllMovies([]);
       setHasMore(true);
     }
-  }, [yearRange, ratingRange, popularityRange, propMovies]);
+  }, [yearRange, ratingRange, popularityRange, selectedGenres, propMovies]);
 
   // Fetch movies when type or page changes
   useEffect(() => {
@@ -128,7 +131,7 @@ const MovieList = ({
     };
 
     fetchMovies();
-  }, [type, page, propMovies, yearRange, ratingRange, popularityRange]);
+  }, [type, page, propMovies, yearRange, ratingRange, popularityRange, selectedGenres]);
 
   // Filter movies client-side based on excluded lists
   const displayedMovies = useMemo(() => {

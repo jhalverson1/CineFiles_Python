@@ -71,6 +71,7 @@ api.interceptors.response.use(
 
 export const movieApi = {
   getPopularMovies: (page = 1) => api.get(`/api/movies/popular?page=${page}`),
+  getMovieGenres: () => api.get('/api/movies/genres'),
   getTopRatedMovies: (page = 1, filters = {}) => {
     const params = new URLSearchParams({ page: page.toString() });
     
@@ -82,6 +83,9 @@ export const movieApi = {
     }
     if (filters.popularityRange?.length === 2) {
       params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
+    }
+    if (filters.genres?.length > 0) {
+      params.append('genres', filters.genres.join(','));
     }
     
     return api.get(`/api/movies/top-rated?${params.toString()}`);
@@ -98,6 +102,9 @@ export const movieApi = {
     if (filters.popularityRange?.length === 2) {
       params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
     }
+    if (filters.genres?.length > 0) {
+      params.append('genres', filters.genres.join(','));
+    }
     
     return api.get(`/api/movies/upcoming?${params.toString()}`);
   },
@@ -112,6 +119,9 @@ export const movieApi = {
     }
     if (filters.popularityRange?.length === 2) {
       params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
+    }
+    if (filters.genres?.length > 0) {
+      params.append('genres', filters.genres.join(','));
     }
     
     return api.get(`/api/movies/hidden-gems?${params.toString()}`);

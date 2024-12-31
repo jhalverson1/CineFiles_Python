@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MovieList from './MovieList';
-import Filters from '../common/Filters';
+import FilterBar from '../filters/FilterBar';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colorVariants } from '../../utils/theme';
 import { movieApi } from '../../utils/api';
@@ -45,6 +45,7 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
+  const [selectedGenres, setSelectedGenres] = useState([]);
 
   // Reset state when navigating to home from home
   useEffect(() => {
@@ -223,15 +224,17 @@ const HomePage = () => {
             {isFiltersOpen && (
               <div className="pt-3 pb-2">
                 <div className="bg-black/75 rounded-xl border border-white/10 p-4">
-                  <Filters 
+                  <FilterBar 
                     excludedLists={excludedLists} 
-                    setExcludedLists={setExcludedLists}
+                    onExcludeListsChange={setExcludedLists}
                     yearRange={yearRange}
-                    setYearRange={setYearRange}
+                    onYearRangeChange={setYearRange}
                     ratingRange={ratingRange}
-                    setRatingRange={setRatingRange}
+                    onRatingRangeChange={setRatingRange}
                     popularityRange={popularityRange}
-                    setPopularityRange={setPopularityRange}
+                    onPopularityRangeChange={setPopularityRange}
+                    selectedGenres={selectedGenres}
+                    onGenresChange={setSelectedGenres}
                   />
                 </div>
               </div>
@@ -344,6 +347,7 @@ const HomePage = () => {
                   popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
+                  selectedGenres={selectedGenres}
                 />
               </section>
 
@@ -358,6 +362,7 @@ const HomePage = () => {
                   popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
+                  selectedGenres={selectedGenres}
                 />
               </section>
 
@@ -372,6 +377,7 @@ const HomePage = () => {
                   popularityRange={popularityRange}
                   viewMode={viewMode}
                   isCompact={isCompact}
+                  selectedGenres={selectedGenres}
                 />
               </section>
             </motion.div>
