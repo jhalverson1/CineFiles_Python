@@ -12,31 +12,37 @@ const FilterBar = ({
   onGenresChange,
   excludedLists = [],
   onExcludeListsChange,
-  lists = []
+  lists = [],
+  genres = [],
+  isLoadingGenres = true
 }) => {
   const [yearOpen, setYearOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   const [popularityOpen, setPopularityOpen] = useState(false);
   const [excludeOpen, setExcludeOpen] = useState(false);
   const [genreOpen, setGenreOpen] = useState(false);
-  const [genres, setGenres] = useState([]);
-  const [isLoadingGenres, setIsLoadingGenres] = useState(true);
+  const genreRef = useRef(null);
 
-  // Fetch genres when component mounts
+  // Close genre dropdown when clicking outside
   useEffect(() => {
-    const fetchGenres = async () => {
-      try {
-        const response = await movieApi.getMovieGenres();
-        setGenres(response.genres || []);
-      } catch (err) {
-        console.error('Error fetching genres:', err);
-      } finally {
-        setIsLoadingGenres(false);
+    const handleClickOutside = (event) => {
+      if (genreRef.current && !genreRef.current.contains(event.target)) {
+        setGenreOpen(false);
       }
     };
 
-    fetchGenres();
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const getGenresText = () => {
+    if (selectedGenres.length === 0) return 'Genres';
+    if (selectedGenres.length === 1) {
+      const genre = genres.find(g => g.id === selectedGenres[0]);
+      return genre ? genre.name : 'Genres';
+    }
+    return `${selectedGenres.length} Genres`;
+  };
 
   const getYearRangeText = () => {
     if (!yearRange || yearRange.length !== 2) return 'Year';
@@ -61,17 +67,8 @@ const FilterBar = ({
     return excludedNames.join(', ');
   };
 
-  const getGenresText = () => {
-    if (!selectedGenres || selectedGenres.length === 0) return 'Genres';
-    const selectedNames = genres
-      .filter(genre => selectedGenres.includes(genre.id))
-      .map(genre => genre.name);
-    return selectedNames.join(', ');
-  };
-
   const handleGenreClick = (genreId) => {
-    const isSelected = selectedGenres.includes(genreId);
-    const newSelectedGenres = isSelected
+    const newSelectedGenres = selectedGenres.includes(genreId)
       ? selectedGenres.filter(id => id !== genreId)
       : [...selectedGenres, genreId];
     onGenresChange(newSelectedGenres);
@@ -122,7 +119,7 @@ const FilterBar = ({
         )}
       </div>
 
-      <div className="relative">
+      <div className="relative" ref={genreRef}>
         <button
           onClick={() => setGenreOpen(!genreOpen)}
           className="px-4 py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 min-w-[120px]"

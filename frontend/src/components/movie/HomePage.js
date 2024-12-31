@@ -46,6 +46,25 @@ const HomePage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
   const [selectedGenres, setSelectedGenres] = useState([]);
+  const [genres, setGenres] = useState([]);
+  const [isLoadingGenres, setIsLoadingGenres] = useState(true);
+
+  // Fetch genres on component mount
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        setIsLoadingGenres(true);
+        const response = await movieApi.getMovieGenres();
+        setGenres(response.genres || []);
+      } catch (error) {
+        console.error('Error fetching genres:', error);
+      } finally {
+        setIsLoadingGenres(false);
+      }
+    };
+
+    fetchGenres();
+  }, []);
 
   // Reset state when navigating to home from home
   useEffect(() => {
@@ -235,6 +254,8 @@ const HomePage = () => {
                     onPopularityRangeChange={setPopularityRange}
                     selectedGenres={selectedGenres}
                     onGenresChange={setSelectedGenres}
+                    genres={genres}
+                    isLoadingGenres={isLoadingGenres}
                   />
                 </div>
               </div>
