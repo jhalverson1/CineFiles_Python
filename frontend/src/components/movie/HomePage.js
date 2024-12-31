@@ -84,11 +84,24 @@ const HomePage = () => {
 
   // Handle search toggle
   const handleSearchToggle = () => {
+    if (isFiltersOpen) {
+      setIsFiltersOpen(false);
+    }
     setIsSearchOpen(prev => !prev);
     if (isSearchOpen) {
       setSearchResults(null);
       setSearchQuery('');
     }
+  };
+
+  // Handle filter toggle
+  const handleFilterToggle = () => {
+    if (isSearchOpen) {
+      setIsSearchOpen(false);
+      setSearchResults(null);
+      setSearchQuery('');
+    }
+    setIsFiltersOpen(prev => !prev);
   };
 
   // Update view mode and compact state when screen size changes
@@ -159,7 +172,7 @@ const HomePage = () => {
               {/* Left side - Filter and Search */}
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                  onClick={handleFilterToggle}
                   className={`p-2 rounded-lg transition-colors ${
                     isFiltersOpen 
                       ? 'bg-background-tertiary text-text-primary' 
@@ -242,8 +255,8 @@ const HomePage = () => {
             </div>
 
             {/* Expandable Filter Banner */}
-            {isFiltersOpen && (
-              <div className="pt-3 pb-2">
+            <div className={isFiltersOpen ? "pt-3 pb-2" : ""}>
+              {isFiltersOpen && (
                 <div className="bg-black/75 rounded-xl border border-white/10 p-4">
                   <FilterBar 
                     excludedLists={excludedLists} 
@@ -261,8 +274,8 @@ const HomePage = () => {
                     lists={lists}
                   />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Expandable Search Bar */}
             {isSearchOpen && (
