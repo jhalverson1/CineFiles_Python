@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { colorVariants } from '../../utils/theme';
 import { movieApi } from '../../utils/api';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useLists } from '../../contexts/ListsContext';
 
 // Custom hook for responsive design
 const useResponsiveDefaults = () => {
@@ -32,6 +33,7 @@ const HomePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useResponsiveDefaults();
+  const { lists } = useLists();
   const [excludedLists, setExcludedLists] = useState([]);
   const [yearRange, setYearRange] = useState(null);
   const [ratingRange, setRatingRange] = useState(null);
@@ -46,6 +48,25 @@ const HomePage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
   const [selectedGenres, setSelectedGenres] = useState([]);
+  const [genres, setGenres] = useState([]);
+  const [isLoadingGenres, setIsLoadingGenres] = useState(true);
+
+  // Fetch genres on component mount
+  useEffect(() => {
+    const fetchGenres = async () => {
+      try {
+        setIsLoadingGenres(true);
+        const response = await movieApi.getMovieGenres();
+        setGenres(response.genres || []);
+      } catch (error) {
+        console.error('Error fetching genres:', error);
+      } finally {
+        setIsLoadingGenres(false);
+      }
+    };
+
+    fetchGenres();
+  }, []);
 
   // Reset state when navigating to home from home
   useEffect(() => {
@@ -63,11 +84,24 @@ const HomePage = () => {
 
   // Handle search toggle
   const handleSearchToggle = () => {
+    if (isFiltersOpen) {
+      setIsFiltersOpen(false);
+    }
     setIsSearchOpen(prev => !prev);
     if (isSearchOpen) {
       setSearchResults(null);
       setSearchQuery('');
     }
+  };
+
+  // Handle filter toggle
+  const handleFilterToggle = () => {
+    if (isSearchOpen) {
+      setIsSearchOpen(false);
+      setSearchResults(null);
+      setSearchQuery('');
+    }
+    setIsFiltersOpen(prev => !prev);
   };
 
   // Update view mode and compact state when screen size changes
@@ -138,7 +172,7 @@ const HomePage = () => {
               {/* Left side - Filter and Search */}
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                  onClick={handleFilterToggle}
                   className={`p-2 rounded-lg transition-colors ${
                     isFiltersOpen 
                       ? 'bg-background-tertiary text-text-primary' 
@@ -221,8 +255,8 @@ const HomePage = () => {
             </div>
 
             {/* Expandable Filter Banner */}
-            {isFiltersOpen && (
-              <div className="pt-3 pb-2">
+            <div className={isFiltersOpen ? "pt-3 pb-2" : ""}>
+              {isFiltersOpen && (
                 <div className="bg-black/75 rounded-xl border border-white/10 p-4">
                   <FilterBar 
                     excludedLists={excludedLists} 
@@ -235,10 +269,13 @@ const HomePage = () => {
                     onPopularityRangeChange={setPopularityRange}
                     selectedGenres={selectedGenres}
                     onGenresChange={setSelectedGenres}
+                    genres={genres}
+                    isLoadingGenres={isLoadingGenres}
+                    lists={lists}
                   />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Expandable Search Bar */}
             {isSearchOpen && (

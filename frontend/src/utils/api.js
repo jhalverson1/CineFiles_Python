@@ -71,7 +71,22 @@ api.interceptors.response.use(
 
 export const movieApi = {
   getPopularMovies: (page = 1) => api.get(`/api/movies/popular?page=${page}`),
-  getMovieGenres: () => api.get('/api/movies/genres'),
+  async getMovieGenres() {
+    try {
+      console.log('Fetching movie genres...');
+      const response = await axios.get(`${baseURL}/api/movies/genres`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      console.log('Genres response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching genres:', error.response || error);
+      throw error;
+    }
+  },
   getTopRatedMovies: (page = 1, filters = {}) => {
     const params = new URLSearchParams({ page: page.toString() });
     
