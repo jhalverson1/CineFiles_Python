@@ -12,17 +12,63 @@ const api = axios.create({
   withCredentials: true
 });
 
+// Add a flag to prevent multiple token verifications at once
+let isVerifyingToken = false;
+let lastTokenVerification = 0;
+const TOKEN_VERIFY_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// Function to verify token
+const verifyToken = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+
+  try {
+    await api.get('/api/auth/verify');
+    lastTokenVerification = Date.now();
+    return true;
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    // If verification fails, clear the token
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return false;
+  }
+};
+
 // Add request interceptor to include auth token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Skip token verification for auth endpoints
+    const isAuthEndpoint = config.url.includes('/api/auth/login') || 
+                          config.url.includes('/api/auth/signup') ||
+                          config.url.includes('/api/auth/verify');
+
+    if (!isAuthEndpoint) {
+      // Verify token if it hasn't been verified recently
+      const shouldVerify = !isVerifyingToken && 
+                          Date.now() - lastTokenVerification > TOKEN_VERIFY_INTERVAL;
+
+      if (shouldVerify) {
+        isVerifyingToken = true;
+        try {
+          const isValid = await verifyToken();
+          if (!isValid) {
+            // Token is invalid, redirect to login or handle as needed
+            window.location.href = '/login';
+            return Promise.reject('Invalid token');
+          }
+        } finally {
+          isVerifyingToken = false;
+        }
+      }
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
-      // Ensure Bearer prefix is present
       const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
       config.headers.Authorization = tokenWithBearer;
     }
     
-    // Ensure consistent header format
     config.headers = {
       'Content-Type': 'application/json',
       ...config.headers,
@@ -153,8 +199,7 @@ export const movieApi = {
 export const authApi = {
   login: (formData) => api.post('/api/auth/login', formData, {
     headers: {
-      // Don't set Content-Type - axios will set it automatically for FormData
-      'Content-Type': undefined
+      'Content-Type': 'application/x-www-form-urlencoded'
     }
   }),
   signup: (userData) => api.post('/api/auth/signup', userData),

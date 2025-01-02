@@ -21,7 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import get_settings
 from app.database.database import init_db
-from app.routers import auth, movies, proxy, person, lists, filter_settings
+from app.api.v1.endpoints import auth
+from app.routers import movies, proxy, person, lists, filter_settings
 from app.core.logging_config import configure_logging
 import logging.config
 import logging

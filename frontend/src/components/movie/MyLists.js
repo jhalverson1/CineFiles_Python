@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getLists, createList, updateList, deleteList, removeMovieFromList } from '../../utils/api';
+import { createList, updateList, deleteList, removeMovieFromList } from '../../utils/api';
 import { movieApi } from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import { getImageUrl } from '../../utils/image';
 import MovieList from './MovieList';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useLists } from '../../contexts/ListsContext';
 
 const MyLists = () => {
-  const [lists, setLists] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { lists, loading: isLoading, refreshLists } = useLists();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingList, setEditingList] = useState(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
@@ -17,49 +17,6 @@ const MyLists = () => {
   const [movieDetails, setMovieDetails] = useState({});
   const [loadingMovies, setLoadingMovies] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchLists();
-  }, []);
-
-  const fetchLists = async () => {
-    try {
-      const response = await getLists();
-      setLists(response);
-    } catch (error) {
-      let errorMessage = 'Failed to load lists';
-      if (error.response?.status === 404) {
-        errorMessage = 'Lists endpoint not found. Please check API configuration.';
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Please log in to view your lists';
-        navigate('/login');
-      }
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchMovieDetails = async (movieIds) => {
-    setLoadingMovies(true);
-    try {
-      const details = {};
-      await Promise.all(
-        movieIds.map(async (movieId) => {
-          if (!movieDetails[movieId]) {
-            const movieData = await movieApi.getMovieDetails(movieId);
-            details[movieId] = movieData;
-          }
-        })
-      );
-      setMovieDetails(prev => ({ ...prev, ...details }));
-    } catch (error) {
-      console.error('Failed to fetch movie details:', error);
-      toast.error('Failed to load some movie details');
-    } finally {
-      setLoadingMovies(false);
-    }
-  };
 
   const handleCreateList = async (e) => {
     e.preventDefault();
@@ -75,8 +32,8 @@ const MyLists = () => {
     }
 
     try {
-      const response = await createList(formData.name, formData.description);
-      setLists([...lists, response]);
+      await createList(formData.name, formData.description);
+      refreshLists(); // Use context's refresh function
       setShowCreateModal(false);
       setFormData({ name: '', description: '' });
       toast.success('List created successfully');
@@ -104,10 +61,8 @@ const MyLists = () => {
     }
 
     try {
-      const response = await updateList(editingList.id, formData);
-      setLists(lists.map(list => 
-        list.id === editingList.id ? response : list
-      ));
+      await updateList(editingList.id, formData);
+      refreshLists(); // Use context's refresh function
       setEditingList(null);
       setFormData({ name: '', description: '' });
       toast.success('List updated successfully');
@@ -125,7 +80,7 @@ const MyLists = () => {
     
     try {
       await deleteList(list.id);
-      setLists(lists.filter(l => l.id !== list.id));
+      refreshLists(); // Use context's refresh function
       toast.success('List deleted successfully');
     } catch (error) {
       if (error.response?.status === 400) {
@@ -133,6 +88,27 @@ const MyLists = () => {
       } else {
         toast.error('Failed to delete list');
       }
+    }
+  };
+
+  const fetchMovieDetails = async (movieIds) => {
+    setLoadingMovies(true);
+    try {
+      const details = {};
+      await Promise.all(
+        movieIds.map(async (movieId) => {
+          if (!movieDetails[movieId]) {
+            const movieData = await movieApi.getMovieDetails(movieId);
+            details[movieId] = movieData;
+          }
+        })
+      );
+      setMovieDetails(prev => ({ ...prev, ...details }));
+    } catch (error) {
+      console.error('Failed to fetch movie details:', error);
+      toast.error('Failed to load some movie details');
+    } finally {
+      setLoadingMovies(false);
     }
   };
 
