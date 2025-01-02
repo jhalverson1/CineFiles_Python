@@ -194,6 +194,35 @@ export const movieApi = {
   getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
   getPersonDetails: (id) => api.get(`/api/person/${id}`),
   getMovieWatchProviders: (id) => api.get(`/api/movies/${id}/watch-providers`),
+  getFilteredMovies: async (page = 1, filters = {}) => {
+    const {
+      yearRange,
+      ratingRange,
+      popularityRange,
+      genres
+    } = filters;
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      ...(yearRange && {
+        start_year: yearRange[0].toString(),
+        end_year: yearRange[1].toString()
+      }),
+      ...(ratingRange && {
+        min_rating: ratingRange[0].toString(),
+        max_rating: ratingRange[1].toString()
+      }),
+      ...(popularityRange && {
+        min_popularity: popularityRange[0].toString(),
+        max_popularity: popularityRange[1].toString()
+      }),
+      ...(genres?.length > 0 && {
+        genres: genres.join(',')
+      })
+    });
+
+    return api.get(`/api/movies/filtered?${params.toString()}`);
+  },
 };
 
 export const authApi = {

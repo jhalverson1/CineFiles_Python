@@ -17,13 +17,13 @@ All movie data is sourced from TMDB API, while news is scraped from configured n
 Responses maintain TMDB's original structure for consistency and completeness.
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Query
+from typing import Optional, Tuple
 import httpx
 from app.utils.tmdb import get_tmdb_url, HEADERS
 from app.utils.scraper import scrape_movie_news
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
 import json
 
 logger = logging.getLogger(__name__)
@@ -349,6 +349,66 @@ async def search_movies(query: str):
             headers=HEADERS
         )
         return response.json()
+
+@router.get("/filtered")
+async def get_filtered_movies(
+    page: int = Query(1, ge=1),
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    max_rating: Optional[float] = None,
+    min_popularity: Optional[float] = None,
+    max_popularity: Optional[float] = None,
+    genres: Optional[str] = None
+):
+    """
+    Get a filtered list of movies based on various criteria.
+    """
+    params = {
+        "page": str(page),
+        "sort_by": "popularity.desc",
+        "include_adult": "false",
+        "include_video": "false",
+        "language": "en-US",
+        "with_original_language": "en",
+        "vote_count.gte": "100"
+    }
+
+    # Add year range filter
+    if start_year and end_year:
+        if start_year > end_year:
+            start_year, end_year = end_year, start_year
+        params["primary_release_date.gte"] = f"{start_year}-01-01"
+        params["primary_release_date.lte"] = f"{end_year}-12-31"
+
+    # Add rating range filter
+    if min_rating is not None:
+        params["vote_average.gte"] = str(min_rating)
+    if max_rating is not None:
+        params["vote_average.lte"] = str(max_rating)
+
+    # Add popularity range filter
+    if min_popularity is not None:
+        params["vote_count.gte"] = str(min_popularity)
+    if max_popularity is not None:
+        params["vote_count.lte"] = str(max_popularity)
+
+    # Add genres filter
+    if genres:
+        params["with_genres"] = genres.replace(",", "|")
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                get_tmdb_url("discover/movie"),
+                params=params,
+                headers=HEADERS
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"TMDB API error in get_filtered_movies: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
 
 @router.get("/{movie_id}")
 async def get_movie_details(movie_id: int):

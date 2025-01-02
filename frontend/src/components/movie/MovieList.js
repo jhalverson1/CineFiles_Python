@@ -89,31 +89,12 @@ const MovieList = ({
       
       try {
         let response;
-        switch (type) {
-          case 'popular':
-            response = await movieApi.getPopularMovies(page);
-            break;
-          case 'top-rated':
-            response = await movieApi.getTopRatedMovies(page, filters);
-            break;
-          case 'upcoming':
-            response = await movieApi.getUpcomingMovies(page, filters);
-            break;
-          case 'hidden-gems':
-            response = await movieApi.getHiddenGems(page, filters);
-            break;
-          case 'news':
-            response = await movieApi.getMovieNews(page);
-            break;
-          default:
-            throw new Error('Invalid movie list type');
-        }
+        // Fetch filtered movies
+        response = await movieApi.getFilteredMovies(page, filters);
 
         // Verify the filters haven't changed during the request
         if (
-          JSON.stringify(filters) === JSON.stringify(currentFilters.current) ||
-          type === 'popular' || 
-          type === 'news'
+          JSON.stringify(filters) === JSON.stringify(currentFilters.current)
         ) {
           if (page === 1) {
             setAllMovies(response.results || []);
@@ -148,12 +129,6 @@ const MovieList = ({
       });
       
       filteredMovies = filteredMovies.filter(movie => !excludedMovieIds.has(movie.id.toString()));
-    }
-
-    // If we don't have enough movies after filtering, fetch more
-    if (!isLoading && hasMore && filteredMovies.length < 20 && !propMovies) {
-      // Use setTimeout to prevent potential infinite loops
-      setTimeout(() => setPage(prev => prev + 1), 0);
     }
 
     return filteredMovies;

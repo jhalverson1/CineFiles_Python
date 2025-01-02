@@ -450,40 +450,10 @@ const HomePage = () => {
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
               <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Hidden Gems</h2>
+                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Movies</h2>
                 <MovieList 
-                  key={`hidden-gems-${key}`}
-                  type="hidden-gems" 
-                  excludedLists={excludedLists}
-                  yearRange={yearRange}
-                  ratingRange={ratingRange}
-                  popularityRange={popularityRange}
-                  viewMode={viewMode}
-                  isCompact={isCompact}
-                  selectedGenres={selectedGenres}
-                />
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Top Rated Movies</h2>
-                <MovieList 
-                  key={`top-rated-${key}`}
-                  type="top-rated" 
-                  excludedLists={excludedLists}
-                  yearRange={yearRange}
-                  ratingRange={ratingRange}
-                  popularityRange={popularityRange}
-                  viewMode={viewMode}
-                  isCompact={isCompact}
-                  selectedGenres={selectedGenres}
-                />
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Upcoming Movies</h2>
-                <MovieList 
-                  key={`upcoming-${key}`}
-                  type="upcoming" 
+                  key={`filtered-movies-${key}`}
+                  type="filtered" 
                   excludedLists={excludedLists}
                   yearRange={yearRange}
                   ratingRange={ratingRange}
