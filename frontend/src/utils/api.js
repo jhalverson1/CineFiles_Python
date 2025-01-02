@@ -120,14 +120,16 @@ export const movieApi = {
   async getMovieGenres() {
     try {
       console.log('Fetching movie genres...');
-      const response = await axios.get(`${baseURL}/api/movies/genres`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-      console.log('Genres response:', response.data);
-      return response.data;
+      const response = await api.get('/api/movies/genres');
+      console.log('Raw genres response:', response);
+      // Ensure we return the expected structure
+      if (response && response.genres) {
+        console.log('Processed genres:', response.genres);
+        return response;
+      } else {
+        console.error('Unexpected genres response structure:', response);
+        return { genres: [] };
+      }
     } catch (error) {
       console.error('Error fetching genres:', error.response || error);
       throw error;

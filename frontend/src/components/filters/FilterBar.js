@@ -23,6 +23,7 @@ const FilterBar = ({
   const [savedFilters, setSavedFilters] = useState([]);
   const [isLoadingSavedFilters, setIsLoadingSavedFilters] = useState(false);
   const [error, setError] = useState(null);
+  const [currentFilter, setCurrentFilter] = useState(null);
   
   const genreRef = useRef(null);
   const yearRef = useRef(null);
@@ -91,9 +92,17 @@ const FilterBar = ({
         genres: selectedGenres && selectedGenres.length > 0 ? JSON.stringify(selectedGenres) : null,
       };
 
-      await filterSettingsApi.createFilterSetting(filterData);
+      if (currentFilter) {
+        // Update existing filter
+        await filterSettingsApi.updateFilterSetting(currentFilter.id, filterData);
+      } else {
+        // Create new filter
+        await filterSettingsApi.createFilterSetting(filterData);
+      }
+      
       setSaveModalOpen(false);
       setFilterName('');
+      setCurrentFilter(null);
       await loadSavedFilters();
     } catch (error) {
       console.error('Failed to save filter:', error);
@@ -114,6 +123,10 @@ const FilterBar = ({
       if (popularityRangeValue) onPopularityRangeChange(popularityRangeValue);
       if (genresValue) onGenresChange(genresValue);
 
+      // Set the current filter and filter name
+      setCurrentFilter(filter);
+      setFilterName(filter.name);
+      
       setLoadModalOpen(false);
     } catch (error) {
       console.error('Failed to load filter:', error);
@@ -465,7 +478,7 @@ const FilterBar = ({
       {saveModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
           <div ref={saveModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md mt-20">
-            <h3 className="text-lg font-medium mb-4">Save Filter</h3>
+            <h3 className="text-lg font-medium mb-4">{currentFilter ? 'Update Filter' : 'Save Filter'}</h3>
             {error && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
                 {error}
@@ -483,6 +496,10 @@ const FilterBar = ({
                 onClick={() => {
                   setSaveModalOpen(false);
                   setError(null);
+                  if (currentFilter) {
+                    setFilterName('');
+                    setCurrentFilter(null);
+                  }
                 }}
                 className="px-4 py-2 bg-background-tertiary hover:bg-background-tertiary/80 rounded-lg text-sm font-medium"
               >
@@ -492,7 +509,7 @@ const FilterBar = ({
                 onClick={handleSaveFilter}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium"
               >
-                Save
+                {currentFilter ? 'Update' : 'Save'}
               </button>
             </div>
           </div>
