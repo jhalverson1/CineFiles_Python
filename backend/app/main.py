@@ -1,20 +1,42 @@
-from fastapi import FastAPI
+"""
+CineFiles Backend API
+
+This is the main FastAPI application module that sets up the backend server for CineFiles.
+It handles API routing, middleware configuration, database initialization, and CORS settings.
+
+Key Components:
+- FastAPI application setup with versioned API endpoints
+- Database initialization and connection management
+- Authentication and authorization routes
+- Movie and person data management
+- User lists functionality
+- CORS configuration for frontend communication
+
+The API follows RESTful principles and uses async/await for efficient request handling.
+"""
+
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
+from starlette.middleware.base import BaseHTTPMiddleware
+from app.core.config import get_settings
+from app.database.database import init_db
 from app.routers.auth import router as auth_router
 from app.routers.movies import router as movies_router
 from app.routers.proxy import router as proxy_router
 from app.routers.person import router as person_router
 from app.routers.lists import router as lists_router
 from app.routers.filter_settings import router as filter_settings_router
+from app.core.logging_config import configure_logging
+import logging.config
 import logging
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.config.dictConfig(configure_logging())
 logger = logging.getLogger(__name__)
+
+# Get settings
+settings = get_settings()
 
 # Create FastAPI app
 app = FastAPI(

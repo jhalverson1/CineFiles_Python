@@ -6,7 +6,11 @@ from sqlalchemy.orm import sessionmaker
 from typing import Generator, AsyncGenerator
 
 from app.main import app
+from app.core.config import get_settings
 from app.database.database import get_db, Base
+
+# Get settings for test environment
+settings = get_settings()
 
 # Test database URL - using PostgreSQL
 TEST_DATABASE_URL = os.getenv(
@@ -30,7 +34,14 @@ TestingSessionLocal = sessionmaker(
 # Override the dependency
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
     async with TestingSessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 app.dependency_overrides[get_db] = override_get_db
 

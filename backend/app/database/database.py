@@ -1,3 +1,15 @@
+"""
+Database Module
+
+This module provides core database functionality:
+- Base models
+- Session management
+- Engine configuration
+- Migration support
+
+All database-related core functionality is centralized here.
+"""
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
