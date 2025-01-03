@@ -517,8 +517,8 @@ const HomePage = () => {
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
               {/* Show filtered results section when filters are active */}
-              {hasActiveFilters && (
-                <section className="mb-12">
+              {hasActiveFilters ? (
+                <section>
                   <div className="mb-8">
                     <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
                       Filtered Results
@@ -539,50 +539,53 @@ const HomePage = () => {
                     isCompact={isCompact}
                   />
                 </section>
-              )}
-
-              {/* Default lists section */}
-              {isLoadingLists ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : homepageLists.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-text-secondary">No movie lists enabled. Click the list manager button to add some!</p>
-                </div>
               ) : (
-                <div className="space-y-12">
-                  {homepageLists.map((list) => (
-                    <section key={`${list.type}-${list.id}`}>
-                      <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">
-                        {list.name}
-                      </h2>
-                      {list.type === 'default' ? (
-                        <MovieList
-                          key={`${list.id}-${key}`}
-                          type="tmdb"
-                          listId={list.id}
-                          excludedLists={excludedLists}
-                          viewMode={viewMode}
-                          isCompact={isCompact}
-                        />
-                      ) : (
-                        <MovieList
-                          key={`filtered-${list.id}-${key}`}
-                          type="filtered"
-                          listId={list.id}
-                          yearRange={list.year_range ? JSON.parse(list.year_range) : null}
-                          ratingRange={list.rating_range ? JSON.parse(list.rating_range) : null}
-                          popularityRange={list.popularity_range ? JSON.parse(list.popularity_range) : null}
-                          genres={list.genres ? JSON.parse(list.genres) : []}
-                          excludedLists={excludedLists}
-                          viewMode={viewMode}
-                          isCompact={isCompact}
-                        />
-                      )}
-                    </section>
-                  ))}
-                </div>
+                /* Only show default lists when no filters are active */
+                <>
+                  {/* Default lists section */}
+                  {isLoadingLists ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : homepageLists.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-text-secondary">No movie lists enabled. Click the list manager button to add some!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-12">
+                      {homepageLists.map((list) => (
+                        <section key={`${list.type}-${list.id}`}>
+                          <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">
+                            {list.name}
+                          </h2>
+                          {list.type === 'default' ? (
+                            <MovieList
+                              key={`${list.id}-${key}`}
+                              type="tmdb"
+                              listId={list.id}
+                              excludedLists={excludedLists}
+                              viewMode={viewMode}
+                              isCompact={isCompact}
+                            />
+                          ) : (
+                            <MovieList
+                              key={`filtered-${list.id}-${key}`}
+                              type="filtered"
+                              listId={list.id}
+                              yearRange={list.year_range ? JSON.parse(list.year_range) : null}
+                              ratingRange={list.rating_range ? JSON.parse(list.rating_range) : null}
+                              popularityRange={list.popularity_range ? JSON.parse(list.popularity_range) : null}
+                              genres={list.genres ? JSON.parse(list.genres) : []}
+                              excludedLists={excludedLists}
+                              viewMode={viewMode}
+                              isCompact={isCompact}
+                            />
+                          )}
+                        </section>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </motion.div>
           )}

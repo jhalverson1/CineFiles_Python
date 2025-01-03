@@ -5,10 +5,11 @@ This module handles all filter settings-related endpoints including creating,
 reading, updating, and deleting filter settings.
 """
 
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, update
+from typing import List, Optional, Annotated
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 from uuid import UUID
 import logging
 
@@ -16,7 +17,7 @@ from ..database.database import get_db
 from ..models.user import User
 from ..models.filter_settings import FilterSettings
 from ..schemas.filter_schemas import FilterSettingsCreate, FilterSettingsUpdate, FilterSettings as FilterSettingsSchema
-from ..utils.auth import get_current_user
+from ..core.security import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

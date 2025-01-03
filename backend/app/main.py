@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import auth, movies, proxy, person, lists, filter_settings
+from app.routers.auth import router as auth_router
+from app.routers.movies import router as movies_router
+from app.routers.proxy import router as proxy_router
+from app.routers.person import router as person_router
+from app.routers.lists import router as lists_router
+from app.routers.filter_settings import router as filter_settings_router
 import logging
 
 # Configure logging
@@ -30,37 +35,37 @@ app.add_middleware(
 
 # Mount routers
 app.include_router(
-    movies.router,
+    movies_router,
     prefix="/api/movies",
     tags=["movies"],
 )
 
 app.include_router(
-    auth.router,
+    auth_router,
     prefix="/api/auth",
     tags=["auth"],
 )
 
 app.include_router(
-    proxy.router,
+    proxy_router,
     prefix="/api/proxy",
     tags=["proxy"],
 )
 
 app.include_router(
-    person.router,
+    person_router,
     prefix="/api/person",
     tags=["person"],
 )
 
 app.include_router(
-    lists.router,
+    lists_router,
     prefix="/api/lists",
     tags=["lists"],
 )
 
 app.include_router(
-    filter_settings.router,
+    filter_settings_router,
     prefix="/api/filter-settings",
     tags=["filter-settings"],
 )

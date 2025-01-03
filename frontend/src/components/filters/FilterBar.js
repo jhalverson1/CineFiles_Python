@@ -397,6 +397,29 @@ const FilterBar = ({
       {/* Save/Load Buttons Group */}
       <div className="flex gap-2 md:ml-4">
         <button
+          onClick={() => {
+            onYearRangeChange(null);
+            onRatingRangeChange(null);
+            onPopularityRangeChange(null);
+            onGenresChange([]);
+          }}
+          className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
+          aria-label="Reset Filters"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
+            Reset Filters
+          </span>
+        </button>
+
+        <button
           onClick={() => setSaveModalOpen(true)}
           className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
           aria-label="Save Filter"

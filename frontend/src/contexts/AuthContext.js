@@ -10,12 +10,21 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for traditional auth token
+    // Check for both tokens
     const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refresh_token');
     const storedUsername = localStorage.getItem('username');
-    if (token) {
+    
+    if (token && refreshToken) {
       setIsLoggedIn(true);
       setUsername(storedUsername || '');
+    } else {
+      // Clear all auth data if either token is missing
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('username');
+      setIsLoggedIn(false);
+      setUsername('');
     }
     setIsLoading(false);
   }, []);
@@ -23,8 +32,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const response = await authApi.login(credentials);
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('username', response.username);
       setIsLoggedIn(true);
       setUsername(response.username);
       return response;
@@ -40,6 +47,7 @@ export const AuthProvider = ({ children }) => {
       await authApi.logout();
       setIsLoggedIn(false);
       setUsername('');
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Logout failed');
@@ -63,8 +71,10 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+};
+
+export default AuthContext; 
