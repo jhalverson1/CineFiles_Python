@@ -11,6 +11,23 @@ settings = get_settings()
 # Create Base class for models
 Base = declarative_base()
 
+def get_sync_engine():
+    """
+    Get a synchronous engine - ONLY FOR USE WITH ALEMBIC MIGRATIONS
+    This should not be used in the application code.
+    """
+    # Parse the URL to ensure correct format
+    parsed = urlparse(str(settings.DATABASE_URL))
+    # Force psycopg2 driver for sync operations
+    if parsed.scheme.endswith('+asyncpg'):
+        sync_url = urlunparse(parsed._replace(scheme='postgresql'))
+    else:
+        sync_url = str(settings.DATABASE_URL)
+    
+    logger.info(f"Creating sync engine with URL scheme: {urlparse(sync_url).scheme}")
+    from sqlalchemy import create_engine
+    return create_engine(sync_url, poolclass=NullPool)
+
 def get_async_engine():
     # Parse the URL to ensure correct format
     parsed = urlparse(str(settings.DATABASE_URL))
