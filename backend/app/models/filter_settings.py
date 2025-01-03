@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Text, DateTime, ForeignKey
+from sqlalchemy import String, Text, DateTime, ForeignKey, Boolean, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
@@ -21,6 +21,8 @@ class FilterSettings(Base):
     rating_range: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     popularity_range: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     genres: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_homepage_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    homepage_display_order: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

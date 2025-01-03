@@ -116,13 +116,53 @@ api.interceptors.response.use(
 );
 
 export const movieApi = {
-  getPopularMovies: (page = 1) => api.get(`/api/movies/popular?page=${page}`),
-  async getMovieGenres() {
+  getPopularMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/popular?${params.toString()}`);
+  },
+  
+  getTopRatedMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/top-rated?${params.toString()}`);
+  },
+  
+  getUpcomingMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/upcoming?${params.toString()}`);
+  },
+  
+  getNowPlayingMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/now-playing?${params.toString()}`);
+  },
+  
+  getListMovies: async (listId, page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/lists/${listId}/movies?${params.toString()}`);
+  },
+  
+  getFilterSettingMovies: async (filterId, page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/filter-settings/${filterId}/movies?${params.toString()}`);
+  },
+  
+  getFilteredMovies: async (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/filtered?${params.toString()}`);
+  },
+  
+  getMovieGenres: async () => {
     try {
       console.log('Fetching movie genres...');
       const response = await api.get('/api/movies/genres');
       console.log('Raw genres response:', response);
-      // Ensure we return the expected structure
       if (response && response.genres) {
         console.log('Processed genres:', response.genres);
         return response;
@@ -135,96 +175,60 @@ export const movieApi = {
       throw error;
     }
   },
-  getTopRatedMovies: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    
-    if (filters.yearRange?.length === 2) {
-      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
-    }
-    if (filters.ratingRange?.length === 2) {
-      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
-    }
-    if (filters.popularityRange?.length === 2) {
-      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
-    }
-    if (filters.genres?.length > 0) {
-      params.append('genres', filters.genres.join(','));
-    }
-    
-    return api.get(`/api/movies/top-rated?${params.toString()}`);
-  },
-  getUpcomingMovies: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    
-    if (filters.yearRange?.length === 2) {
-      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
-    }
-    if (filters.ratingRange?.length === 2) {
-      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
-    }
-    if (filters.popularityRange?.length === 2) {
-      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
-    }
-    if (filters.genres?.length > 0) {
-      params.append('genres', filters.genres.join(','));
-    }
-    
-    return api.get(`/api/movies/upcoming?${params.toString()}`);
-  },
-  getHiddenGems: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    
-    if (filters.yearRange?.length === 2) {
-      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
-    }
-    if (filters.ratingRange?.length === 2) {
-      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
-    }
-    if (filters.popularityRange?.length === 2) {
-      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
-    }
-    if (filters.genres?.length > 0) {
-      params.append('genres', filters.genres.join(','));
-    }
-    
-    return api.get(`/api/movies/hidden-gems?${params.toString()}`);
-  },
-  getMovieNews: () => api.get('/api/movies/news'),
-  searchMovies: (query) => api.get(`/api/movies/search?query=${encodeURIComponent(query)}`),
+  
   getMovieDetails: (id) => api.get(`/api/movies/${id}`),
   getMovieCredits: (id) => api.get(`/api/movies/${id}/credits`),
   getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
   getPersonDetails: (id) => api.get(`/api/person/${id}`),
   getMovieWatchProviders: (id) => api.get(`/api/movies/${id}/watch-providers`),
-  getFilteredMovies: async (page = 1, filters = {}) => {
-    const {
-      yearRange,
-      ratingRange,
-      popularityRange,
-      genres
-    } = filters;
+};
 
-    const params = new URLSearchParams({
-      page: page.toString(),
-      ...(yearRange && {
-        start_year: yearRange[0].toString(),
-        end_year: yearRange[1].toString()
-      }),
-      ...(ratingRange && {
-        min_rating: ratingRange[0].toString(),
-        max_rating: ratingRange[1].toString()
-      }),
-      ...(popularityRange && {
-        min_popularity: popularityRange[0].toString(),
-        max_popularity: popularityRange[1].toString()
-      }),
-      ...(genres?.length > 0 && {
-        genres: genres.join(',')
-      })
-    });
+// Helper function to add filter parameters
+const addFilterParams = (params, filters) => {
+  const {
+    yearRange,
+    ratingRange,
+    popularityRange,
+    genres,
+    sortBy,
+    minVoteCount,
+    releaseDate
+  } = filters;
 
-    return api.get(`/api/movies/filtered?${params.toString()}`);
-  },
+  if (yearRange?.length === 2) {
+    params.append('start_year', yearRange[0].toString());
+    params.append('end_year', yearRange[1].toString());
+  }
+  
+  if (ratingRange?.length === 2) {
+    params.append('min_rating', ratingRange[0].toString());
+    params.append('max_rating', ratingRange[1].toString());
+  }
+  
+  if (popularityRange?.length === 2) {
+    params.append('min_popularity', popularityRange[0].toString());
+    params.append('max_popularity', popularityRange[1].toString());
+  }
+  
+  if (genres?.length > 0) {
+    params.append('genres', genres.join(','));
+  }
+  
+  if (sortBy) {
+    params.append('sort_by', sortBy);
+  }
+  
+  if (minVoteCount) {
+    params.append('min_vote_count', minVoteCount.toString());
+  }
+  
+  if (releaseDate?.gte) {
+    params.append('release_date_gte', releaseDate.gte);
+  }
+  
+  if (releaseDate?.lte) {
+    params.append('release_date_lte', releaseDate.lte);
+  }
 };
 
 export const authApi = {
@@ -283,11 +287,34 @@ export const removeMovieFromList = async (listId, movieId) => {
 };
 
 export const filterSettingsApi = {
-  getFilterSettings: () => api.get('/api/filter-settings'),
-  getFilterSetting: (id) => api.get(`/api/filter-settings/${id}`),
-  createFilterSetting: (data) => api.post('/api/filter-settings', data),
-  updateFilterSetting: (id, data) => api.put(`/api/filter-settings/${id}`, data),
-  deleteFilterSetting: (id) => api.delete(`/api/filter-settings/${id}`),
+  getFilterSettings: async () => {
+    const response = await api.get('/api/filter-settings');
+    return response;
+  },
+
+  getHomepageFilters: async () => {
+    const response = await api.get('/api/filter-settings/homepage');
+    return response;
+  },
+
+  createFilterSetting: async (filterSetting) => {
+    const response = await api.post('/api/filter-settings', filterSetting);
+    return response;
+  },
+
+  updateFilterSetting: async (id, filterSetting) => {
+    const response = await api.put(`/api/filter-settings/${id}`, filterSetting);
+    return response;
+  },
+
+  deleteFilterSetting: async (id) => {
+    await api.delete(`/api/filter-settings/${id}`);
+  },
+
+  reorderHomepageFilters: async (filterIds) => {
+    const response = await api.put('/api/filter-settings/homepage/reorder', filterIds);
+    return response;
+  }
 };
 
 export default api; 

@@ -11,6 +11,8 @@ class FilterSettingsBase(BaseModel):
     rating_range: Optional[str] = None
     popularity_range: Optional[str] = None
     genres: Optional[str] = None
+    is_homepage_enabled: bool = False
+    homepage_display_order: Optional[int] = None
 
 
 class FilterSettingsCreate(FilterSettingsBase):

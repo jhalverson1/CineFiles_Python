@@ -7,7 +7,7 @@ reading, updating, and deleting filter settings.
 
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 import logging
@@ -68,6 +68,86 @@ async def get_filter_settings(
     filters = result.scalars().all()
     logger.info(f"Found {len(filters)} filter settings for user {current_user.id}")
     return filters
+
+@router.get("/homepage", response_model=List[FilterSettingsSchema])
+async def get_homepage_filters(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all filter settings enabled for homepage display, ordered by homepage_display_order.
+    
+    Args:
+        current_user: Current authenticated user
+        db: Database session
+    
+    Returns:
+        List[FilterSettingsSchema]: List of homepage-enabled filter settings
+    """
+    query = (
+        select(FilterSettings)
+        .where(
+            FilterSettings.user_id == current_user.id,
+            FilterSettings.is_homepage_enabled == True
+        )
+        .order_by(FilterSettings.homepage_display_order.nulls_last(), FilterSettings.created_at)
+    )
+    result = await db.execute(query)
+    filters = result.scalars().all()
+    return filters
+
+@router.put("/homepage/reorder", response_model=List[FilterSettingsSchema])
+async def reorder_homepage_filters(
+    filter_ids: List[int],
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update the display order of homepage filters.
+    
+    Args:
+        filter_ids: List of filter IDs in desired order
+        current_user: Current authenticated user
+        db: Database session
+    
+    Returns:
+        List[FilterSettingsSchema]: Updated list of homepage filters
+    """
+    # First, verify all filters belong to the user
+    query = select(FilterSettings).where(
+        FilterSettings.user_id == current_user.id,
+        FilterSettings.id.in_(filter_ids)
+    )
+    result = await db.execute(query)
+    existing_filters = result.scalars().all()
+    
+    if len(existing_filters) != len(filter_ids):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid filter IDs provided"
+        )
+    
+    # Update the order
+    for index, filter_id in enumerate(filter_ids):
+        await db.execute(
+            update(FilterSettings)
+            .where(FilterSettings.id == filter_id)
+            .values(homepage_display_order=index)
+        )
+    
+    await db.commit()
+    
+    # Return the updated list
+    query = (
+        select(FilterSettings)
+        .where(
+            FilterSettings.user_id == current_user.id,
+            FilterSettings.is_homepage_enabled == True
+        )
+        .order_by(FilterSettings.homepage_display_order.nulls_last(), FilterSettings.created_at)
+    )
+    result = await db.execute(query)
+    return result.scalars().all()
 
 @router.get("/{filter_setting_id}", response_model=FilterSettingsSchema)
 async def get_filter_setting(
