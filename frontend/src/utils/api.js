@@ -12,17 +12,63 @@ const api = axios.create({
   withCredentials: true
 });
 
+// Add a flag to prevent multiple token verifications at once
+let isVerifyingToken = false;
+let lastTokenVerification = 0;
+const TOKEN_VERIFY_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// Function to verify token
+const verifyToken = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) return false;
+
+  try {
+    await api.get('/api/auth/verify');
+    lastTokenVerification = Date.now();
+    return true;
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    // If verification fails, clear the token
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return false;
+  }
+};
+
 // Add request interceptor to include auth token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Skip token verification for auth endpoints
+    const isAuthEndpoint = config.url.includes('/api/auth/login') || 
+                          config.url.includes('/api/auth/signup') ||
+                          config.url.includes('/api/auth/verify');
+
+    if (!isAuthEndpoint) {
+      // Verify token if it hasn't been verified recently
+      const shouldVerify = !isVerifyingToken && 
+                          Date.now() - lastTokenVerification > TOKEN_VERIFY_INTERVAL;
+
+      if (shouldVerify) {
+        isVerifyingToken = true;
+        try {
+          const isValid = await verifyToken();
+          if (!isValid) {
+            // Token is invalid, redirect to login or handle as needed
+            window.location.href = '/login';
+            return Promise.reject('Invalid token');
+          }
+        } finally {
+          isVerifyingToken = false;
+        }
+      }
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
-      // Ensure Bearer prefix is present
       const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
       config.headers.Authorization = tokenWithBearer;
     }
     
-    // Ensure consistent header format
     config.headers = {
       'Content-Type': 'application/json',
       ...config.headers,
@@ -70,79 +116,66 @@ api.interceptors.response.use(
 );
 
 export const movieApi = {
-  getPopularMovies: (page = 1) => api.get(`/api/movies/popular?page=${page}`),
-  async getMovieGenres() {
+  getPopularMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/popular?${params.toString()}`);
+  },
+  
+  getTopRatedMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/top-rated?${params.toString()}`);
+  },
+  
+  getUpcomingMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/upcoming?${params.toString()}`);
+  },
+  
+  getNowPlayingMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/now-playing?${params.toString()}`);
+  },
+  
+  getListMovies: async (listId, page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/lists/${listId}/movies?${params.toString()}`);
+  },
+  
+  getFilterSettingMovies: async (filterId, page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/filter-settings/${filterId}/movies?${params.toString()}`);
+  },
+  
+  getFilteredMovies: async (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/filtered?${params.toString()}`);
+  },
+  
+  getMovieGenres: async () => {
     try {
       console.log('Fetching movie genres...');
-      const response = await axios.get(`${baseURL}/api/movies/genres`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-      console.log('Genres response:', response.data);
-      return response.data;
+      const response = await api.get('/api/movies/genres');
+      console.log('Raw genres response:', response);
+      if (response && response.genres) {
+        console.log('Processed genres:', response.genres);
+        return response;
+      } else {
+        console.error('Unexpected genres response structure:', response);
+        return { genres: [] };
+      }
     } catch (error) {
       console.error('Error fetching genres:', error.response || error);
       throw error;
     }
   },
-  getTopRatedMovies: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    
-    if (filters.yearRange?.length === 2) {
-      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
-    }
-    if (filters.ratingRange?.length === 2) {
-      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
-    }
-    if (filters.popularityRange?.length === 2) {
-      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
-    }
-    if (filters.genres?.length > 0) {
-      params.append('genres', filters.genres.join(','));
-    }
-    
-    return api.get(`/api/movies/top-rated?${params.toString()}`);
-  },
-  getUpcomingMovies: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    
-    if (filters.yearRange?.length === 2) {
-      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
-    }
-    if (filters.ratingRange?.length === 2) {
-      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
-    }
-    if (filters.popularityRange?.length === 2) {
-      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
-    }
-    if (filters.genres?.length > 0) {
-      params.append('genres', filters.genres.join(','));
-    }
-    
-    return api.get(`/api/movies/upcoming?${params.toString()}`);
-  },
-  getHiddenGems: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    
-    if (filters.yearRange?.length === 2) {
-      params.append('year_range', `[${filters.yearRange[0]},${filters.yearRange[1]}]`);
-    }
-    if (filters.ratingRange?.length === 2) {
-      params.append('rating_range', `[${filters.ratingRange[0]},${filters.ratingRange[1]}]`);
-    }
-    if (filters.popularityRange?.length === 2) {
-      params.append('popularity_range', `[${filters.popularityRange[0]},${filters.popularityRange[1]}]`);
-    }
-    if (filters.genres?.length > 0) {
-      params.append('genres', filters.genres.join(','));
-    }
-    
-    return api.get(`/api/movies/hidden-gems?${params.toString()}`);
-  },
-  getMovieNews: () => api.get('/api/movies/news'),
-  searchMovies: (query) => api.get(`/api/movies/search?query=${encodeURIComponent(query)}`),
+  
   getMovieDetails: (id) => api.get(`/api/movies/${id}`),
   getMovieCredits: (id) => api.get(`/api/movies/${id}/credits`),
   getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
@@ -150,11 +183,58 @@ export const movieApi = {
   getMovieWatchProviders: (id) => api.get(`/api/movies/${id}/watch-providers`),
 };
 
+// Helper function to add filter parameters
+const addFilterParams = (params, filters) => {
+  const {
+    yearRange,
+    ratingRange,
+    popularityRange,
+    genres,
+    sortBy,
+    minVoteCount,
+    releaseDate
+  } = filters;
+
+  if (yearRange?.length === 2) {
+    params.append('start_year', yearRange[0].toString());
+    params.append('end_year', yearRange[1].toString());
+  }
+  
+  if (ratingRange?.length === 2) {
+    params.append('min_rating', ratingRange[0].toString());
+    params.append('max_rating', ratingRange[1].toString());
+  }
+  
+  if (popularityRange?.length === 2) {
+    params.append('min_popularity', popularityRange[0].toString());
+    params.append('max_popularity', popularityRange[1].toString());
+  }
+  
+  if (genres?.length > 0) {
+    params.append('genres', genres.join(','));
+  }
+  
+  if (sortBy) {
+    params.append('sort_by', sortBy);
+  }
+  
+  if (minVoteCount) {
+    params.append('min_vote_count', minVoteCount.toString());
+  }
+  
+  if (releaseDate?.gte) {
+    params.append('release_date_gte', releaseDate.gte);
+  }
+  
+  if (releaseDate?.lte) {
+    params.append('release_date_lte', releaseDate.lte);
+  }
+};
+
 export const authApi = {
   login: (formData) => api.post('/api/auth/login', formData, {
     headers: {
-      // Don't set Content-Type - axios will set it automatically for FormData
-      'Content-Type': undefined
+      'Content-Type': 'application/x-www-form-urlencoded'
     }
   }),
   signup: (userData) => api.post('/api/auth/signup', userData),
@@ -207,11 +287,34 @@ export const removeMovieFromList = async (listId, movieId) => {
 };
 
 export const filterSettingsApi = {
-  getFilterSettings: () => api.get('/api/filter-settings'),
-  getFilterSetting: (id) => api.get(`/api/filter-settings/${id}`),
-  createFilterSetting: (data) => api.post('/api/filter-settings', data),
-  updateFilterSetting: (id, data) => api.put(`/api/filter-settings/${id}`, data),
-  deleteFilterSetting: (id) => api.delete(`/api/filter-settings/${id}`),
+  getFilterSettings: async () => {
+    const response = await api.get('/api/filter-settings');
+    return response;
+  },
+
+  getHomepageFilters: async () => {
+    const response = await api.get('/api/filter-settings/homepage');
+    return response;
+  },
+
+  createFilterSetting: async (filterSetting) => {
+    const response = await api.post('/api/filter-settings', filterSetting);
+    return response;
+  },
+
+  updateFilterSetting: async (id, filterSetting) => {
+    const response = await api.put(`/api/filter-settings/${id}`, filterSetting);
+    return response;
+  },
+
+  deleteFilterSetting: async (id) => {
+    await api.delete(`/api/filter-settings/${id}`);
+  },
+
+  reorderHomepageFilters: async (filterIds) => {
+    const response = await api.put('/api/filter-settings/homepage/reorder', filterIds);
+    return response;
+  }
 };
 
 export default api; 

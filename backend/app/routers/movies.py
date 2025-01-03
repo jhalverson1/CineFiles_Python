@@ -17,14 +17,18 @@ All movie data is sourced from TMDB API, while news is scraped from configured n
 Responses maintain TMDB's original structure for consistency and completeness.
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Query, Depends
+from typing import Optional, Tuple
 import httpx
 from app.utils.tmdb import get_tmdb_url, HEADERS
 from app.utils.scraper import scrape_movie_news
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
 import json
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database.database import get_db
+from app.models.filter_settings import FilterSettings
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -85,81 +89,66 @@ def parse_range_param(param: Optional[str]) -> Optional[Tuple]:
         return None
 
 @router.get("/popular")
-async def get_popular_movies(page: int = 1):
-    """
-    Retrieve a list of currently popular movies.
+async def get_popular_movies(
+    page: int = Query(1, ge=1),
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    max_rating: Optional[float] = None,
+    min_popularity: Optional[float] = None,
+    max_popularity: Optional[float] = None,
+    genres: Optional[str] = None
+):
+    """Get popular movies with optional filters."""
+    params = {
+        "page": str(page),
+        "sort_by": "popularity.desc",
+        "include_adult": "false",
+        "include_video": "false",
+        "language": "en-US",
+        "with_original_language": "en",
+        "vote_count.gte": "100"  # Ensure some minimum votes
+    }
     
-    Args:
-        page: Page number for pagination (default: 1)
+    add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
     
-    Returns:
-        dict: JSON response containing:
-            - page: Current page number
-            - results: List of movie objects with basic information
-            - total_pages: Total number of available pages
-            - total_results: Total number of movies
-    
-    Notes:
-        - Results are paginated and sorted by popularity
-        - Updates daily based on TMDB's popularity algorithm
-    """
     async with httpx.AsyncClient() as client:
-        response = await client.get(
-            get_tmdb_url("movie/popular"),
-            params={"page": page, "include_adult": "false"},
-            headers=HEADERS
-        )
-        return response.json()
+        try:
+            response = await client.get(
+                get_tmdb_url("discover/movie"),
+                params=params,
+                headers=HEADERS
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"TMDB API error in get_popular_movies: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
 
 @router.get("/top-rated")
 async def get_top_rated_movies(
-    page: int = 1,
-    year_range: Optional[str] = None,
-    rating_range: Optional[str] = None,
-    popularity_range: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    max_rating: Optional[float] = None,
+    min_popularity: Optional[float] = None,
+    max_popularity: Optional[float] = None,
     genres: Optional[str] = None
 ):
-    """
-    Retrieve a list of top-rated movies using TMDB's discover API.
-    
-    Args:
-        page: Page number for pagination (default: 1)
-        year_range: Optional tuple of (start_year, end_year)
-        rating_range: Optional tuple of (min_rating, max_rating)
-        popularity_range: Optional tuple of (min_votes, max_votes)
-        genres: Comma-separated list of genre IDs
-    """
+    """Get top rated movies with optional filters."""
     params = {
         "page": str(page),
         "sort_by": "vote_average.desc",
-        "vote_count.gte": "10000",
-        "vote_average.gte": "7.0",
         "include_adult": "false",
-        "with_original_language": "en"
+        "include_video": "false",
+        "language": "en-US",
+        "with_original_language": "en",
+        "vote_count.gte": "1000"  # Ensure significant number of votes
     }
-
-    # Parse and add optional filters
-    if year_range:
-        year_tuple = parse_range_param(year_range)
-        if year_tuple:
-            params["primary_release_date.gte"] = f"{int(year_tuple[0])}-01-01"
-            params["primary_release_date.lte"] = f"{int(year_tuple[1])}-12-31"
     
-    if rating_range:
-        rating_tuple = parse_range_param(rating_range)
-        if rating_tuple:
-            params["vote_average.gte"] = str(rating_tuple[0])
-            params["vote_average.lte"] = str(rating_tuple[1])
+    add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
     
-    if popularity_range:
-        popularity_tuple = parse_range_param(popularity_range)
-        if popularity_tuple:
-            params["vote_count.gte"] = str(int(popularity_tuple[0]))
-            params["vote_count.lte"] = str(int(popularity_tuple[1]))
-
-    if genres:
-        params["with_genres"] = genres.replace(",", "|")
-
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
@@ -175,57 +164,32 @@ async def get_top_rated_movies(
 
 @router.get("/upcoming")
 async def get_upcoming_movies(
-    page: int = 1,
-    year_range: Optional[str] = None,
-    rating_range: Optional[str] = None,
-    popularity_range: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    max_rating: Optional[float] = None,
+    min_popularity: Optional[float] = None,
+    max_popularity: Optional[float] = None,
     genres: Optional[str] = None
 ):
-    """
-    Retrieve a list of upcoming movie releases using TMDB's discover API.
+    """Get upcoming movies with optional filters."""
+    today = datetime.now().date()
+    future_date = today + timedelta(days=90)
     
-    Args:
-        page: Page number for pagination (default: 1)
-        year_range: Optional tuple of (start_year, end_year)
-        rating_range: Optional tuple of (min_rating, max_rating)
-        popularity_range: Optional tuple of (min_votes, max_votes)
-        genres: Comma-separated list of genre IDs
-    """
-    today = datetime.now().strftime("%Y-%m-%d")
-    three_months_future = (datetime.now() + timedelta(days=90)).strftime("%Y-%m-%d")
-
     params = {
         "page": str(page),
         "sort_by": "popularity.desc",
-        "primary_release_date.gte": today,
-        "primary_release_date.lte": three_months_future,
         "include_adult": "false",
-        "with_release_type": "2|3",
-        "with_original_language": "en"
+        "include_video": "false",
+        "language": "en-US",
+        "with_original_language": "en",
+        "primary_release_date.gte": today.isoformat(),
+        "primary_release_date.lte": future_date.isoformat()
     }
-
-    # Parse and add optional filters
-    if year_range:
-        year_tuple = parse_range_param(year_range)
-        if year_tuple:
-            # For upcoming movies, we only use the end_year as we already have a start date
-            params["primary_release_date.lte"] = f"{int(year_tuple[1])}-12-31"
     
-    if rating_range:
-        rating_tuple = parse_range_param(rating_range)
-        if rating_tuple:
-            params["vote_average.gte"] = str(rating_tuple[0])
-            params["vote_average.lte"] = str(rating_tuple[1])
+    add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
     
-    if popularity_range:
-        popularity_tuple = parse_range_param(popularity_range)
-        if popularity_tuple:
-            params["vote_count.gte"] = str(int(popularity_tuple[0]))
-            params["vote_count.lte"] = str(int(popularity_tuple[1]))
-
-    if genres:
-        params["with_genres"] = genres.replace(",", "|")
-
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
@@ -238,6 +202,72 @@ async def get_upcoming_movies(
         except httpx.HTTPError as e:
             logger.error(f"TMDB API error in get_upcoming_movies: {str(e)}")
             raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
+
+@router.get("/now-playing")
+async def get_now_playing_movies(
+    page: int = Query(1, ge=1),
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    max_rating: Optional[float] = None,
+    min_popularity: Optional[float] = None,
+    max_popularity: Optional[float] = None,
+    genres: Optional[str] = None
+):
+    """Get now playing movies with optional filters."""
+    today = datetime.now().date()
+    past_date = today - timedelta(days=30)
+    
+    params = {
+        "page": str(page),
+        "sort_by": "popularity.desc",
+        "include_adult": "false",
+        "include_video": "false",
+        "language": "en-US",
+        "with_original_language": "en",
+        "primary_release_date.gte": past_date.isoformat(),
+        "primary_release_date.lte": today.isoformat()
+    }
+    
+    add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                get_tmdb_url("discover/movie"),
+                params=params,
+                headers=HEADERS
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"TMDB API error in get_now_playing_movies: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
+
+def add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres):
+    """Helper function to add common filter parameters."""
+    # Add year range filter
+    if start_year and end_year:
+        if start_year > end_year:
+            start_year, end_year = end_year, start_year
+        params["primary_release_date.gte"] = f"{start_year}-01-01"
+        params["primary_release_date.lte"] = f"{end_year}-12-31"
+
+    # Add rating range filter
+    if min_rating is not None:
+        params["vote_average.gte"] = str(min_rating)
+    if max_rating is not None:
+        params["vote_average.lte"] = str(max_rating)
+
+    # Add popularity range filter
+    if min_popularity is not None:
+        params["popularity.gte"] = str(min_popularity)
+    if max_popularity is not None:
+        params["popularity.lte"] = str(max_popularity)
+
+    # Add genres filter
+    if genres:
+        params["with_genres"] = genres.replace(",", "|")
 
 @router.get("/news")
 async def get_movie_news():
@@ -350,6 +380,80 @@ async def search_movies(query: str):
         )
         return response.json()
 
+@router.get("/filtered")
+async def get_filtered_movies(
+    page: int = Query(1, ge=1),
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    max_rating: Optional[float] = None,
+    min_popularity: Optional[float] = None,
+    max_popularity: Optional[float] = None,
+    genres: Optional[str] = None,
+    sort_by: Optional[str] = None,
+    min_vote_count: Optional[int] = None,
+    release_date_gte: Optional[str] = None,
+    release_date_lte: Optional[str] = None
+):
+    """
+    Get a filtered list of movies based on various criteria.
+    """
+    params = {
+        "page": str(page),
+        "sort_by": sort_by or "popularity.desc",
+        "include_adult": "false",
+        "include_video": "false",
+        "language": "en-US",
+        "with_original_language": "en",
+    }
+
+    # Add vote count filter
+    if min_vote_count is not None:
+        params["vote_count.gte"] = str(min_vote_count)
+    else:
+        params["vote_count.gte"] = "100"  # Default minimum vote count
+
+    # Add year range filter
+    if start_year and end_year:
+        if start_year > end_year:
+            start_year, end_year = end_year, start_year
+        params["primary_release_date.gte"] = f"{start_year}-01-01"
+        params["primary_release_date.lte"] = f"{end_year}-12-31"
+    elif release_date_gte or release_date_lte:
+        if release_date_gte:
+            params["primary_release_date.gte"] = release_date_gte
+        if release_date_lte:
+            params["primary_release_date.lte"] = release_date_lte
+
+    # Add rating range filter
+    if min_rating is not None:
+        params["vote_average.gte"] = str(min_rating)
+    if max_rating is not None:
+        params["vote_average.lte"] = str(max_rating)
+
+    # Add popularity range filter
+    if min_popularity is not None:
+        params["popularity.gte"] = str(min_popularity)
+    if max_popularity is not None:
+        params["popularity.lte"] = str(max_popularity)
+
+    # Add genres filter
+    if genres:
+        params["with_genres"] = genres.replace(",", "|")
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                get_tmdb_url("discover/movie"),
+                params=params,
+                headers=HEADERS
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            logger.error(f"TMDB API error in get_filtered_movies: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
+
 @router.get("/{movie_id}")
 async def get_movie_details(movie_id: int):
     """
@@ -456,3 +560,116 @@ async def get_movie_watch_providers(movie_id: int, region: str = "US"):
         if "results" in data and region in data["results"]:
             return data["results"][region]
         return {"error": "No watch provider data available for this region"} 
+
+@router.get("/filter-settings/{filter_id}/movies")
+async def get_filter_setting_movies(
+    filter_id: int,
+    page: int = Query(1, ge=1),
+    start_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    min_rating: Optional[float] = None,
+    max_rating: Optional[float] = None,
+    min_popularity: Optional[float] = None,
+    max_popularity: Optional[float] = None,
+    genres: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get movies based on a saved filter setting."""
+    logger.info("=" * 80)
+    logger.info("Entering get_filter_setting_movies endpoint")
+    logger.info(f"Request path: /filter-settings/{filter_id}/movies")
+    logger.info(f"Request parameters: {locals()}")
+    
+    try:
+        # Log database connection status
+        logger.info(f"Database session: {db}")
+        logger.info(f"Database session state: {db.is_active}")
+        
+        # Get the filter setting from the database
+        query = select(FilterSettings).where(FilterSettings.id == filter_id)
+        logger.info(f"Executing database query: {query}")
+        logger.info(f"SQL Query: {query.compile(compile_kwargs={'literal_binds': True})}")
+        
+        try:
+            result = await db.execute(query)
+            filter_setting = result.scalar_one_or_none()
+            
+            if not filter_setting:
+                logger.error(f"Filter setting not found for ID: {filter_id}")
+                logger.info("Available columns in FilterSettings:")
+                for column in FilterSettings.__table__.columns:
+                    logger.info(f"  - {column.name}: {column.type}")
+                raise HTTPException(status_code=404, detail="Filter setting not found")
+            
+            logger.info(f"Found filter setting: {filter_setting.__dict__}")
+            
+            # Combine saved filter settings with any additional filters passed in the request
+            params = {
+                "page": str(page),
+                "sort_by": "popularity.desc",  # Default sort
+                "include_adult": "false",
+                "include_video": "false",
+                "language": "en-US",
+                "with_original_language": "en",
+            }
+            
+            try:
+                if filter_setting.year_range:
+                    logger.info(f"Parsing year_range: {filter_setting.year_range}")
+                    year_range = json.loads(filter_setting.year_range)
+                    params["primary_release_date.gte"] = f"{year_range[0]}-01-01"
+                    params["primary_release_date.lte"] = f"{year_range[1]}-12-31"
+                
+                if filter_setting.rating_range:
+                    logger.info(f"Parsing rating_range: {filter_setting.rating_range}")
+                    rating_range = json.loads(filter_setting.rating_range)
+                    params["vote_average.gte"] = str(rating_range[0])
+                    params["vote_average.lte"] = str(rating_range[1])
+                
+                if filter_setting.popularity_range:
+                    logger.info(f"Parsing popularity_range: {filter_setting.popularity_range}")
+                    popularity_range = json.loads(filter_setting.popularity_range)
+                    params["popularity.gte"] = str(popularity_range[0])
+                    params["popularity.lte"] = str(popularity_range[1])
+
+                if filter_setting.genres:
+                    logger.info(f"Parsing genres: {filter_setting.genres}")
+                    genres_list = json.loads(filter_setting.genres)
+                    # Convert list of genre IDs to pipe-separated string
+                    params["with_genres"] = "|".join(str(g) for g in genres_list)
+                    logger.info(f"Formatted genres parameter: {params['with_genres']}")
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Error parsing JSON ranges: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error parsing filter settings: {str(e)}")
+            
+            # Override with request parameters if provided
+            add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
+            
+            logger.info(f"Final TMDB API parameters: {params}")
+            
+            async with httpx.AsyncClient() as client:
+                try:
+                    tmdb_url = get_tmdb_url("discover/movie")
+                    logger.info(f"Making TMDB API request to: {tmdb_url}")
+                    response = await client.get(
+                        tmdb_url,
+                        params=params,
+                        headers=HEADERS
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    logger.info(f"TMDB API response received. Total results: {data.get('total_results', 0)}")
+                    return data
+                except httpx.HTTPError as e:
+                    logger.error(f"TMDB API error in get_filter_setting_movies: {str(e)}")
+                    raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
+        except Exception as e:
+            logger.error(f"Database query error: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error in get_filter_setting_movies: {str(e)}", exc_info=True)
+        logger.info("=" * 80)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    finally:
+        logger.info("=" * 80) 

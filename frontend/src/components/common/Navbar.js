@@ -65,6 +65,13 @@ const Navbar = () => {
                     >
                       My Lists
                     </Link>
+                    <Link
+                      to="/my-filters"
+                      className="block px-4 py-2 text-sm text-text-primary hover:text-gold hover:bg-background-secondary/50 transition-colors"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      My Filters
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-text-primary hover:text-gold hover:bg-background-secondary/50 transition-colors"
@@ -117,6 +124,13 @@ const Navbar = () => {
                 onClick={() => setIsDropdownOpen(false)}
               >
                 My Lists
+              </Link>
+              <Link
+                to="/my-filters"
+                className="text-left text-text-primary hover:text-gold hover:bg-background-secondary/50 py-2 text-sm transition-colors rounded-md px-2"
+                onClick={() => setIsDropdownOpen(false)}
+              >
+                My Filters
               </Link>
               <button
                 onClick={handleLogout}

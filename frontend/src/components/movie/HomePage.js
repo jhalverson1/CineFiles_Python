@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MovieList from './MovieList';
 import FilterBar from '../filters/FilterBar';
+import HomepageFilterManager from '../filters/HomepageFilterManager';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { colorVariants } from '../../utils/theme';
-import { movieApi } from '../../utils/api';
+import { movieApi, filterSettingsApi } from '../../utils/api';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLists } from '../../contexts/ListsContext';
+import { DEFAULT_MOVIE_LISTS } from '../../constants/movieLists';
 
 // Custom hook for responsive design
 const useResponsiveDefaults = () => {
@@ -13,7 +15,7 @@ const useResponsiveDefaults = () => {
 
   useEffect(() => {
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768); // Changed from 768px to 1000px
+      setIsMobile(window.innerWidth < 768);
     };
 
     // Check on mount
@@ -44,6 +46,7 @@ const HomePage = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isHomepageManagerOpen, setIsHomepageManagerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
@@ -51,7 +54,50 @@ const HomePage = () => {
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
   const [excludeOpen, setExcludeOpen] = useState(false);
+  const [homepageLists, setHomepageLists] = useState([]);
+  const [isLoadingLists, setIsLoadingLists] = useState(true);
   const excludeRef = React.useRef(null);
+
+  // Load homepage lists
+  const loadHomepageLists = useCallback(async () => {
+    try {
+      setIsLoadingLists(true);
+      
+      // Load user's enabled filters
+      const filters = await filterSettingsApi.getHomepageFilters();
+      
+      // Load enabled default lists from localStorage
+      const savedDefaultLists = JSON.parse(localStorage.getItem('enabledDefaultLists') || '[]');
+      const defaultLists = DEFAULT_MOVIE_LISTS
+        .filter(list => savedDefaultLists.includes(list.id))
+        .map((list, index) => ({
+          ...list,
+          type: 'default',
+          displayOrder: savedDefaultLists.indexOf(list.id)
+        }));
+
+      // Combine and sort all lists
+      const allLists = [
+        ...filters.map(f => ({
+          ...f,
+          type: 'filter',
+          displayOrder: f.homepage_display_order
+        })),
+        ...defaultLists
+      ].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+      setHomepageLists(allLists);
+    } catch (error) {
+      console.error('Error loading homepage lists:', error);
+    } finally {
+      setIsLoadingLists(false);
+    }
+  }, []);
+
+  // Initial load of homepage lists
+  useEffect(() => {
+    loadHomepageLists();
+  }, [loadHomepageLists]);
 
   // Fetch genres on component mount
   useEffect(() => {
@@ -277,6 +323,17 @@ const HomePage = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Homepage Manager Button */}
+                <button
+                  onClick={() => setIsHomepageManagerOpen(true)}
+                  className="p-2 rounded-lg bg-background-primary text-text-disabled hover:text-text-primary transition-colors"
+                  aria-label="Manage homepage lists"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                </button>
               </div>
 
               {/* Right side - Action Buttons */}
@@ -443,60 +500,74 @@ const HomePage = () => {
             </motion.div>
           ) : (
             <motion.div
-              key="default-lists"
+              key="homepage-lists"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Hidden Gems</h2>
-                <MovieList 
-                  key={`hidden-gems-${key}`}
-                  type="hidden-gems" 
-                  excludedLists={excludedLists}
-                  yearRange={yearRange}
-                  ratingRange={ratingRange}
-                  popularityRange={popularityRange}
-                  viewMode={viewMode}
-                  isCompact={isCompact}
-                  selectedGenres={selectedGenres}
-                />
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Top Rated Movies</h2>
-                <MovieList 
-                  key={`top-rated-${key}`}
-                  type="top-rated" 
-                  excludedLists={excludedLists}
-                  yearRange={yearRange}
-                  ratingRange={ratingRange}
-                  popularityRange={popularityRange}
-                  viewMode={viewMode}
-                  isCompact={isCompact}
-                  selectedGenres={selectedGenres}
-                />
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold bg-background-primary relative z-10">Upcoming Movies</h2>
-                <MovieList 
-                  key={`upcoming-${key}`}
-                  type="upcoming" 
-                  excludedLists={excludedLists}
-                  yearRange={yearRange}
-                  ratingRange={ratingRange}
-                  popularityRange={popularityRange}
-                  viewMode={viewMode}
-                  isCompact={isCompact}
-                  selectedGenres={selectedGenres}
-                />
-              </section>
+              {isLoadingLists ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : homepageLists.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-text-secondary">No movie lists enabled. Click the list manager button to add some!</p>
+                </div>
+              ) : (
+                <div className="space-y-12">
+                  {homepageLists.map((list) => (
+                    <section key={`${list.type}-${list.id}`}>
+                      <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">
+                        {list.name}
+                      </h2>
+                      {list.type === 'default' ? (
+                        <MovieList
+                          key={`${list.id}-${key}`}
+                          type="tmdb"
+                          listId={list.id}
+                          excludedLists={excludedLists}
+                          viewMode={viewMode}
+                          isCompact={isCompact}
+                          yearRange={yearRange}
+                          ratingRange={ratingRange}
+                          popularityRange={popularityRange}
+                          selectedGenres={selectedGenres}
+                        />
+                      ) : (
+                        <MovieList
+                          key={`filtered-${list.id}-${key}`}
+                          type="filtered"
+                          listId={list.id}
+                          yearRange={list.year_range ? JSON.parse(list.year_range) : null}
+                          ratingRange={list.rating_range ? JSON.parse(list.rating_range) : null}
+                          popularityRange={list.popularity_range ? JSON.parse(list.popularity_range) : null}
+                          genres={list.genres ? JSON.parse(list.genres) : []}
+                          excludedLists={excludedLists}
+                          viewMode={viewMode}
+                          isCompact={isCompact}
+                        />
+                      )}
+                    </section>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Homepage Filter Manager Modal */}
+      {isHomepageManagerOpen && (
+        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50">
+          <div className="bg-background-secondary rounded-lg shadow-xl mt-20 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <HomepageFilterManager 
+              onClose={() => setIsHomepageManagerOpen(false)}
+              loadHomepageLists={loadHomepageLists}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

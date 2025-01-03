@@ -24,7 +24,7 @@ const LoginForm = () => {
     setError('');
     
     try {
-      const formDataObj = new FormData();
+      const formDataObj = new URLSearchParams();
       formDataObj.append('username', formData.email);
       formDataObj.append('password', formData.password);
 
@@ -36,6 +36,7 @@ const LoginForm = () => {
       
       window.location.href = '/';
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.response?.data?.detail || 'Failed to login');
     }
   };

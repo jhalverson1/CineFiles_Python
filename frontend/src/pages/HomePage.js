@@ -3,6 +3,7 @@ import { movieApi } from '../utils/api';
 import TabBar from '../components/TabBar';
 import FilterBar from '../components/filters/FilterBar';
 import MovieList from '../components/movie/MovieList';
+import { useLists } from '../contexts/ListsContext';
 
 const HomePage = () => {
   const [selectedTab, setSelectedTab] = useState('top-rated');
@@ -11,7 +12,7 @@ const HomePage = () => {
   const [popularityRange, setPopularityRange] = useState([10000, 1000000]);
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [excludedLists, setExcludedLists] = useState([]);
-  const [lists, setLists] = useState([]);
+  const { lists } = useLists();
   const [genres, setGenres] = useState([]);
   const [isLoadingGenres, setIsLoadingGenres] = useState(true);
 
@@ -39,20 +40,6 @@ const HomePage = () => {
     };
 
     fetchGenres();
-  }, []);
-
-  // Fetch user's lists
-  useEffect(() => {
-    const fetchLists = async () => {
-      try {
-        const response = await movieApi.getLists();
-        setLists(response);
-      } catch (error) {
-        console.error('Error fetching lists:', error);
-      }
-    };
-
-    fetchLists();
   }, []);
 
   return (

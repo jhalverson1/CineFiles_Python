@@ -23,6 +23,7 @@ const FilterBar = ({
   const [savedFilters, setSavedFilters] = useState([]);
   const [isLoadingSavedFilters, setIsLoadingSavedFilters] = useState(false);
   const [error, setError] = useState(null);
+  const [currentFilter, setCurrentFilter] = useState(null);
   
   const genreRef = useRef(null);
   const yearRef = useRef(null);
@@ -91,9 +92,17 @@ const FilterBar = ({
         genres: selectedGenres && selectedGenres.length > 0 ? JSON.stringify(selectedGenres) : null,
       };
 
-      await filterSettingsApi.createFilterSetting(filterData);
+      if (currentFilter) {
+        // Update existing filter
+        await filterSettingsApi.updateFilterSetting(currentFilter.id, filterData);
+      } else {
+        // Create new filter
+        await filterSettingsApi.createFilterSetting(filterData);
+      }
+      
       setSaveModalOpen(false);
       setFilterName('');
+      setCurrentFilter(null);
       await loadSavedFilters();
     } catch (error) {
       console.error('Failed to save filter:', error);
@@ -114,6 +123,10 @@ const FilterBar = ({
       if (popularityRangeValue) onPopularityRangeChange(popularityRangeValue);
       if (genresValue) onGenresChange(genresValue);
 
+      // Set the current filter and filter name
+      setCurrentFilter(filter);
+      setFilterName(filter.name);
+      
       setLoadModalOpen(false);
     } catch (error) {
       console.error('Failed to load filter:', error);
@@ -162,6 +175,41 @@ const FilterBar = ({
       ? selectedGenres.filter(id => id !== genreId)
       : [...selectedGenres, genreId];
     onGenresChange(newSelectedGenres);
+  };
+
+  const formatFilterDescription = (filter) => {
+    const parts = [];
+    
+    if (filter.year_range) {
+      const [start, end] = JSON.parse(filter.year_range);
+      parts.push(`Years: ${start}-${end}`);
+    }
+    
+    if (filter.rating_range) {
+      const [start, end] = JSON.parse(filter.rating_range);
+      parts.push(`Rating: ${start}-${end}`);
+    }
+    
+    if (filter.popularity_range) {
+      const [start, end] = JSON.parse(filter.popularity_range);
+      parts.push(`Popularity: ${start.toLocaleString()}-${end.toLocaleString()}`);
+    }
+    
+    if (filter.genres) {
+      const selectedGenreIds = JSON.parse(filter.genres);
+      if (selectedGenreIds.length > 0) {
+        const genreNames = selectedGenreIds
+          .map(id => genres.find(g => g.id === id)?.name)
+          .filter(Boolean);
+        if (genreNames.length === 1) {
+          parts.push(`Genre: ${genreNames[0]}`);
+        } else if (genreNames.length > 1) {
+          parts.push(`Genres: ${genreNames.length}`);
+        }
+      }
+    }
+    
+    return parts.join(' • ');
   };
 
   return (
@@ -346,27 +394,91 @@ const FilterBar = ({
         </div>
       </div>
 
-      {/* Save/Load Buttons Group - Now outside the filters group */}
+      {/* Save/Load Buttons Group */}
       <div className="flex gap-2 md:ml-4">
         <button
           onClick={() => setSaveModalOpen(true)}
-          className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium"
+          className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
+          aria-label="Save Filter"
         >
-          Save Filter
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-12a2 2 0 00-2-2h-2M8 5a2 2 0 002 2h4a2 2 0 002-2M8 5v4a2 2 0 002 2h4a2 2 0 002-2V5" />
+          </svg>
+          <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
+            Save Filter
+          </span>
         </button>
+        
+        {/* Option 1: Folder Open */}
         <button
           onClick={() => setLoadModalOpen(true)}
-          className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium"
+          className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
+          aria-label="Load Filter"
         >
-          Load Filter
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+          </svg>
+          <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
+            Load Filter
+          </span>
         </button>
+
+        {/* Option 2: List Bullet (commented out)
+        <button
+          onClick={() => setLoadModalOpen(true)}
+          className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
+          aria-label="Load Filter"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+          <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
+            Load Filter
+          </span>
+        </button>
+        */}
+
+        {/* Option 3: Collection (commented out)
+        <button
+          onClick={() => setLoadModalOpen(true)}
+          className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
+          aria-label="Load Filter"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
+            Load Filter
+          </span>
+        </button>
+        */}
       </div>
 
       {/* Save Filter Modal */}
       {saveModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
           <div ref={saveModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md mt-20">
-            <h3 className="text-lg font-medium mb-4">Save Filter</h3>
+            <h3 className="text-lg font-medium mb-4">{currentFilter ? 'Update Filter' : 'Save Filter'}</h3>
             {error && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
                 {error}
@@ -384,6 +496,10 @@ const FilterBar = ({
                 onClick={() => {
                   setSaveModalOpen(false);
                   setError(null);
+                  if (currentFilter) {
+                    setFilterName('');
+                    setCurrentFilter(null);
+                  }
                 }}
                 className="px-4 py-2 bg-background-tertiary hover:bg-background-tertiary/80 rounded-lg text-sm font-medium"
               >
@@ -393,7 +509,7 @@ const FilterBar = ({
                 onClick={handleSaveFilter}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium"
               >
-                Save
+                {currentFilter ? 'Update' : 'Save'}
               </button>
             </div>
           </div>
@@ -422,17 +538,22 @@ const FilterBar = ({
                   <div
                     key={filter.id}
                     onClick={() => handleLoadFilter(filter)}
-                    className="flex items-center justify-between p-3 bg-background-tertiary/30 rounded-lg cursor-pointer hover:bg-background-active/50"
+                    className="flex flex-col p-3 bg-background-tertiary/30 rounded-lg cursor-pointer hover:bg-background-active/50"
                   >
-                    <span className="text-sm font-medium">{filter.name}</span>
-                    <button
-                      onClick={(e) => handleDeleteFilter(filter.id, e)}
-                      className="text-text-secondary hover:text-text-primary"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{filter.name}</span>
+                      <button
+                        onClick={(e) => handleDeleteFilter(filter.id, e)}
+                        className="text-text-secondary hover:text-text-primary"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p className="text-xs text-text-secondary mt-1">
+                      {formatFilterDescription(filter)}
+                    </p>
                   </div>
                 ))}
               </div>
