@@ -20,18 +20,24 @@ async def login(
 ):
     """Login endpoint that authenticates user credentials and returns a JWT token"""
     try:
+        print(f"Login attempt for user: {form_data.username}")
         user = await user_service.authenticate_user(db, form_data.username, form_data.password)
         if not user:
+            print(f"Authentication failed for user: {form_data.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
+        print(f"Authentication successful for user: {form_data.username}")
         access_token = create_access_token(data={"sub": user.email})
         return {"access_token": access_token, "token_type": "bearer", "username": user.email}
     except Exception as e:
-        print(f"Login error: {str(e)}")
+        print(f"Login error for user {form_data.username}: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"

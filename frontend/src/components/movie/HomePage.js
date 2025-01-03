@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import MovieList from './MovieList';
 import FilterBar from '../filters/FilterBar';
 import HomepageFilterManager from '../filters/HomepageFilterManager';
@@ -57,6 +57,16 @@ const HomePage = () => {
   const [homepageLists, setHomepageLists] = useState([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
   const excludeRef = React.useRef(null);
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return !!(
+      yearRange || 
+      ratingRange || 
+      popularityRange || 
+      (selectedGenres && selectedGenres.length > 0)
+    );
+  }, [yearRange, ratingRange, popularityRange, selectedGenres]);
 
   // Load homepage lists
   const loadHomepageLists = useCallback(async () => {
@@ -506,6 +516,32 @@ const HomePage = () => {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
+              {/* Show filtered results section when filters are active */}
+              {hasActiveFilters && (
+                <section className="mb-12">
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                      Filtered Results
+                    </h2>
+                    <p className="text-text-secondary pl-2">
+                      Movies matching your selected filters
+                    </p>
+                  </div>
+                  <MovieList
+                    key={`filtered-results-${key}`}
+                    type="filtered"
+                    yearRange={yearRange}
+                    ratingRange={ratingRange}
+                    popularityRange={popularityRange}
+                    selectedGenres={selectedGenres}
+                    excludedLists={excludedLists}
+                    viewMode={viewMode}
+                    isCompact={isCompact}
+                  />
+                </section>
+              )}
+
+              {/* Default lists section */}
               {isLoadingLists ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -529,10 +565,6 @@ const HomePage = () => {
                           excludedLists={excludedLists}
                           viewMode={viewMode}
                           isCompact={isCompact}
-                          yearRange={yearRange}
-                          ratingRange={ratingRange}
-                          popularityRange={popularityRange}
-                          selectedGenres={selectedGenres}
                         />
                       ) : (
                         <MovieList
