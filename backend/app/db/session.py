@@ -5,20 +5,13 @@ This module provides database session management for SQLAlchemy.
 It handles both async and sync database connections.
 """
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
-from app.core.config import settings
+from app.database.database import get_async_engine
 
-# Create async engine
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    future=True
-)
-
-# Create async session factory
+# Create async session factory using our configured engine
 AsyncSessionLocal = sessionmaker(
-    engine,
+    get_async_engine(),
     class_=AsyncSession,
     expire_on_commit=False,
     autocommit=False,
