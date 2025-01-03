@@ -11,19 +11,16 @@ settings = get_settings()
 # Create Base class for models
 Base = declarative_base()
 
-def get_sync_engine():
-    # Parse the URL to ensure correct format
-    parsed = urlparse(str(settings.DATABASE_URL))
-    # Force psycopg2 driver for sync operations
-    sync_url = urlunparse(parsed._replace(scheme='postgresql+psycopg2'))
-    from sqlalchemy import create_engine
-    return create_engine(sync_url, poolclass=NullPool)
-
 def get_async_engine():
     # Parse the URL to ensure correct format
     parsed = urlparse(str(settings.DATABASE_URL))
     # Force asyncpg driver for async operations
-    async_url = urlunparse(parsed._replace(scheme='postgresql+asyncpg'))
+    if not parsed.scheme.endswith('+asyncpg'):
+        async_url = urlunparse(parsed._replace(scheme='postgresql+asyncpg'))
+    else:
+        async_url = str(settings.DATABASE_URL)
+    
+    logger.info(f"Creating async engine with URL scheme: {urlparse(async_url).scheme}")
     return create_async_engine(
         async_url,
         poolclass=NullPool,
