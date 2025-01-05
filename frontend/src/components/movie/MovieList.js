@@ -178,12 +178,23 @@ const MovieList = ({
       // Check if this is a custom list or a default TMDB list
       if (currentFilters.listType === 'filtered') {
         // Custom filtered list
-        response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
-          yearRange: currentFilters.yearRange,
-          ratingRange: currentFilters.ratingRange,
-          popularityRange: currentFilters.popularityRange,
-          genres: currentFilters.genres
-        });
+        if (currentFilters.listId) {
+          // If we have a valid filter ID, use the filter settings endpoint
+          response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
+            yearRange: currentFilters.yearRange,
+            ratingRange: currentFilters.ratingRange,
+            popularityRange: currentFilters.popularityRange,
+            genres: currentFilters.genres
+          });
+        } else {
+          // If no filter ID, use the general filtered endpoint
+          response = await movieApi.getFilteredMovies(currentPage, {
+            yearRange: currentFilters.yearRange,
+            ratingRange: currentFilters.ratingRange,
+            popularityRange: currentFilters.popularityRange,
+            genres: currentFilters.genres
+          });
+        }
       } else if (currentFilters.listId) {
         // Custom user list
         response = await movieApi.getListMovies(currentFilters.listId, currentPage, {

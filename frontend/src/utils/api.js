@@ -12,76 +12,58 @@ const api = axios.create({
   withCredentials: true
 });
 
-// Add a flag to prevent multiple token verifications at once
-let isVerifyingToken = false;
-let lastTokenVerification = 0;
-const TOKEN_VERIFY_INTERVAL = 5 * 60 * 1000; // 5 minutes
+// Add a flag to prevent multiple token refreshes at once
+let isRefreshing = false;
+let refreshSubscribers = [];
 
-// Function to verify token
-const verifyToken = async () => {
-  const token = localStorage.getItem('token');
-  if (!token) return false;
+// Function to add failed requests to queue
+const addSubscriber = (callback) => {
+  refreshSubscribers.push(callback);
+};
 
+// Function to retry failed requests
+const onRefreshed = (access_token) => {
+  refreshSubscribers.forEach(callback => callback(access_token));
+  refreshSubscribers = [];
+};
+
+// Function to refresh token
+const refreshAccessToken = async () => {
   try {
-    await api.get('/api/auth/verify');
-    lastTokenVerification = Date.now();
-    return true;
+    const refresh_token = localStorage.getItem('refresh_token');
+    if (!refresh_token) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await axios.post(`${baseURL}/api/auth/refresh`, { refresh_token });
+    const { access_token, refresh_token: new_refresh_token } = response.data;
+    
+    localStorage.setItem('token', access_token);
+    localStorage.setItem('refresh_token', new_refresh_token);
+    
+    return access_token;
   } catch (error) {
-    console.error('Token verification failed:', error);
-    // If verification fails, clear the token
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    return false;
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('username');
+    throw error;
   }
 };
 
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   async (config) => {
-    // Skip token verification for auth endpoints
+    // Skip token handling for auth endpoints except refresh
     const isAuthEndpoint = config.url.includes('/api/auth/login') || 
-                          config.url.includes('/api/auth/signup') ||
-                          config.url.includes('/api/auth/verify');
-
+                          config.url.includes('/api/auth/signup');
+    
     if (!isAuthEndpoint) {
-      // Verify token if it hasn't been verified recently
-      const shouldVerify = !isVerifyingToken && 
-                          Date.now() - lastTokenVerification > TOKEN_VERIFY_INTERVAL;
-
-      if (shouldVerify) {
-        isVerifyingToken = true;
-        try {
-          const isValid = await verifyToken();
-          if (!isValid) {
-            // Token is invalid, redirect to login or handle as needed
-            window.location.href = '/login';
-            return Promise.reject('Invalid token');
-          }
-        } finally {
-          isVerifyingToken = false;
-        }
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
     }
-
-    const token = localStorage.getItem('token');
-    if (token) {
-      const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-      config.headers.Authorization = tokenWithBearer;
-    }
     
-    config.headers = {
-      'Content-Type': 'application/json',
-      ...config.headers,
-    };
-
-    console.log('API Request:', {
-      url: `${baseURL}${config.url}`,
-      method: config.method,
-      hasToken: !!token,
-      tokenFirstChars: token ? token.substring(0, 10) + '...' : 'none',
-      headers: JSON.stringify(config.headers)
-    });
-
     return config;
   },
   (error) => {
@@ -89,98 +71,71 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle errors
+// Add response interceptor to handle token refresh
 api.interceptors.response.use(
-  (response) => {
-    console.log('API Response:', {
-      url: `${baseURL}${response.config.url}`,
-      status: response.status,
-      hasData: !!response.data,
-      dataType: response.data ? typeof response.data : 'none',
-      headers: response.headers
-    });
-    return response.data;
-  },
-  (error) => {
-    console.error('API Error:', {
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url,
-      method: error.config?.method,
-      headers: error.config?.headers,
-      requestHeaders: error.config?.headers,
-      responseHeaders: error.response?.headers
-    });
-    return Promise.reject(error);
+  (response) => response.data,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If error is not 401 or request has already been retried, reject
+    if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+    
+    // If already refreshing, queue this request
+    if (isRefreshing) {
+      try {
+        const token = await new Promise(resolve => {
+          addSubscriber(token => {
+            resolve(token);
+          });
+        });
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+    
+    // Start token refresh process
+    originalRequest._retry = true;
+    isRefreshing = true;
+    
+    try {
+      const access_token = await refreshAccessToken();
+      originalRequest.headers.Authorization = `Bearer ${access_token}`;
+      onRefreshed(access_token);
+      return api(originalRequest);
+    } catch (refreshError) {
+      // If refresh fails, redirect to login
+      window.location.href = '/login';
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 
-export const movieApi = {
-  getPopularMovies: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    addFilterParams(params, filters);
-    return api.get(`/api/movies/popular?${params.toString()}`);
-  },
-  
-  getTopRatedMovies: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    addFilterParams(params, filters);
-    return api.get(`/api/movies/top-rated?${params.toString()}`);
-  },
-  
-  getUpcomingMovies: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    addFilterParams(params, filters);
-    return api.get(`/api/movies/upcoming?${params.toString()}`);
-  },
-  
-  getNowPlayingMovies: (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    addFilterParams(params, filters);
-    return api.get(`/api/movies/now-playing?${params.toString()}`);
-  },
-  
-  getListMovies: async (listId, page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    addFilterParams(params, filters);
-    return api.get(`/api/lists/${listId}/movies?${params.toString()}`);
-  },
-  
-  getFilterSettingMovies: async (filterId, page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    addFilterParams(params, filters);
-    return api.get(`/api/movies/filter-settings/${filterId}/movies?${params.toString()}`);
-  },
-  
-  getFilteredMovies: async (page = 1, filters = {}) => {
-    const params = new URLSearchParams({ page: page.toString() });
-    addFilterParams(params, filters);
-    return api.get(`/api/movies/filtered?${params.toString()}`);
-  },
-  
-  getMovieGenres: async () => {
-    try {
-      console.log('Fetching movie genres...');
-      const response = await api.get('/api/movies/genres');
-      console.log('Raw genres response:', response);
-      if (response && response.genres) {
-        console.log('Processed genres:', response.genres);
-        return response;
-      } else {
-        console.error('Unexpected genres response structure:', response);
-        return { genres: [] };
+export const authApi = {
+  login: async (formData) => {
+    const response = await api.post('/api/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
       }
-    } catch (error) {
-      console.error('Error fetching genres:', error.response || error);
-      throw error;
-    }
+    });
+    localStorage.setItem('token', response.access_token);
+    localStorage.setItem('refresh_token', response.refresh_token);
+    localStorage.setItem('username', response.username);
+    return response;
   },
-  
-  getMovieDetails: (id) => api.get(`/api/movies/${id}`),
-  getMovieCredits: (id) => api.get(`/api/movies/${id}/credits`),
-  getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
-  getPersonDetails: (id) => api.get(`/api/person/${id}`),
-  getMovieWatchProviders: (id) => api.get(`/api/movies/${id}/watch-providers`),
+  signup: (userData) => api.post('/api/auth/signup', userData),
+  getCurrentUser: () => api.get('/api/auth/me'),
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('username');
+    return Promise.resolve();
+  },
 };
 
 // Helper function to add filter parameters
@@ -231,21 +186,63 @@ const addFilterParams = (params, filters) => {
   }
 };
 
-export const authApi = {
-  login: (formData) => api.post('/api/auth/login', formData, {
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
-  }),
-  signup: (userData) => api.post('/api/auth/signup', userData),
-  verifyToken: () => api.get('/api/auth/verify'),
-  getCurrentUser: () => api.get('/api/auth/me'),
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('username');
-    return Promise.resolve();
+export const movieApi = {
+  getPopularMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/popular?${params.toString()}`);
   },
+  
+  getTopRatedMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/top-rated?${params.toString()}`);
+  },
+  
+  getUpcomingMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/upcoming?${params.toString()}`);
+  },
+  
+  getNowPlayingMovies: (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/now-playing?${params.toString()}`);
+  },
+  
+  getListMovies: async (listId, page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/lists/${listId}/movies?${params.toString()}`);
+  },
+  
+  getFilterSettingMovies: async (filterId, page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/filter-settings/${filterId}/movies?${params.toString()}`);
+  },
+  
+  getFilteredMovies: async (page = 1, filters = {}) => {
+    const params = new URLSearchParams({ page: page.toString() });
+    addFilterParams(params, filters);
+    return api.get(`/api/movies/filtered?${params.toString()}`);
+  },
+  
+  getMovieGenres: async () => {
+    try {
+      return await api.get('/api/movies/genres');
+    } catch (error) {
+      console.error('Error fetching genres:', error.response || error);
+      throw error;
+    }
+  },
+  
+  getMovieDetails: (id) => api.get(`/api/movies/${id}`),
+  getMovieCredits: (id) => api.get(`/api/movies/${id}/credits`),
+  getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
+  getPersonDetails: (id) => api.get(`/api/person/${id}`),
+  getMovieWatchProviders: (id) => api.get(`/api/movies/${id}/watch-providers`),
 };
 
 export const getUserById = async (id) => {
@@ -254,23 +251,19 @@ export const getUserById = async (id) => {
 
 // List Management
 export const getLists = async () => {
-  const response = await api.get('/api/lists');
-  return response;
+  return await api.get('/api/lists');
 };
 
 export const getList = async (listId) => {
-  const response = await api.get(`/api/lists/${listId}`);
-  return response;
+  return await api.get(`/api/lists/${listId}`);
 };
 
 export const createList = async (name, description = '') => {
-  const response = await api.post('/api/lists', { name, description });
-  return response;
+  return await api.post('/api/lists', { name, description });
 };
 
 export const updateList = async (listId, { name, description }) => {
-  const response = await api.patch(`/api/lists/${listId}`, { name, description });
-  return response;
+  return await api.patch(`/api/lists/${listId}`, { name, description });
 };
 
 export const deleteList = async (listId) => {
@@ -278,8 +271,7 @@ export const deleteList = async (listId) => {
 };
 
 export const addMovieToList = async (listId, movieId, notes = '') => {
-  const response = await api.post(`/api/lists/${listId}/items`, { movie_id: movieId, notes });
-  return response;
+  return await api.post(`/api/lists/${listId}/items`, { movie_id: movieId, notes });
 };
 
 export const removeMovieFromList = async (listId, movieId) => {
@@ -288,23 +280,19 @@ export const removeMovieFromList = async (listId, movieId) => {
 
 export const filterSettingsApi = {
   getFilterSettings: async () => {
-    const response = await api.get('/api/filter-settings');
-    return response;
+    return await api.get('/api/filter-settings');
   },
 
   getHomepageFilters: async () => {
-    const response = await api.get('/api/filter-settings/homepage');
-    return response;
+    return await api.get('/api/filter-settings/homepage');
   },
 
   createFilterSetting: async (filterSetting) => {
-    const response = await api.post('/api/filter-settings', filterSetting);
-    return response;
+    return await api.post('/api/filter-settings', filterSetting);
   },
 
   updateFilterSetting: async (id, filterSetting) => {
-    const response = await api.put(`/api/filter-settings/${id}`, filterSetting);
-    return response;
+    return await api.put(`/api/filter-settings/${id}`, filterSetting);
   },
 
   deleteFilterSetting: async (id) => {
@@ -312,8 +300,7 @@ export const filterSettingsApi = {
   },
 
   reorderHomepageFilters: async (filterIds) => {
-    const response = await api.put('/api/filter-settings/homepage/reorder', filterIds);
-    return response;
+    return await api.put('/api/filter-settings/homepage/reorder', filterIds);
   }
 };
 

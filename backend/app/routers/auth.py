@@ -7,7 +7,7 @@ It implements secure password hashing, JWT token generation, and user session ma
 Features:
 - User registration with email validation
 - Secure password hashing using bcrypt
-- JWT-based authentication
+- JWT-based authentication with refresh tokens
 - User session tracking with last login timestamp
 - Protected route for retrieving user profile
 """
@@ -23,11 +23,14 @@ from ..database.database import get_db
 from ..models.user import User
 from ..schemas.user import UserCreate, UserResponse
 from ..schemas.token import Token
-from ..utils.auth import (
+from ..core.security import (
     get_password_hash,
     create_access_token,
+    create_refresh_token,
     get_current_user,
-    authenticate_user
+    authenticate_user,
+    verify_token,
+    REFRESH_SECRET_KEY
 )
 
 router = APIRouter()
@@ -83,7 +86,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
         db: Database session dependency
     
     Returns:
-        Token: Contains access token and token type
+        Token: Contains access token, refresh token and token type
         
     Raises:
         HTTPException: If credentials are invalid
@@ -100,8 +103,77 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
     user.last_login = datetime.utcnow()
     await db.commit()
     
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer", "username": user.email}
+    # Create both tokens
+    token_data = {"sub": user.email}
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data=token_data)
+    
+    # Return both tokens
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        username=user.email
+    )
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
+    """
+    Create a new access token using a refresh token.
+    
+    Args:
+        refresh_token: Valid refresh token
+        db: Database session dependency
+    
+    Returns:
+        Token: New access token and refresh token
+        
+    Raises:
+        HTTPException: If refresh token is invalid
+    """
+    try:
+        payload = verify_token(refresh_token, REFRESH_SECRET_KEY, "refresh")
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        # Verify user still exists
+        query = select(User).where(User.email == email)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        # Create new tokens
+        token_data = {"sub": email}
+        new_access_token = create_access_token(data=token_data)
+        new_refresh_token = create_refresh_token(data=token_data)
+        
+        # Return both tokens
+        return Token(
+            access_token=new_access_token,
+            refresh_token=new_refresh_token,
+            token_type="bearer",
+            username=email
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(current_user: Annotated[User, Depends(get_current_user)]):

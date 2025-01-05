@@ -21,8 +21,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import get_settings
 from app.database.database import init_db
-from app.api.v1.endpoints import auth
-from app.routers import movies, proxy, person, lists, filter_settings
+from app.routers.auth import router as auth_router
+from app.routers.movies import router as movies_router
+from app.routers.proxy import router as proxy_router
+from app.routers.person import router as person_router
+from app.routers.lists import router as lists_router
+from app.routers.filter_settings import router as filter_settings_router
 from app.core.logging_config import configure_logging
 import logging.config
 import logging
@@ -64,9 +68,9 @@ app.add_middleware(
 )
 
 # API Routes
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(movies.router, prefix="/api/movies", tags=["movies"])
-app.include_router(proxy.router, prefix="/api/proxy", tags=["proxy"])
-app.include_router(person.router, prefix="/api/person", tags=["person"])
-app.include_router(lists.router, prefix="/api/lists", tags=["lists"])
-app.include_router(filter_settings.router, prefix="/api/filter-settings", tags=["filter-settings"])
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(movies_router, prefix="/api/movies", tags=["movies"])
+app.include_router(proxy_router, prefix="/api/proxy", tags=["proxy"])
+app.include_router(person_router, prefix="/api/person", tags=["person"])
+app.include_router(lists_router, prefix="/api/lists", tags=["lists"])
+app.include_router(filter_settings_router, prefix="/api/filter-settings", tags=["filter-settings"])
