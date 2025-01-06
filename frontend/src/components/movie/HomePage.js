@@ -56,6 +56,16 @@ const HomePage = () => {
   const [excludeOpen, setExcludeOpen] = useState(false);
   const [homepageLists, setHomepageLists] = useState([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
+  const [watchProviders, setWatchProviders] = useState([]);
+  const [watchRegion, setWatchRegion] = useState('US');
+  const [voteCountRange, setVoteCountRange] = useState(null);
+  const [runtimeRange, setRuntimeRange] = useState(null);
+  const [originalLanguage, setOriginalLanguage] = useState(null);
+  const [spokenLanguages, setSpokenLanguages] = useState([]);
+  const [releaseTypes, setReleaseTypes] = useState([]);
+  const [includeKeywords, setIncludeKeywords] = useState([]);
+  const [excludeKeywords, setExcludeKeywords] = useState([]);
+  const [sortBy, setSortBy] = useState(null);
   const excludeRef = useRef(null);
 
   // Check if any filters are active
@@ -64,9 +74,32 @@ const HomePage = () => {
       yearRange || 
       ratingRange || 
       popularityRange || 
-      (selectedGenres && selectedGenres.length > 0)
+      (selectedGenres && selectedGenres.length > 0) ||
+      (watchProviders && watchProviders.length > 0) ||
+      voteCountRange ||
+      runtimeRange ||
+      originalLanguage ||
+      (spokenLanguages && spokenLanguages.length > 0) ||
+      (releaseTypes && releaseTypes.length > 0) ||
+      (includeKeywords && includeKeywords.length > 0) ||
+      (excludeKeywords && excludeKeywords.length > 0) ||
+      sortBy
     );
-  }, [yearRange, ratingRange, popularityRange, selectedGenres]);
+  }, [
+    yearRange, 
+    ratingRange, 
+    popularityRange, 
+    selectedGenres, 
+    watchProviders,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords,
+    sortBy
+  ]);
 
   // Load homepage lists
   const loadHomepageLists = useCallback(async () => {
@@ -138,6 +171,16 @@ const HomePage = () => {
     setSearchResults(null);
     setSearchQuery('');
     setIsSearchOpen(false);
+    setWatchProviders([]);
+    setWatchRegion('US');
+    setVoteCountRange(null);
+    setRuntimeRange(null);
+    setOriginalLanguage(null);
+    setSpokenLanguages([]);
+    setReleaseTypes([]);
+    setIncludeKeywords([]);
+    setExcludeKeywords([]);
+    setSortBy(null);
   }, [location.key, isMobile]);
 
   // Handle search toggle
@@ -393,6 +436,26 @@ const HomePage = () => {
                     onGenresChange={setSelectedGenres}
                     genres={genres}
                     isLoadingGenres={isLoadingGenres}
+                    watchProviders={watchProviders}
+                    onWatchProvidersChange={setWatchProviders}
+                    watchRegion={watchRegion}
+                    onWatchRegionChange={setWatchRegion}
+                    voteCountRange={voteCountRange}
+                    onVoteCountRangeChange={setVoteCountRange}
+                    runtimeRange={runtimeRange}
+                    onRuntimeRangeChange={setRuntimeRange}
+                    originalLanguage={originalLanguage}
+                    onOriginalLanguageChange={setOriginalLanguage}
+                    spokenLanguages={spokenLanguages}
+                    onSpokenLanguagesChange={setSpokenLanguages}
+                    releaseTypes={releaseTypes}
+                    onReleaseTypesChange={setReleaseTypes}
+                    includeKeywords={includeKeywords}
+                    onIncludeKeywordsChange={setIncludeKeywords}
+                    excludeKeywords={excludeKeywords}
+                    onExcludeKeywordsChange={setExcludeKeywords}
+                    sortBy={sortBy}
+                    onSortByChange={setSortBy}
                   />
                 </div>
               )}
@@ -515,6 +578,8 @@ const HomePage = () => {
                     excludedLists={excludedLists}
                     viewMode={viewMode}
                     isCompact={isCompact}
+                    watchProviders={watchProviders}
+                    watchRegion={watchRegion}
                   />
                 </section>
               ) : (

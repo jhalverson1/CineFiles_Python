@@ -28,7 +28,17 @@ const MovieList = ({
   yearRange = null,
   ratingRange = null,
   popularityRange = null,
-  selectedGenres = []
+  selectedGenres = [],
+  watchProviders = [],
+  watchRegion = null,
+  voteCountRange = null,
+  runtimeRange = null,
+  originalLanguage = null,
+  spokenLanguages = [],
+  releaseTypes = [],
+  includeKeywords = [],
+  excludeKeywords = [],
+  sortBy = null
 }) => {
   console.log('MovieList render', { type, propMovies: !!propMovies });
   
@@ -83,13 +93,23 @@ const MovieList = ({
       yearRange,
       ratingRange,
       popularityRange,
-      genres: selectedGenres
+      genres: selectedGenres,
+      watchProviders: watchProviders?.length > 0 ? watchProviders : undefined,
+      watchRegion: watchRegion || 'US',
+      voteCountRange,
+      runtimeRange,
+      originalLanguage,
+      spokenLanguages: spokenLanguages?.length > 0 ? spokenLanguages : undefined,
+      releaseTypes: releaseTypes?.length > 0 ? releaseTypes : undefined,
+      includeKeywords: includeKeywords?.length > 0 ? includeKeywords : undefined,
+      excludeKeywords: excludeKeywords?.length > 0 ? excludeKeywords : undefined,
+      sortBy
     };
     
     if (JSON.stringify(newFilters) !== JSON.stringify(prevFiltersRef.current)) {
       console.log('Filters changed:', { 
         prev: prevFiltersRef.current, 
-        new: newFilters 
+        new: newFilters
       });
       prevFiltersRef.current = newFilters;
       // Clear cache when filters change
@@ -97,7 +117,24 @@ const MovieList = ({
     }
     
     return newFilters;
-  }, [type, listId, yearRange, ratingRange, popularityRange, selectedGenres]);
+  }, [
+    type, 
+    listId, 
+    yearRange, 
+    ratingRange, 
+    popularityRange, 
+    selectedGenres, 
+    watchProviders, 
+    watchRegion,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords,
+    sortBy
+  ]);
 
   // Reset state when filters or propMovies change
   useEffect(() => {
@@ -184,7 +221,9 @@ const MovieList = ({
             yearRange: currentFilters.yearRange,
             ratingRange: currentFilters.ratingRange,
             popularityRange: currentFilters.popularityRange,
-            genres: currentFilters.genres
+            genres: currentFilters.genres,
+            watchProviders: currentFilters.watchProviders,
+            watchRegion: currentFilters.watchRegion
           });
         } else {
           // If no filter ID, use the general filtered endpoint
@@ -192,7 +231,9 @@ const MovieList = ({
             yearRange: currentFilters.yearRange,
             ratingRange: currentFilters.ratingRange,
             popularityRange: currentFilters.popularityRange,
-            genres: currentFilters.genres
+            genres: currentFilters.genres,
+            watchProviders: currentFilters.watchProviders,
+            watchRegion: currentFilters.watchRegion
           });
         }
       } else if (currentFilters.listId) {
@@ -201,7 +242,9 @@ const MovieList = ({
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
           popularityRange: currentFilters.popularityRange,
-          genres: currentFilters.genres
+          genres: currentFilters.genres,
+          watchProviders: currentFilters.watchProviders,
+          watchRegion: currentFilters.watchRegion
         });
       } else if (!currentFilters.listType) {
         // No list type or ID provided
@@ -212,7 +255,9 @@ const MovieList = ({
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
           popularityRange: currentFilters.popularityRange,
-          genres: currentFilters.genres
+          genres: currentFilters.genres,
+          watchProviders: currentFilters.watchProviders,
+          watchRegion: currentFilters.watchRegion
         };
 
         // Find the matching default list

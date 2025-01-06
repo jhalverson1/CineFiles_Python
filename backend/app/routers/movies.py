@@ -393,7 +393,9 @@ async def get_filtered_movies(
     sort_by: Optional[str] = None,
     min_vote_count: Optional[int] = None,
     release_date_gte: Optional[str] = None,
-    release_date_lte: Optional[str] = None
+    release_date_lte: Optional[str] = None,
+    watch_providers: Optional[str] = None,
+    watch_region: str = "US"
 ):
     """
     Get a filtered list of movies based on various criteria.
@@ -440,6 +442,11 @@ async def get_filtered_movies(
     # Add genres filter
     if genres:
         params["with_genres"] = genres.replace(",", "|")
+
+    # Add watch providers filter
+    if watch_providers:
+        params["with_watch_providers"] = watch_providers.replace(",", "|")
+        params["watch_region"] = watch_region
 
     async with httpx.AsyncClient() as client:
         try:
@@ -572,6 +579,8 @@ async def get_filter_setting_movies(
     min_popularity: Optional[float] = None,
     max_popularity: Optional[float] = None,
     genres: Optional[str] = None,
+    watch_providers: Optional[str] = None,
+    watch_region: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Get movies based on a saved filter setting."""
@@ -600,7 +609,7 @@ async def get_filter_setting_movies(
                 for column in FilterSettings.__table__.columns:
                     logger.info(f"  - {column.name}: {column.type}")
                 raise HTTPException(status_code=404, detail="Filter setting not found")
-            
+
             logger.info(f"Found filter setting: {filter_setting.__dict__}")
             
             # Combine saved filter settings with any additional filters passed in the request
@@ -639,12 +648,31 @@ async def get_filter_setting_movies(
                     params["with_genres"] = "|".join(str(g) for g in genres_list)
                     logger.info(f"Formatted genres parameter: {params['with_genres']}")
 
+                # Add watch providers from filter settings
+                if filter_setting.watch_providers:
+                    logger.info(f"Parsing watch_providers: {filter_setting.watch_providers}")
+                    providers_list = json.loads(filter_setting.watch_providers)
+                    params["with_watch_providers"] = "|".join(str(p) for p in providers_list)
+                    logger.info(f"Formatted watch providers parameter: {params['with_watch_providers']}")
+
+                # Add watch region from filter settings or use default
+                if filter_setting.watch_region:
+                    params["watch_region"] = filter_setting.watch_region
+                else:
+                    params["watch_region"] = "US"  # Default to US if not specified
+
             except json.JSONDecodeError as e:
                 logger.error(f"Error parsing JSON ranges: {str(e)}")
                 raise HTTPException(status_code=500, detail=f"Error parsing filter settings: {str(e)}")
             
             # Override with request parameters if provided
             add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
+            
+            # Override watch providers if provided in request
+            if watch_providers:
+                params["with_watch_providers"] = watch_providers.replace(",", "|")
+            if watch_region:
+                params["watch_region"] = watch_region
             
             logger.info(f"Final TMDB API parameters: {params}")
             

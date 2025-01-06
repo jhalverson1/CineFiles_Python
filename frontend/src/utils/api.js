@@ -140,6 +140,8 @@ export const authApi = {
 
 // Helper function to add filter parameters
 const addFilterParams = (params, filters) => {
+  console.log('Adding filter params:', filters);
+  
   const {
     yearRange,
     ratingRange,
@@ -147,7 +149,16 @@ const addFilterParams = (params, filters) => {
     genres,
     sortBy,
     minVoteCount,
-    releaseDate
+    releaseDate,
+    watchProviders,
+    watchRegion,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords
   } = filters;
 
   if (yearRange?.length === 2) {
@@ -184,6 +195,53 @@ const addFilterParams = (params, filters) => {
   if (releaseDate?.lte) {
     params.append('release_date_lte', releaseDate.lte);
   }
+
+  // Add watch provider parameters
+  if (Array.isArray(watchProviders) && watchProviders.length > 0) {
+    console.log('Adding watch providers to params:', watchProviders);
+    params.append('watch_providers', watchProviders.join(','));
+  }
+  
+  if (watchRegion) {
+    params.append('watch_region', watchRegion);
+  }
+
+  // Add vote count range
+  if (voteCountRange?.length === 2) {
+    params.append('min_vote_count', voteCountRange[0].toString());
+    params.append('max_vote_count', voteCountRange[1].toString());
+  }
+
+  // Add runtime range
+  if (runtimeRange?.length === 2) {
+    params.append('min_runtime', runtimeRange[0].toString());
+    params.append('max_runtime', runtimeRange[1].toString());
+  }
+
+  // Add language filters
+  if (originalLanguage) {
+    params.append('original_language', originalLanguage);
+  }
+
+  if (Array.isArray(spokenLanguages) && spokenLanguages.length > 0) {
+    params.append('spoken_languages', spokenLanguages.join(','));
+  }
+
+  // Add release types
+  if (Array.isArray(releaseTypes) && releaseTypes.length > 0) {
+    params.append('release_types', releaseTypes.join(','));
+  }
+
+  // Add keywords
+  if (Array.isArray(includeKeywords) && includeKeywords.length > 0) {
+    params.append('include_keywords', includeKeywords.join(','));
+  }
+
+  if (Array.isArray(excludeKeywords) && excludeKeywords.length > 0) {
+    params.append('exclude_keywords', excludeKeywords.join(','));
+  }
+
+  console.log('Final params:', params.toString());
 };
 
 export const movieApi = {
