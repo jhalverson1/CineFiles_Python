@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MovieList from './MovieList';
 import FilterBar from '../filters/FilterBar';
 import HomepageFilterManager from '../filters/HomepageFilterManager';
@@ -37,9 +37,9 @@ const HomePage = () => {
   const isMobile = useResponsiveDefaults();
   const { lists } = useLists();
   const [excludedLists, setExcludedLists] = useState([]);
-  const [yearRange, setYearRange] = useState(null);
-  const [ratingRange, setRatingRange] = useState(null);
-  const [popularityRange, setPopularityRange] = useState(null);
+  const [yearRange, setYearRange] = useState([1990, new Date().getFullYear()]);
+  const [ratingRange, setRatingRange] = useState([7.0, 10.0]);
+  const [popularityRange, setPopularityRange] = useState([10000, 1000000]);
   const [viewMode, setViewMode] = useState('scroll');
   const [isCompact, setIsCompact] = useState(isMobile);
   const [key, setKey] = useState(0);
@@ -56,7 +56,7 @@ const HomePage = () => {
   const [excludeOpen, setExcludeOpen] = useState(false);
   const [homepageLists, setHomepageLists] = useState([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
-  const excludeRef = React.useRef(null);
+  const excludeRef = useRef(null);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -129,9 +129,9 @@ const HomePage = () => {
   // Reset state when navigating to home from home
   useEffect(() => {
     setExcludedLists([]);
-    setYearRange(null);
-    setRatingRange(null);
-    setPopularityRange(null);
+    setYearRange([1990, new Date().getFullYear()]);
+    setRatingRange([7.0, 10.0]);
+    setPopularityRange([10000, 1000000]);
     setViewMode('scroll');
     setIsCompact(isMobile);
     setKey(prev => prev + 1);
@@ -166,26 +166,6 @@ const HomePage = () => {
   useEffect(() => {
     setIsCompact(isMobile);
   }, [isMobile]);
-
-  // Handle scroll events
-  useEffect(() => {
-    let lastScrollY = window.scrollY;
-    
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY > 0) {
-        setIsVisible(false);
-      } else {
-        setIsVisible(true);
-      }
-      
-      lastScrollY = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleSearch = async (e) => {
     e?.preventDefault();
@@ -228,9 +208,7 @@ const HomePage = () => {
   return (
     <div>
       {/* Fixed Header Container */}
-      <div className={`fixed top-14 left-0 right-0 z-40 bg-background-secondary border-b border-border shadow-lg transition-transform duration-300 ${
-        isVisible ? 'translate-y-0' : '-translate-y-full'
-      }`}>
+      <div className="fixed top-14 left-0 right-0 z-40 bg-background-secondary border-b border-border shadow-lg">
         {/* Solid colored backdrop */}
         <div className="absolute inset-0 bg-background-secondary" />
         

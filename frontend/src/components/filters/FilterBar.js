@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { movieApi, filterSettingsApi } from '../../utils/api';
 
 const FilterBar = ({
@@ -8,600 +8,668 @@ const FilterBar = ({
   onRatingRangeChange,
   popularityRange,
   onPopularityRangeChange,
-  selectedGenres = [],
+  voteCountRange,
+  onVoteCountRangeChange,
+  runtimeRange,
+  onRuntimeRangeChange,
+  selectedGenres,
   onGenresChange,
   genres = [],
-  isLoadingGenres = true
+  isLoadingGenres = true,
+  originalLanguage,
+  onOriginalLanguageChange,
+  spokenLanguages,
+  onSpokenLanguagesChange,
+  releaseTypes,
+  onReleaseTypesChange,
+  watchProviders,
+  onWatchProvidersChange,
+  watchRegion,
+  onWatchRegionChange,
+  watchMonetizationTypes,
+  onWatchMonetizationTypesChange,
+  companies,
+  onCompaniesChange,
+  originCountries,
+  onOriginCountriesChange,
+  cast,
+  onCastChange,
+  crew,
+  onCrewChange,
+  includeKeywords,
+  onIncludeKeywordsChange,
+  excludeKeywords,
+  onExcludeKeywordsChange,
+  sortBy,
+  onSortByChange,
+  onSubmit
 }) => {
+  // UI state for dropdowns
   const [yearOpen, setYearOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   const [popularityOpen, setPopularityOpen] = useState(false);
   const [genreOpen, setGenreOpen] = useState(false);
-  const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [loadModalOpen, setLoadModalOpen] = useState(false);
-  const [filterName, setFilterName] = useState('');
-  const [savedFilters, setSavedFilters] = useState([]);
-  const [isLoadingSavedFilters, setIsLoadingSavedFilters] = useState(false);
-  const [error, setError] = useState(null);
-  const [currentFilter, setCurrentFilter] = useState(null);
-  
-  const genreRef = useRef(null);
-  const yearRef = useRef(null);
-  const ratingRef = useRef(null);
-  const popularityRef = useRef(null);
-  const saveModalRef = useRef(null);
-  const loadModalRef = useRef(null);
+  const [voteCountOpen, setVoteCountOpen] = useState(false);
+  const [runtimeOpen, setRuntimeOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [releaseTypeOpen, setReleaseTypeOpen] = useState(false);
+  const [providersOpen, setProvidersOpen] = useState(false);
+  const [companiesOpen, setCompaniesOpen] = useState(false);
+  const [castOpen, setCastOpen] = useState(false);
+  const [keywordsOpen, setKeywordsOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
 
-  // Load saved filters on mount
+  // Local state for filter values
+  const [localYearRange, setLocalYearRange] = useState(yearRange);
+  const [localRatingRange, setLocalRatingRange] = useState(ratingRange);
+  const [localPopularityRange, setLocalPopularityRange] = useState(popularityRange);
+  const [localVoteCountRange, setLocalVoteCountRange] = useState(voteCountRange);
+  const [localRuntimeRange, setLocalRuntimeRange] = useState(runtimeRange);
+  const [localSelectedGenres, setLocalSelectedGenres] = useState(selectedGenres);
+  const [localOriginalLanguage, setLocalOriginalLanguage] = useState(originalLanguage);
+  const [localSpokenLanguages, setLocalSpokenLanguages] = useState(spokenLanguages);
+  const [localReleaseTypes, setLocalReleaseTypes] = useState(releaseTypes);
+  const [localWatchProviders, setLocalWatchProviders] = useState(watchProviders);
+  const [localWatchRegion, setLocalWatchRegion] = useState(watchRegion);
+  const [localWatchMonetizationTypes, setLocalWatchMonetizationTypes] = useState(watchMonetizationTypes);
+  const [localCompanies, setLocalCompanies] = useState(companies);
+  const [localOriginCountries, setLocalOriginCountries] = useState(originCountries);
+  const [localCast, setLocalCast] = useState(cast);
+  const [localCrew, setLocalCrew] = useState(crew);
+  const [localIncludeKeywords, setLocalIncludeKeywords] = useState(includeKeywords);
+  const [localExcludeKeywords, setLocalExcludeKeywords] = useState(excludeKeywords);
+  const [localSortBy, setLocalSortBy] = useState(sortBy);
+
+  // Update local state when props change
   useEffect(() => {
-    loadSavedFilters();
-  }, []);
+    setLocalYearRange(yearRange);
+    setLocalRatingRange(ratingRange);
+    setLocalPopularityRange(popularityRange);
+    setLocalVoteCountRange(voteCountRange);
+    setLocalRuntimeRange(runtimeRange);
+    setLocalSelectedGenres(selectedGenres);
+    setLocalOriginalLanguage(originalLanguage);
+    setLocalSpokenLanguages(spokenLanguages);
+    setLocalReleaseTypes(releaseTypes);
+    setLocalWatchProviders(watchProviders);
+    setLocalWatchRegion(watchRegion);
+    setLocalWatchMonetizationTypes(watchMonetizationTypes);
+    setLocalCompanies(companies);
+    setLocalOriginCountries(originCountries);
+    setLocalCast(cast);
+    setLocalCrew(crew);
+    setLocalIncludeKeywords(includeKeywords);
+    setLocalExcludeKeywords(excludeKeywords);
+    setLocalSortBy(sortBy);
+  }, [
+    yearRange,
+    ratingRange,
+    popularityRange,
+    voteCountRange,
+    runtimeRange,
+    selectedGenres,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    watchProviders,
+    watchRegion,
+    watchMonetizationTypes,
+    companies,
+    originCountries,
+    cast,
+    crew,
+    includeKeywords,
+    excludeKeywords,
+    sortBy
+  ]);
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (yearRef.current && !yearRef.current.contains(event.target)) {
-        setYearOpen(false);
-      }
-      if (ratingRef.current && !ratingRef.current.contains(event.target)) {
-        setRatingOpen(false);
-      }
-      if (popularityRef.current && !popularityRef.current.contains(event.target)) {
-        setPopularityOpen(false);
-      }
-      if (genreRef.current && !genreRef.current.contains(event.target)) {
-        setGenreOpen(false);
-      }
-      if (saveModalRef.current && !saveModalRef.current.contains(event.target)) {
-        setSaveModalOpen(false);
-      }
-      if (loadModalRef.current && !loadModalRef.current.contains(event.target)) {
-        setLoadModalOpen(false);
-      }
-    };
+  const handleSubmit = () => {
+    // Apply all filters at once
+    if (onYearRangeChange) onYearRangeChange(localYearRange);
+    if (onRatingRangeChange) onRatingRangeChange(localRatingRange);
+    if (onPopularityRangeChange) onPopularityRangeChange(localPopularityRange);
+    if (onVoteCountRangeChange) onVoteCountRangeChange(localVoteCountRange);
+    if (onRuntimeRangeChange) onRuntimeRangeChange(localRuntimeRange);
+    if (onGenresChange) onGenresChange(localSelectedGenres);
+    if (onOriginalLanguageChange) onOriginalLanguageChange(localOriginalLanguage);
+    if (onSpokenLanguagesChange) onSpokenLanguagesChange(localSpokenLanguages);
+    if (onReleaseTypesChange) onReleaseTypesChange(localReleaseTypes);
+    if (onWatchProvidersChange) onWatchProvidersChange(localWatchProviders);
+    if (onWatchRegionChange) onWatchRegionChange(localWatchRegion);
+    if (onWatchMonetizationTypesChange) onWatchMonetizationTypesChange(localWatchMonetizationTypes);
+    if (onCompaniesChange) onCompaniesChange(localCompanies);
+    if (onOriginCountriesChange) onOriginCountriesChange(localOriginCountries);
+    if (onCastChange) onCastChange(localCast);
+    if (onCrewChange) onCrewChange(localCrew);
+    if (onIncludeKeywordsChange) onIncludeKeywordsChange(localIncludeKeywords);
+    if (onExcludeKeywordsChange) onExcludeKeywordsChange(localExcludeKeywords);
+    if (onSortByChange) onSortByChange(localSortBy);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const loadSavedFilters = async () => {
-    try {
-      setIsLoadingSavedFilters(true);
-      setError(null);
-      const response = await filterSettingsApi.getFilterSettings();
-      setSavedFilters(response || []);
-    } catch (error) {
-      console.error('Failed to load saved filters:', error);
-      setError('Failed to load saved filters. Please try again.');
-      setSavedFilters([]);
-    } finally {
-      setIsLoadingSavedFilters(false);
+    // Call the onSubmit handler if provided
+    if (onSubmit) {
+      onSubmit();
     }
   };
 
-  const handleSaveFilter = async () => {
-    if (!filterName.trim()) return;
+  const handleReset = () => {
+    // Reset local state
+    setLocalYearRange(null);
+    setLocalRatingRange(null);
+    setLocalPopularityRange(null);
+    setLocalVoteCountRange(null);
+    setLocalRuntimeRange(null);
+    setLocalSelectedGenres([]);
+    setLocalOriginalLanguage(null);
+    setLocalSpokenLanguages([]);
+    setLocalReleaseTypes([]);
+    setLocalWatchProviders([]);
+    setLocalWatchRegion('US');
+    setLocalWatchMonetizationTypes([]);
+    setLocalCompanies([]);
+    setLocalOriginCountries([]);
+    setLocalCast([]);
+    setLocalCrew([]);
+    setLocalIncludeKeywords([]);
+    setLocalExcludeKeywords([]);
+    setLocalSortBy('popularity.desc');
 
-    try {
-      setError(null);
-      const filterData = {
-        name: filterName,
-        year_range: yearRange ? JSON.stringify(yearRange) : null,
-        rating_range: ratingRange ? JSON.stringify(ratingRange) : null,
-        popularity_range: popularityRange ? JSON.stringify(popularityRange) : null,
-        genres: selectedGenres && selectedGenres.length > 0 ? JSON.stringify(selectedGenres) : null,
-      };
-
-      if (currentFilter) {
-        // Update existing filter
-        await filterSettingsApi.updateFilterSetting(currentFilter.id, filterData);
-      } else {
-        // Create new filter
-        await filterSettingsApi.createFilterSetting(filterData);
-      }
-      
-      setSaveModalOpen(false);
-      setFilterName('');
-      setCurrentFilter(null);
-      await loadSavedFilters();
-    } catch (error) {
-      console.error('Failed to save filter:', error);
-      setError('Failed to save filter. Please try again.');
-    }
-  };
-
-  const handleLoadFilter = async (filter) => {
-    try {
-      setError(null);
-      const yearRangeValue = filter.year_range ? JSON.parse(filter.year_range) : null;
-      const ratingRangeValue = filter.rating_range ? JSON.parse(filter.rating_range) : null;
-      const popularityRangeValue = filter.popularity_range ? JSON.parse(filter.popularity_range) : null;
-      const genresValue = filter.genres ? JSON.parse(filter.genres) : [];
-
-      if (yearRangeValue) onYearRangeChange(yearRangeValue);
-      if (ratingRangeValue) onRatingRangeChange(ratingRangeValue);
-      if (popularityRangeValue) onPopularityRangeChange(popularityRangeValue);
-      if (genresValue) onGenresChange(genresValue);
-
-      // Set the current filter and filter name
-      setCurrentFilter(filter);
-      setFilterName(filter.name);
-      
-      setLoadModalOpen(false);
-    } catch (error) {
-      console.error('Failed to load filter:', error);
-      setError('Failed to load filter. Please try again.');
-    }
-  };
-
-  const handleDeleteFilter = async (id, event) => {
-    event.stopPropagation();
-    try {
-      setError(null);
-      await filterSettingsApi.deleteFilterSetting(id);
-      await loadSavedFilters();
-    } catch (error) {
-      console.error('Failed to delete filter:', error);
-      setError('Failed to delete filter. Please try again.');
-    }
-  };
-
-  const getGenresText = () => {
-    if (!selectedGenres || selectedGenres.length === 0) return 'Genres';
-    if (selectedGenres.length === 1) {
-      const genre = genres.find(g => g.id === selectedGenres[0]);
-      return genre ? genre.name : 'Genres';
-    }
-    return `${selectedGenres.length} Genres`;
-  };
-
-  const getYearRangeText = () => {
-    if (!yearRange || yearRange.length !== 2) return 'Year';
-    return `${yearRange[0]} - ${yearRange[1]}`;
-  };
-
-  const getRatingRangeText = () => {
-    if (!ratingRange || ratingRange.length !== 2) return 'Rating';
-    return `${ratingRange[0]} - ${ratingRange[1]}`;
-  };
-
-  const getPopularityRangeText = () => {
-    if (!popularityRange || popularityRange.length !== 2) return 'Popularity';
-    return `${popularityRange[0]} - ${popularityRange[1]}`;
-  };
-
-  const handleGenreClick = (genreId) => {
-    const newSelectedGenres = selectedGenres.includes(genreId)
-      ? selectedGenres.filter(id => id !== genreId)
-      : [...selectedGenres, genreId];
-    onGenresChange(newSelectedGenres);
-  };
-
-  const formatFilterDescription = (filter) => {
-    const parts = [];
-    
-    if (filter.year_range) {
-      const [start, end] = JSON.parse(filter.year_range);
-      parts.push(`Years: ${start}-${end}`);
-    }
-    
-    if (filter.rating_range) {
-      const [start, end] = JSON.parse(filter.rating_range);
-      parts.push(`Rating: ${start}-${end}`);
-    }
-    
-    if (filter.popularity_range) {
-      const [start, end] = JSON.parse(filter.popularity_range);
-      parts.push(`Popularity: ${start.toLocaleString()}-${end.toLocaleString()}`);
-    }
-    
-    if (filter.genres) {
-      const selectedGenreIds = JSON.parse(filter.genres);
-      if (selectedGenreIds.length > 0) {
-        const genreNames = selectedGenreIds
-          .map(id => genres.find(g => g.id === id)?.name)
-          .filter(Boolean);
-        if (genreNames.length === 1) {
-          parts.push(`Genre: ${genreNames[0]}`);
-        } else if (genreNames.length > 1) {
-          parts.push(`Genres: ${genreNames.length}`);
-        }
-      }
-    }
-    
-    return parts.join(' • ');
+    // Apply reset to parent
+    handleSubmit();
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Display current filter name if one is loaded */}
-      {currentFilter && (
-        <div className="text-sm text-text-secondary">
-          {currentFilter.name}
+    <div className="flex flex-col gap-4">
+      {/* Main Filters Section */}
+      <div className="flex flex-wrap gap-2 p-4 bg-background-secondary/50 rounded-lg border border-border/10">
+        {/* Year Range Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setYearOpen(!yearOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Year</span>
+            {localYearRange && (
+              <span className="text-primary">
+                {localYearRange[0]} - {localYearRange[1]}
+              </span>
+            )}
+          </button>
+          {yearOpen && (
+            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="1900"
+                  max={new Date().getFullYear()}
+                  value={localYearRange?.[0] || ''}
+                  onChange={(e) => setLocalYearRange([parseInt(e.target.value), localYearRange?.[1] || new Date().getFullYear()])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="From"
+                />
+                <span className="text-sm text-text-secondary font-medium">to</span>
+                <input
+                  type="number"
+                  min="1900"
+                  max={new Date().getFullYear()}
+                  value={localYearRange?.[1] || ''}
+                  onChange={(e) => setLocalYearRange([localYearRange?.[0] || 1900, parseInt(e.target.value)])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="To"
+                />
+              </div>
+            </div>
+          )}
         </div>
-      )}
-      <div className="flex flex-col md:flex-row gap-2 justify-between">
-        {/* Backend Filters Group */}
-        <div className="flex-1 flex flex-col md:flex-row gap-2">
-          <div className="relative w-full md:w-auto" ref={genreRef}>
-            <button
-              onClick={() => setGenreOpen(!genreOpen)}
-              className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center justify-between md:justify-start gap-2 min-w-[120px]"
-            >
-              <span className="truncate">{getGenresText()}</span>
-              <svg
-                className={`w-4 h-4 transform transition-transform ${genreOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {genreOpen && (
-              <div className="absolute z-50 mt-2 min-w-[200px] w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
+
+        {/* Rating Range Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setRatingOpen(!ratingOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Rating</span>
+            {localRatingRange && (
+              <span className="text-primary">
+                {localRatingRange[0]} - {localRatingRange[1]}
+              </span>
+            )}
+          </button>
+          {ratingOpen && (
+            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={localRatingRange?.[0] || ''}
+                  onChange={(e) => setLocalRatingRange([parseFloat(e.target.value), localRatingRange?.[1] || 10])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="From"
+                />
+                <span className="text-sm text-text-secondary font-medium">to</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={localRatingRange?.[1] || ''}
+                  onChange={(e) => setLocalRatingRange([localRatingRange?.[0] || 0, parseFloat(e.target.value)])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="To"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Popularity Range Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setPopularityOpen(!popularityOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Popularity</span>
+            {localPopularityRange && (
+              <span className="text-primary">
+                {localPopularityRange[0]} - {localPopularityRange[1]}
+              </span>
+            )}
+          </button>
+          {popularityOpen && (
+            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="0"
+                  value={localPopularityRange?.[0] || ''}
+                  onChange={(e) => setLocalPopularityRange([parseInt(e.target.value), localPopularityRange?.[1] || 10000])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="From"
+                />
+                <span className="text-sm text-text-secondary font-medium">to</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={localPopularityRange?.[1] || ''}
+                  onChange={(e) => setLocalPopularityRange([localPopularityRange?.[0] || 0, parseInt(e.target.value)])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="To"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Vote Count Range Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setVoteCountOpen(!voteCountOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Vote Count</span>
+            {localVoteCountRange && (
+              <span className="text-primary">
+                {localVoteCountRange[0]} - {localVoteCountRange[1]}
+              </span>
+            )}
+          </button>
+          {voteCountOpen && (
+            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="0"
+                  value={localVoteCountRange?.[0] || ''}
+                  onChange={(e) => setLocalVoteCountRange([parseInt(e.target.value), localVoteCountRange?.[1] || 10000])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="From"
+                />
+                <span className="text-sm text-text-secondary font-medium">to</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={localVoteCountRange?.[1] || ''}
+                  onChange={(e) => setLocalVoteCountRange([localVoteCountRange?.[0] || 0, parseInt(e.target.value)])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="To"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Runtime Range Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setRuntimeOpen(!runtimeOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Runtime</span>
+            {localRuntimeRange && (
+              <span className="text-primary">
+                {localRuntimeRange[0]} - {localRuntimeRange[1]} min
+              </span>
+            )}
+          </button>
+          {runtimeOpen && (
+            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  value={localRuntimeRange?.[0] || ''}
+                  onChange={(e) => setLocalRuntimeRange([parseInt(e.target.value), localRuntimeRange?.[1] || 500])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="From"
+                />
+                <span className="text-sm text-text-secondary font-medium">to</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  value={localRuntimeRange?.[1] || ''}
+                  onChange={(e) => setLocalRuntimeRange([localRuntimeRange?.[0] || 0, parseInt(e.target.value)])}
+                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="To"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Genres Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setGenreOpen(!genreOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Genres</span>
+            {localSelectedGenres?.length > 0 && (
+              <span className="text-primary">{localSelectedGenres.length}</span>
+            )}
+          </button>
+          {genreOpen && (
+            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[320px] z-50">
+              <div className="grid grid-cols-2 gap-2">
                 {isLoadingGenres ? (
-                  <div className="flex items-center justify-center p-4">
+                  <div className="col-span-2 flex items-center justify-center p-4">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                   </div>
                 ) : (
-                  <div className="max-h-60 overflow-y-auto scrollbar-hide">
-                    {genres.map((genre) => (
-                      <button
-                        key={genre.id}
-                        onClick={() => handleGenreClick(genre.id)}
-                        className="w-full px-4 py-3 md:py-2 text-left text-sm hover:bg-background-active transition-colors flex items-center gap-2"
-                      >
-                        <span className="w-4 h-4 flex-shrink-0">
-                          {selectedGenres.includes(genre.id) && (
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </span>
-                        {genre.name}
-                      </button>
-                    ))}
-                  </div>
+                  genres.map((genre) => (
+                    <button
+                      key={genre.id}
+                      onClick={() => {
+                        const isSelected = localSelectedGenres?.includes(genre.id);
+                        setLocalSelectedGenres(
+                          isSelected
+                            ? localSelectedGenres.filter((id) => id !== genre.id)
+                            : [...(localSelectedGenres || []), genre.id]
+                        );
+                      }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        localSelectedGenres?.includes(genre.id)
+                          ? 'bg-primary text-white'
+                          : 'bg-background-tertiary/30 hover:bg-background-active'
+                      }`}
+                    >
+                      {genre.name}
+                    </button>
+                  ))
                 )}
               </div>
-            )}
-          </div>
-
-          <div className="relative w-full md:w-auto" ref={yearRef}>
-            <button
-              onClick={() => setYearOpen(!yearOpen)}
-              className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center justify-between md:justify-start gap-2 min-w-[120px]"
-            >
-              <span className="truncate">{getYearRangeText()}</span>
-              <svg
-                className={`w-4 h-4 transform transition-transform ${yearOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {yearOpen && (
-              <div className="absolute z-50 mt-2 min-w-[300px] w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
-                <div className="p-4">
-                  <div className="flex flex-col md:flex-row items-center gap-3">
-                    <select
-                      value={yearRange?.[0] || new Date().getFullYear()}
-                      onChange={(e) => onYearRangeChange([parseInt(e.target.value), yearRange?.[1] || new Date().getFullYear()])}
-                      className="w-full md:w-auto flex-1 h-12 md:h-9 px-3 text-sm bg-background-tertiary/30 text-text-primary rounded-lg border border-border/10 hover:border-border/20 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                    >
-                      {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                    <span className="text-sm text-text-secondary font-medium">to</span>
-                    <select
-                      value={yearRange?.[1] || new Date().getFullYear()}
-                      onChange={(e) => onYearRangeChange([yearRange?.[0] || 1900, parseInt(e.target.value)])}
-                      className="w-full md:w-auto flex-1 h-12 md:h-9 px-3 text-sm bg-background-tertiary/30 text-text-primary rounded-lg border border-border/10 hover:border-border/20 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                    >
-                      {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="relative w-full md:w-auto" ref={ratingRef}>
-            <button
-              onClick={() => setRatingOpen(!ratingOpen)}
-              className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center justify-between md:justify-start gap-2 min-w-[120px]"
-            >
-              <span className="truncate">{getRatingRangeText()}</span>
-              <svg
-                className={`w-4 h-4 transform transition-transform ${ratingOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {ratingOpen && (
-              <div className="absolute z-50 mt-2 min-w-[200px] w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
-                <div className="p-4">
-                  <div className="flex flex-col md:flex-row items-center gap-3">
-                    <select
-                      value={ratingRange?.[0] || 0}
-                      onChange={(e) => onRatingRangeChange([parseFloat(e.target.value), ratingRange?.[1] || 10])}
-                      className="w-full md:w-auto flex-1 h-12 md:h-9 px-3 text-sm bg-background-tertiary/30 text-text-primary rounded-lg border border-border/10 hover:border-border/20 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                    >
-                      {Array.from({ length: 11 }, (_, i) => i).map(rating => (
-                        <option key={rating} value={rating}>{rating}</option>
-                      ))}
-                    </select>
-                    <span className="text-sm text-text-secondary font-medium">to</span>
-                    <select
-                      value={ratingRange?.[1] || 10}
-                      onChange={(e) => onRatingRangeChange([ratingRange?.[0] || 0, parseFloat(e.target.value)])}
-                      className="w-full md:w-auto flex-1 h-12 md:h-9 px-3 text-sm bg-background-tertiary/30 text-text-primary rounded-lg border border-border/10 hover:border-border/20 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                    >
-                      {Array.from({ length: 11 }, (_, i) => i).map(rating => (
-                        <option key={rating} value={rating}>{rating}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="relative w-full md:w-auto" ref={popularityRef}>
-            <button
-              onClick={() => setPopularityOpen(!popularityOpen)}
-              className="w-full md:w-auto px-4 py-3 md:py-2 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center justify-between md:justify-start gap-2 min-w-[120px]"
-            >
-              <span className="truncate">{getPopularityRangeText()}</span>
-              <svg
-                className={`w-4 h-4 transform transition-transform ${popularityOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {popularityOpen && (
-              <div className="absolute z-50 mt-2 min-w-[300px] w-full bg-background-secondary rounded-lg shadow-lg overflow-hidden">
-                <div className="p-4">
-                  <div className="flex flex-col md:flex-row items-center gap-3">
-                    <select
-                      value={popularityRange?.[0] || 0}
-                      onChange={(e) => onPopularityRangeChange([parseInt(e.target.value), popularityRange?.[1] || 1000000])}
-                      className="w-full md:w-auto flex-1 h-12 md:h-9 px-3 text-sm bg-background-tertiary/30 text-text-primary rounded-lg border border-border/10 hover:border-border/20 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                    >
-                      {[0, 100, 500, 1000, 5000, 10000, 50000, 100000, 1000000].map(value => (
-                        <option key={value} value={value}>{value.toLocaleString()}</option>
-                      ))}
-                    </select>
-                    <span className="text-sm text-text-secondary font-medium">to</span>
-                    <select
-                      value={popularityRange?.[1] || 1000000}
-                      onChange={(e) => onPopularityRangeChange([popularityRange?.[0] || 0, parseInt(e.target.value)])}
-                      className="w-full md:w-auto flex-1 h-12 md:h-9 px-3 text-sm bg-background-tertiary/30 text-text-primary rounded-lg border border-border/10 hover:border-border/20 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                    >
-                      {[0, 100, 500, 1000, 5000, 10000, 50000, 100000, 1000000].map(value => (
-                        <option key={value} value={value}>{value.toLocaleString()}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Save/Load Buttons Group */}
-        <div className="flex gap-2 md:ml-4">
+        {/* Original Language Filter */}
+        <div className="relative">
           <button
-            onClick={() => {
-              onYearRangeChange(null);
-              onRatingRangeChange(null);
-              onPopularityRangeChange(null);
-              onGenresChange([]);
-            }}
-            className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
-            aria-label="Reset Filters"
+            onClick={() => setLanguageOpen(!languageOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
-              Reset Filters
-            </span>
+            <span>Language</span>
+            {localOriginalLanguage && (
+              <span className="text-primary">{localOriginalLanguage}</span>
+            )}
           </button>
-
-          <button
-            onClick={() => setSaveModalOpen(true)}
-            className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
-            aria-label="Save Filter"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-12a2 2 0 00-2-2h-2M8 5a2 2 0 002 2h4a2 2 0 002-2M8 5v4a2 2 0 002 2h4a2 2 0 002-2V5" />
-            </svg>
-            <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
-              Save Filter
-            </span>
-          </button>
-          
-          {/* Option 1: Folder Open */}
-          <button
-            onClick={() => setLoadModalOpen(true)}
-            className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
-            aria-label="Load Filter"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-            </svg>
-            <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
-              Load Filter
-            </span>
-          </button>
-
-          {/* Option 2: List Bullet (commented out)
-          <button
-            onClick={() => setLoadModalOpen(true)}
-            className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
-            aria-label="Load Filter"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-            </svg>
-            <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
-              Load Filter
-            </span>
-          </button>
-          */}
-
-          {/* Option 3: Collection (commented out)
-          <button
-            onClick={() => setLoadModalOpen(true)}
-            className="w-10 h-10 md:h-9 flex items-center justify-center bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium group relative"
-            aria-label="Load Filter"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <span className="absolute bottom-full mb-2 hidden group-hover:block bg-background-tertiary text-text-primary text-xs px-2 py-1 rounded whitespace-nowrap">
-              Load Filter
-            </span>
-          </button>
-          */}
+          {languageOpen && (
+            <div className="absolute top-full left-0 mt-2 p-2 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[200px] z-50">
+              {[
+                { code: 'en', name: 'English' },
+                { code: 'es', name: 'Spanish' },
+                { code: 'fr', name: 'French' },
+                { code: 'de', name: 'German' },
+                { code: 'it', name: 'Italian' },
+                { code: 'ja', name: 'Japanese' },
+                { code: 'ko', name: 'Korean' },
+                { code: 'zh', name: 'Chinese' }
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    setLocalOriginalLanguage(lang.code);
+                    setLanguageOpen(false);
+                  }}
+                  className={`w-full px-4 py-2 text-left text-sm font-medium rounded-lg transition-colors ${
+                    localOriginalLanguage === lang.code
+                      ? 'bg-primary text-white'
+                      : 'hover:bg-background-active'
+                  }`}
+                >
+                  {lang.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Save Filter Modal */}
-        {saveModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-            <div ref={saveModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md mt-20">
-              <h3 className="text-lg font-medium mb-4">{currentFilter ? 'Update Filter' : 'Save Filter'}</h3>
-              {error && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
-                  {error}
-                </div>
-              )}
-              <input
-                type="text"
-                value={filterName}
-                onChange={(e) => setFilterName(e.target.value)}
-                placeholder="Enter filter name"
-                className="w-full px-4 py-2 bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20 mb-4"
-              />
-              <div className="flex justify-end gap-2">
+        {/* Release Types Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setReleaseTypeOpen(!releaseTypeOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Release Type</span>
+            {localReleaseTypes?.length > 0 && (
+              <span className="text-primary">{localReleaseTypes.length}</span>
+            )}
+          </button>
+          {releaseTypeOpen && (
+            <div className="absolute top-full left-0 mt-2 p-2 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[200px] z-50">
+              {[
+                { id: 1, name: 'Premiere' },
+                { id: 2, name: 'Theatrical (limited)' },
+                { id: 3, name: 'Theatrical' },
+                { id: 4, name: 'Digital' },
+                { id: 5, name: 'Physical' },
+                { id: 6, name: 'TV' }
+              ].map((type) => (
                 <button
+                  key={type.id}
                   onClick={() => {
-                    setSaveModalOpen(false);
-                    setError(null);
-                    if (currentFilter) {
-                      setFilterName('');
-                      setCurrentFilter(null);
-                    }
+                    const isSelected = localReleaseTypes?.includes(type.id);
+                    setLocalReleaseTypes(
+                      isSelected
+                        ? localReleaseTypes.filter((id) => id !== type.id)
+                        : [...(localReleaseTypes || []), type.id]
+                    );
                   }}
-                  className="px-4 py-2 bg-background-tertiary hover:bg-background-tertiary/80 rounded-lg text-sm font-medium"
+                  className={`w-full px-4 py-2 text-left text-sm font-medium rounded-lg transition-colors ${
+                    localReleaseTypes?.includes(type.id)
+                      ? 'bg-primary text-white'
+                      : 'hover:bg-background-active'
+                  }`}
                 >
-                  Cancel
+                  {type.name}
                 </button>
-                <button
-                  onClick={handleSaveFilter}
-                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium"
-                >
-                  {currentFilter ? 'Update' : 'Save'}
-                </button>
-              </div>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Load Filter Modal */}
-        {loadModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-            <div ref={loadModalRef} className="bg-background-secondary rounded-lg p-6 w-full max-w-md mt-20">
-              <h3 className="text-lg font-medium mb-4">Load Filter</h3>
-              {error && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
-                  {error}
-                </div>
-              )}
-              {isLoadingSavedFilters ? (
-                <div className="flex items-center justify-center p-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              ) : savedFilters.length === 0 ? (
-                <p className="text-text-secondary text-center py-4">No saved filters</p>
-              ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {savedFilters.map((filter) => (
-                    <div
-                      key={filter.id}
-                      onClick={() => handleLoadFilter(filter)}
-                      className="flex flex-col p-3 bg-background-tertiary/30 rounded-lg cursor-pointer hover:bg-background-active/50"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{filter.name}</span>
-                        <button
-                          onClick={(e) => handleDeleteFilter(filter.id, e)}
-                          className="text-text-secondary hover:text-text-primary"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                      <p className="text-xs text-text-secondary mt-1">
-                        {formatFilterDescription(filter)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex justify-end mt-4">
+        {/* Watch Providers Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setProvidersOpen(!providersOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Providers</span>
+            {localWatchProviders?.length > 0 && (
+              <span className="text-primary">{localWatchProviders.length}</span>
+            )}
+          </button>
+          {providersOpen && (
+            <div className="absolute top-full left-0 mt-2 p-2 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[200px] z-50">
+              {[
+                { id: 8, name: 'Netflix' },
+                { id: 9, name: 'Prime Video' },
+                { id: 337, name: 'Disney+' },
+                { id: 384, name: 'HBO Max' },
+                { id: 15, name: 'Hulu' },
+                { id: 531, name: 'Paramount+' },
+                { id: 283, name: 'Crunchyroll' },
+                { id: 2, name: 'Apple TV' }
+              ].map((provider) => (
                 <button
+                  key={provider.id}
                   onClick={() => {
-                    setLoadModalOpen(false);
-                    setError(null);
+                    const isSelected = localWatchProviders?.includes(provider.id);
+                    setLocalWatchProviders(
+                      isSelected
+                        ? localWatchProviders.filter((id) => id !== provider.id)
+                        : [...(localWatchProviders || []), provider.id]
+                    );
                   }}
-                  className="px-4 py-2 bg-background-tertiary hover:bg-background-tertiary/80 rounded-lg text-sm font-medium"
+                  className={`w-full px-4 py-2 text-left text-sm font-medium rounded-lg transition-colors ${
+                    localWatchProviders?.includes(provider.id)
+                      ? 'bg-primary text-white'
+                      : 'hover:bg-background-active'
+                  }`}
                 >
-                  Close
+                  {provider.name}
                 </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Keywords Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setKeywordsOpen(!keywordsOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Keywords</span>
+            {(localIncludeKeywords?.length > 0 || localExcludeKeywords?.length > 0) && (
+              <span className="text-primary">
+                +{localIncludeKeywords?.length || 0} -{localExcludeKeywords?.length || 0}
+              </span>
+            )}
+          </button>
+          {keywordsOpen && (
+            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[320px] z-50">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Include Keywords</label>
+                  <input
+                    type="text"
+                    value={localIncludeKeywords?.join(', ') || ''}
+                    onChange={(e) => setLocalIncludeKeywords(e.target.value.split(',').map(k => k.trim()).filter(Boolean))}
+                    className="w-full h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    placeholder="Enter keywords, separated by commas"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Exclude Keywords</label>
+                  <input
+                    type="text"
+                    value={localExcludeKeywords?.join(', ') || ''}
+                    onChange={(e) => setLocalExcludeKeywords(e.target.value.split(',').map(k => k.trim()).filter(Boolean))}
+                    className="w-full h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    placeholder="Enter keywords, separated by commas"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Sort By Filter */}
+        <div className="relative">
+          <button
+            onClick={() => setSortOpen(!sortOpen)}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>Sort By</span>
+            {localSortBy && (
+              <span className="text-primary">
+                {localSortBy.split('.')[0].replace('_', ' ')}
+              </span>
+            )}
+          </button>
+          {sortOpen && (
+            <div className="absolute top-full left-0 mt-2 p-2 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[200px] z-50">
+              {[
+                { value: 'popularity.desc', label: 'Popularity' },
+                { value: 'vote_average.desc', label: 'Rating' },
+                { value: 'release_date.desc', label: 'Release Date' },
+                { value: 'revenue.desc', label: 'Revenue' },
+                { value: 'vote_count.desc', label: 'Vote Count' }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setLocalSortBy(option.value);
+                    setSortOpen(false);
+                  }}
+                  className={`w-full px-4 py-2 text-left text-sm font-medium rounded-lg transition-colors ${
+                    localSortBy === option.value
+                      ? 'bg-primary text-white'
+                      : 'hover:bg-background-active'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Actions Bar */}
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={handleReset}
+          className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Reset</span>
+        </button>
+
+        <button
+          onClick={handleSubmit}
+          className="h-9 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span>Apply Filters</span>
+        </button>
       </div>
     </div>
   );
