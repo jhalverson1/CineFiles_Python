@@ -87,6 +87,8 @@ const MovieList = ({
       effectiveListId = listId;
     }
 
+    console.log('Creating filters with keywords:', { includeKeywords, excludeKeywords });
+
     const newFilters = {
       listType,
       listId: effectiveListId,
@@ -109,7 +111,9 @@ const MovieList = ({
     if (JSON.stringify(newFilters) !== JSON.stringify(prevFiltersRef.current)) {
       console.log('Filters changed:', { 
         prev: prevFiltersRef.current, 
-        new: newFilters
+        new: newFilters,
+        includeKeywords: newFilters.includeKeywords,
+        excludeKeywords: newFilters.excludeKeywords
       });
       prevFiltersRef.current = newFilters;
       // Clear cache when filters change
@@ -223,7 +227,15 @@ const MovieList = ({
             popularityRange: currentFilters.popularityRange,
             genres: currentFilters.genres,
             watchProviders: currentFilters.watchProviders,
-            watchRegion: currentFilters.watchRegion
+            watchRegion: currentFilters.watchRegion,
+            voteCountRange: currentFilters.voteCountRange,
+            runtimeRange: currentFilters.runtimeRange,
+            originalLanguage: currentFilters.originalLanguage,
+            spokenLanguages: currentFilters.spokenLanguages,
+            releaseTypes: currentFilters.releaseTypes,
+            includeKeywords: currentFilters.includeKeywords,
+            excludeKeywords: currentFilters.excludeKeywords,
+            sortBy: currentFilters.sortBy
           });
         } else {
           // If no filter ID, use the general filtered endpoint
@@ -233,7 +245,15 @@ const MovieList = ({
             popularityRange: currentFilters.popularityRange,
             genres: currentFilters.genres,
             watchProviders: currentFilters.watchProviders,
-            watchRegion: currentFilters.watchRegion
+            watchRegion: currentFilters.watchRegion,
+            voteCountRange: currentFilters.voteCountRange,
+            runtimeRange: currentFilters.runtimeRange,
+            originalLanguage: currentFilters.originalLanguage,
+            spokenLanguages: currentFilters.spokenLanguages,
+            releaseTypes: currentFilters.releaseTypes,
+            includeKeywords: currentFilters.includeKeywords,
+            excludeKeywords: currentFilters.excludeKeywords,
+            sortBy: currentFilters.sortBy
           });
         }
       } else if (currentFilters.listId) {
@@ -244,7 +264,15 @@ const MovieList = ({
           popularityRange: currentFilters.popularityRange,
           genres: currentFilters.genres,
           watchProviders: currentFilters.watchProviders,
-          watchRegion: currentFilters.watchRegion
+          watchRegion: currentFilters.watchRegion,
+          voteCountRange: currentFilters.voteCountRange,
+          runtimeRange: currentFilters.runtimeRange,
+          originalLanguage: currentFilters.originalLanguage,
+          spokenLanguages: currentFilters.spokenLanguages,
+          releaseTypes: currentFilters.releaseTypes,
+          includeKeywords: currentFilters.includeKeywords,
+          excludeKeywords: currentFilters.excludeKeywords,
+          sortBy: currentFilters.sortBy
         });
       } else if (!currentFilters.listType) {
         // No list type or ID provided
@@ -257,7 +285,15 @@ const MovieList = ({
           popularityRange: currentFilters.popularityRange,
           genres: currentFilters.genres,
           watchProviders: currentFilters.watchProviders,
-          watchRegion: currentFilters.watchRegion
+          watchRegion: currentFilters.watchRegion,
+          voteCountRange: currentFilters.voteCountRange,
+          runtimeRange: currentFilters.runtimeRange,
+          originalLanguage: currentFilters.originalLanguage,
+          spokenLanguages: currentFilters.spokenLanguages,
+          releaseTypes: currentFilters.releaseTypes,
+          includeKeywords: currentFilters.includeKeywords,
+          excludeKeywords: currentFilters.excludeKeywords,
+          sortBy: currentFilters.sortBy
         };
 
         // Find the matching default list

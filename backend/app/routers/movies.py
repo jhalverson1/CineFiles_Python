@@ -97,7 +97,9 @@ async def get_popular_movies(
     max_rating: Optional[float] = None,
     min_popularity: Optional[float] = None,
     max_popularity: Optional[float] = None,
-    genres: Optional[str] = None
+    genres: Optional[str] = None,
+    include_keywords: Optional[str] = None,
+    exclude_keywords: Optional[str] = None
 ):
     """Get popular movies with optional filters."""
     params = {
@@ -110,7 +112,18 @@ async def get_popular_movies(
         "vote_count.gte": "100"  # Ensure some minimum votes
     }
     
-    add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
+    add_filter_params(
+        params, 
+        start_year, 
+        end_year, 
+        min_rating, 
+        max_rating, 
+        min_popularity, 
+        max_popularity, 
+        genres,
+        include_keywords,
+        exclude_keywords
+    )
     
     async with httpx.AsyncClient() as client:
         try:
@@ -134,7 +147,9 @@ async def get_top_rated_movies(
     max_rating: Optional[float] = None,
     min_popularity: Optional[float] = None,
     max_popularity: Optional[float] = None,
-    genres: Optional[str] = None
+    genres: Optional[str] = None,
+    include_keywords: Optional[str] = None,
+    exclude_keywords: Optional[str] = None
 ):
     """Get top rated movies with optional filters."""
     params = {
@@ -147,7 +162,18 @@ async def get_top_rated_movies(
         "vote_count.gte": "1000"  # Ensure significant number of votes
     }
     
-    add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
+    add_filter_params(
+        params, 
+        start_year, 
+        end_year, 
+        min_rating, 
+        max_rating, 
+        min_popularity, 
+        max_popularity, 
+        genres,
+        include_keywords,
+        exclude_keywords
+    )
     
     async with httpx.AsyncClient() as client:
         try:
@@ -171,7 +197,9 @@ async def get_upcoming_movies(
     max_rating: Optional[float] = None,
     min_popularity: Optional[float] = None,
     max_popularity: Optional[float] = None,
-    genres: Optional[str] = None
+    genres: Optional[str] = None,
+    include_keywords: Optional[str] = None,
+    exclude_keywords: Optional[str] = None
 ):
     """Get upcoming movies with optional filters."""
     today = datetime.now().date()
@@ -188,7 +216,18 @@ async def get_upcoming_movies(
         "primary_release_date.lte": future_date.isoformat()
     }
     
-    add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
+    add_filter_params(
+        params, 
+        start_year, 
+        end_year, 
+        min_rating, 
+        max_rating, 
+        min_popularity, 
+        max_popularity, 
+        genres,
+        include_keywords,
+        exclude_keywords
+    )
     
     async with httpx.AsyncClient() as client:
         try:
@@ -212,7 +251,9 @@ async def get_now_playing_movies(
     max_rating: Optional[float] = None,
     min_popularity: Optional[float] = None,
     max_popularity: Optional[float] = None,
-    genres: Optional[str] = None
+    genres: Optional[str] = None,
+    include_keywords: Optional[str] = None,
+    exclude_keywords: Optional[str] = None
 ):
     """Get now playing movies with optional filters."""
     today = datetime.now().date()
@@ -229,7 +270,18 @@ async def get_now_playing_movies(
         "primary_release_date.lte": today.isoformat()
     }
     
-    add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
+    add_filter_params(
+        params, 
+        start_year, 
+        end_year, 
+        min_rating, 
+        max_rating, 
+        min_popularity, 
+        max_popularity, 
+        genres,
+        include_keywords,
+        exclude_keywords
+    )
     
     async with httpx.AsyncClient() as client:
         try:
@@ -244,7 +296,18 @@ async def get_now_playing_movies(
             logger.error(f"TMDB API error in get_now_playing_movies: {str(e)}")
             raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
 
-def add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres):
+def add_filter_params(
+    params, 
+    start_year, 
+    end_year, 
+    min_rating, 
+    max_rating, 
+    min_popularity, 
+    max_popularity, 
+    genres,
+    include_keywords=None,
+    exclude_keywords=None
+):
     """Helper function to add common filter parameters."""
     # Add year range filter
     if start_year and end_year:
@@ -269,6 +332,12 @@ def add_filter_params(params, start_year, end_year, min_rating, max_rating, min_
     if genres:
         params["with_genres"] = genres.replace(",", "|")
 
+    # Add keywords filters
+    if include_keywords:
+        params["with_keywords"] = include_keywords.replace(",", "|")
+    if exclude_keywords:
+        params["without_keywords"] = exclude_keywords.replace(",", "|")
+
 @router.get("/news")
 async def get_movie_news():
     """
@@ -289,7 +358,9 @@ async def get_hidden_gems(
     year_range: Optional[str] = None,
     rating_range: Optional[str] = None,
     popularity_range: Optional[str] = None,
-    genres: Optional[str] = None
+    genres: Optional[str] = None,
+    include_keywords: Optional[str] = None,
+    exclude_keywords: Optional[str] = None
 ):
     """
     Retrieve a curated list of hidden gem movies.
@@ -300,6 +371,8 @@ async def get_hidden_gems(
         rating_range: Optional tuple of (min_rating, max_rating)
         popularity_range: Optional tuple of (min_votes, max_votes)
         genres: Comma-separated list of genre IDs
+        include_keywords: Comma-separated list of keywords to include
+        exclude_keywords: Comma-separated list of keywords to exclude
     """
     from datetime import datetime, timedelta
     twenty_years_ago = (datetime.now() - timedelta(days=20*365)).strftime("%Y-%m-%d")
@@ -338,6 +411,12 @@ async def get_hidden_gems(
 
     if genres:
         params["with_genres"] = genres.replace(",", "|")
+
+    # Add keywords filters
+    if include_keywords:
+        params["with_keywords"] = include_keywords.replace(",", "|")
+    if exclude_keywords:
+        params["without_keywords"] = exclude_keywords.replace(",", "|")
     
     async with httpx.AsyncClient() as client:
         try:
@@ -392,10 +471,16 @@ async def get_filtered_movies(
     genres: Optional[str] = None,
     sort_by: Optional[str] = None,
     min_vote_count: Optional[int] = None,
+    max_vote_count: Optional[int] = None,
+    min_runtime: Optional[int] = None,
+    max_runtime: Optional[int] = None,
     release_date_gte: Optional[str] = None,
     release_date_lte: Optional[str] = None,
     watch_providers: Optional[str] = None,
-    watch_region: str = "US"
+    watch_region: str = "US",
+    include_keywords: Optional[str] = None,
+    exclude_keywords: Optional[str] = None,
+    release_types: Optional[str] = None
 ):
     """
     Get a filtered list of movies based on various criteria.
@@ -412,8 +497,16 @@ async def get_filtered_movies(
     # Add vote count filter
     if min_vote_count is not None:
         params["vote_count.gte"] = str(min_vote_count)
-    else:
+    if max_vote_count is not None:
+        params["vote_count.lte"] = str(max_vote_count)
+    if min_vote_count is None and max_vote_count is None:
         params["vote_count.gte"] = "100"  # Default minimum vote count
+
+    # Add runtime filter
+    if min_runtime is not None:
+        params["with_runtime.gte"] = str(min_runtime)
+    if max_runtime is not None:
+        params["with_runtime.lte"] = str(max_runtime)
 
     # Add year range filter
     if start_year and end_year:
@@ -447,6 +540,18 @@ async def get_filtered_movies(
     if watch_providers:
         params["with_watch_providers"] = watch_providers.replace(",", "|")
         params["watch_region"] = watch_region
+
+    # Add keywords filters
+    if include_keywords:
+        params["with_keywords"] = include_keywords.replace(",", "|")
+    if exclude_keywords:
+        params["without_keywords"] = exclude_keywords.replace(",", "|")
+
+    # Add release types filter
+    if release_types:
+        params["with_release_type"] = release_types.replace(",", "|")
+
+    logger.info(f"Filtered movies params: {params}")
 
     async with httpx.AsyncClient() as client:
         try:
@@ -581,6 +686,13 @@ async def get_filter_setting_movies(
     genres: Optional[str] = None,
     watch_providers: Optional[str] = None,
     watch_region: Optional[str] = None,
+    include_keywords: Optional[str] = None,
+    exclude_keywords: Optional[str] = None,
+    min_vote_count: Optional[int] = None,
+    max_vote_count: Optional[int] = None,
+    min_runtime: Optional[int] = None,
+    max_runtime: Optional[int] = None,
+    release_types: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Get movies based on a saved filter setting."""
@@ -661,18 +773,89 @@ async def get_filter_setting_movies(
                 else:
                     params["watch_region"] = "US"  # Default to US if not specified
 
+                # Add keywords from filter settings
+                if filter_setting.include_keywords:
+                    logger.info(f"Parsing include_keywords: {filter_setting.include_keywords}")
+                    keywords_list = json.loads(filter_setting.include_keywords)
+                    params["with_keywords"] = "|".join(str(k) for k in keywords_list)
+                    logger.info(f"Formatted include keywords parameter: {params['with_keywords']}")
+
+                if filter_setting.exclude_keywords:
+                    logger.info(f"Parsing exclude_keywords: {filter_setting.exclude_keywords}")
+                    keywords_list = json.loads(filter_setting.exclude_keywords)
+                    params["without_keywords"] = "|".join(str(k) for k in keywords_list)
+                    logger.info(f"Formatted exclude keywords parameter: {params['without_keywords']}")
+
+                # Add vote count range from filter settings
+                if filter_setting.vote_count_range:
+                    logger.info(f"Parsing vote_count_range: {filter_setting.vote_count_range}")
+                    vote_count_range = json.loads(filter_setting.vote_count_range)
+                    params["vote_count.gte"] = str(vote_count_range[0])
+                    params["vote_count.lte"] = str(vote_count_range[1])
+
+                # Add runtime range from filter settings
+                if filter_setting.runtime_range:
+                    logger.info(f"Parsing runtime_range: {filter_setting.runtime_range}")
+                    runtime_range = json.loads(filter_setting.runtime_range)
+                    params["with_runtime.gte"] = str(runtime_range[0])
+                    params["with_runtime.lte"] = str(runtime_range[1])
+
+                # Add release types from filter settings
+                if filter_setting.release_types:
+                    logger.info(f"Parsing release_types: {filter_setting.release_types}")
+                    release_types_list = json.loads(filter_setting.release_types)
+                    params["with_release_type"] = "|".join(str(rt) for rt in release_types_list)
+                    logger.info(f"Formatted release types parameter: {params['with_release_type']}")
+
             except json.JSONDecodeError as e:
                 logger.error(f"Error parsing JSON ranges: {str(e)}")
                 raise HTTPException(status_code=500, detail=f"Error parsing filter settings: {str(e)}")
             
             # Override with request parameters if provided
-            add_filter_params(params, start_year, end_year, min_rating, max_rating, min_popularity, max_popularity, genres)
+            if min_vote_count is not None:
+                params["vote_count.gte"] = str(min_vote_count)
+            if max_vote_count is not None:
+                params["vote_count.lte"] = str(max_vote_count)
+
+            if min_runtime is not None:
+                params["with_runtime.gte"] = str(min_runtime)
+            if max_runtime is not None:
+                params["with_runtime.lte"] = str(max_runtime)
+
+            if release_types:
+                params["with_release_type"] = release_types.replace(",", "|")
+
+            # Add basic filters
+            if start_year and end_year:
+                if start_year > end_year:
+                    start_year, end_year = end_year, start_year
+                params["primary_release_date.gte"] = f"{start_year}-01-01"
+                params["primary_release_date.lte"] = f"{end_year}-12-31"
+
+            if min_rating is not None:
+                params["vote_average.gte"] = str(min_rating)
+            if max_rating is not None:
+                params["vote_average.lte"] = str(max_rating)
+
+            if min_popularity is not None:
+                params["popularity.gte"] = str(min_popularity)
+            if max_popularity is not None:
+                params["popularity.lte"] = str(max_popularity)
+
+            if genres:
+                params["with_genres"] = genres.replace(",", "|")
             
             # Override watch providers if provided in request
             if watch_providers:
                 params["with_watch_providers"] = watch_providers.replace(",", "|")
             if watch_region:
                 params["watch_region"] = watch_region
+
+            # Override keywords if provided in request
+            if include_keywords:
+                params["with_keywords"] = include_keywords.replace(",", "|")
+            if exclude_keywords:
+                params["without_keywords"] = exclude_keywords.replace(",", "|")
             
             logger.info(f"Final TMDB API parameters: {params}")
             
@@ -690,14 +873,13 @@ async def get_filter_setting_movies(
                     logger.info(f"TMDB API response received. Total results: {data.get('total_results', 0)}")
                     return data
                 except httpx.HTTPError as e:
-                    logger.error(f"TMDB API error in get_filter_setting_movies: {str(e)}")
+                    logger.error(f"TMDB API error: {str(e)}")
                     raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
         except Exception as e:
-            logger.error(f"Database query error: {str(e)}", exc_info=True)
+            logger.error(f"Error executing database query: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error in get_filter_setting_movies: {str(e)}", exc_info=True)
-        logger.info("=" * 80)
+        logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         logger.info("=" * 80) 

@@ -580,6 +580,14 @@ const HomePage = () => {
                     isCompact={isCompact}
                     watchProviders={watchProviders}
                     watchRegion={watchRegion}
+                    voteCountRange={voteCountRange}
+                    runtimeRange={runtimeRange}
+                    originalLanguage={originalLanguage}
+                    spokenLanguages={spokenLanguages}
+                    releaseTypes={releaseTypes}
+                    includeKeywords={includeKeywords}
+                    excludeKeywords={excludeKeywords}
+                    sortBy={sortBy}
                   />
                 </section>
               ) : (
@@ -598,32 +606,36 @@ const HomePage = () => {
                     <div className="space-y-12">
                       {homepageLists.map((list) => (
                         <section key={`${list.type}-${list.id}`}>
-                          <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">
-                            {list.name}
-                          </h2>
-                          {list.type === 'default' ? (
-                            <MovieList
-                              key={`${list.id}-${key}`}
-                              type="tmdb"
-                              listId={list.id}
-                              excludedLists={excludedLists}
-                              viewMode={viewMode}
-                              isCompact={isCompact}
-                            />
-                          ) : (
-                            <MovieList
-                              key={`filtered-${list.id}-${key}`}
-                              type="filtered"
-                              listId={list.id}
-                              yearRange={list.year_range ? JSON.parse(list.year_range) : null}
-                              ratingRange={list.rating_range ? JSON.parse(list.rating_range) : null}
-                              popularityRange={list.popularity_range ? JSON.parse(list.popularity_range) : null}
-                              genres={list.genres ? JSON.parse(list.genres) : []}
-                              excludedLists={excludedLists}
-                              viewMode={viewMode}
-                              isCompact={isCompact}
-                            />
-                          )}
+                          <div className="mb-8">
+                            <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                              {list.name}
+                            </h2>
+                            <p className="text-text-secondary pl-2">
+                              {list.description}
+                            </p>
+                          </div>
+                          <MovieList
+                            key={`${list.type}-${list.id}-${key}`}
+                            type={list.type}
+                            listId={list.id}
+                            yearRange={yearRange}
+                            ratingRange={ratingRange}
+                            popularityRange={popularityRange}
+                            selectedGenres={selectedGenres}
+                            excludedLists={excludedLists}
+                            viewMode={viewMode}
+                            isCompact={isCompact}
+                            watchProviders={watchProviders}
+                            watchRegion={watchRegion}
+                            voteCountRange={voteCountRange}
+                            runtimeRange={runtimeRange}
+                            originalLanguage={originalLanguage}
+                            spokenLanguages={spokenLanguages}
+                            releaseTypes={releaseTypes}
+                            includeKeywords={includeKeywords}
+                            excludeKeywords={excludeKeywords}
+                            sortBy={sortBy}
+                          />
                         </section>
                       ))}
                     </div>

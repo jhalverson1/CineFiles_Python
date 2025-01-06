@@ -161,6 +161,8 @@ const addFilterParams = (params, filters) => {
     excludeKeywords
   } = filters;
 
+  console.log('Processing keywords:', { includeKeywords, excludeKeywords });
+
   if (yearRange?.length === 2) {
     params.append('start_year', yearRange[0].toString());
     params.append('end_year', yearRange[1].toString());
@@ -229,16 +231,25 @@ const addFilterParams = (params, filters) => {
 
   // Add release types
   if (Array.isArray(releaseTypes) && releaseTypes.length > 0) {
+    console.log('Adding release types to params:', releaseTypes);
     params.append('release_types', releaseTypes.join(','));
   }
 
   // Add keywords
   if (Array.isArray(includeKeywords) && includeKeywords.length > 0) {
+    console.log('Adding include_keywords to params:', includeKeywords);
     params.append('include_keywords', includeKeywords.join(','));
+  } else if (typeof includeKeywords === 'string' && includeKeywords.trim()) {
+    console.log('Adding include_keywords (string) to params:', includeKeywords);
+    params.append('include_keywords', includeKeywords.trim());
   }
 
   if (Array.isArray(excludeKeywords) && excludeKeywords.length > 0) {
+    console.log('Adding exclude_keywords to params:', excludeKeywords);
     params.append('exclude_keywords', excludeKeywords.join(','));
+  } else if (typeof excludeKeywords === 'string' && excludeKeywords.trim()) {
+    console.log('Adding exclude_keywords (string) to params:', excludeKeywords);
+    params.append('exclude_keywords', excludeKeywords.trim());
   }
 
   console.log('Final params:', params.toString());
