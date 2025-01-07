@@ -60,9 +60,9 @@ const FilterBar = ({
   const [sortOpen, setSortOpen] = useState(false);
 
   // Local state for filter values
-  const [localYearRange, setLocalYearRange] = useState(yearRange);
-  const [localRatingRange, setLocalRatingRange] = useState(ratingRange);
-  const [localPopularityRange, setLocalPopularityRange] = useState(popularityRange);
+  const [localYearRange, setLocalYearRange] = useState(null);
+  const [localRatingRange, setLocalRatingRange] = useState(null);
+  const [localPopularityRange, setLocalPopularityRange] = useState(null);
   const [localVoteCountRange, setLocalVoteCountRange] = useState(voteCountRange);
   const [localRuntimeRange, setLocalRuntimeRange] = useState(runtimeRange);
   const [localSelectedGenres, setLocalSelectedGenres] = useState(selectedGenres);
@@ -82,25 +82,26 @@ const FilterBar = ({
 
   // Update local state when props change
   useEffect(() => {
-    setLocalYearRange(yearRange);
-    setLocalRatingRange(ratingRange);
-    setLocalPopularityRange(popularityRange);
-    setLocalVoteCountRange(voteCountRange);
-    setLocalRuntimeRange(runtimeRange);
-    setLocalSelectedGenres(selectedGenres);
-    setLocalOriginalLanguage(originalLanguage);
-    setLocalSpokenLanguages(spokenLanguages);
-    setLocalReleaseTypes(releaseTypes);
-    setLocalWatchProviders(watchProviders);
-    setLocalWatchRegion(watchRegion);
-    setLocalWatchMonetizationTypes(watchMonetizationTypes);
-    setLocalCompanies(companies);
-    setLocalOriginCountries(originCountries);
-    setLocalCast(cast);
-    setLocalCrew(crew);
-    setLocalIncludeKeywords(includeKeywords);
-    setLocalExcludeKeywords(excludeKeywords);
-    setLocalSortBy(sortBy);
+    // Only update if props are explicitly set (not default values)
+    if (yearRange?.[0] && yearRange?.[1]) setLocalYearRange(yearRange);
+    if (ratingRange?.[0] && ratingRange?.[1]) setLocalRatingRange(ratingRange);
+    if (popularityRange?.[0] && popularityRange?.[1]) setLocalPopularityRange(popularityRange);
+    if (voteCountRange?.[0] && voteCountRange?.[1]) setLocalVoteCountRange(voteCountRange);
+    if (runtimeRange?.[0] && runtimeRange?.[1]) setLocalRuntimeRange(runtimeRange);
+    if (selectedGenres?.length > 0) setLocalSelectedGenres(selectedGenres);
+    if (originalLanguage) setLocalOriginalLanguage(originalLanguage);
+    if (spokenLanguages?.length > 0) setLocalSpokenLanguages(spokenLanguages);
+    if (releaseTypes?.length > 0) setLocalReleaseTypes(releaseTypes);
+    if (watchProviders?.length > 0) setLocalWatchProviders(watchProviders);
+    if (watchRegion) setLocalWatchRegion(watchRegion);
+    if (watchMonetizationTypes?.length > 0) setLocalWatchMonetizationTypes(watchMonetizationTypes);
+    if (companies?.length > 0) setLocalCompanies(companies);
+    if (originCountries?.length > 0) setLocalOriginCountries(originCountries);
+    if (cast?.length > 0) setLocalCast(cast);
+    if (crew?.length > 0) setLocalCrew(crew);
+    if (includeKeywords?.length > 0) setLocalIncludeKeywords(includeKeywords);
+    if (excludeKeywords?.length > 0) setLocalExcludeKeywords(excludeKeywords);
+    if (sortBy) setLocalSortBy(sortBy);
   }, [
     yearRange,
     ratingRange,
@@ -171,10 +172,33 @@ const FilterBar = ({
     setLocalCrew([]);
     setLocalIncludeKeywords([]);
     setLocalExcludeKeywords([]);
-    setLocalSortBy('popularity.desc');
+    setLocalSortBy(null);
 
     // Apply reset to parent
-    handleSubmit();
+    if (onYearRangeChange) onYearRangeChange(null);
+    if (onRatingRangeChange) onRatingRangeChange(null);
+    if (onPopularityRangeChange) onPopularityRangeChange(null);
+    if (onVoteCountRangeChange) onVoteCountRangeChange(null);
+    if (onRuntimeRangeChange) onRuntimeRangeChange(null);
+    if (onGenresChange) onGenresChange([]);
+    if (onOriginalLanguageChange) onOriginalLanguageChange(null);
+    if (onSpokenLanguagesChange) onSpokenLanguagesChange([]);
+    if (onReleaseTypesChange) onReleaseTypesChange([]);
+    if (onWatchProvidersChange) onWatchProvidersChange([]);
+    if (onWatchRegionChange) onWatchRegionChange('US');
+    if (onWatchMonetizationTypesChange) onWatchMonetizationTypesChange([]);
+    if (onCompaniesChange) onCompaniesChange([]);
+    if (onOriginCountriesChange) onOriginCountriesChange([]);
+    if (onCastChange) onCastChange([]);
+    if (onCrewChange) onCrewChange([]);
+    if (onIncludeKeywordsChange) onIncludeKeywordsChange([]);
+    if (onExcludeKeywordsChange) onExcludeKeywordsChange([]);
+    if (onSortByChange) onSortByChange(null);
+
+    // Call the onSubmit handler if provided
+    if (onSubmit) {
+      onSubmit();
+    }
   };
 
   return (
@@ -188,7 +212,7 @@ const FilterBar = ({
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
             <span>Year</span>
-            {localYearRange && (
+            {localYearRange?.[0] && localYearRange?.[1] && (
               <span className="text-primary">
                 {localYearRange[0]} - {localYearRange[1]}
               </span>
@@ -202,7 +226,7 @@ const FilterBar = ({
                   min="1900"
                   max={new Date().getFullYear()}
                   value={localYearRange?.[0] || ''}
-                  onChange={(e) => setLocalYearRange([parseInt(e.target.value), localYearRange?.[1] || new Date().getFullYear()])}
+                  onChange={(e) => setLocalYearRange([parseInt(e.target.value), localYearRange?.[1]])}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="From"
                 />
@@ -212,7 +236,7 @@ const FilterBar = ({
                   min="1900"
                   max={new Date().getFullYear()}
                   value={localYearRange?.[1] || ''}
-                  onChange={(e) => setLocalYearRange([localYearRange?.[0] || 1900, parseInt(e.target.value)])}
+                  onChange={(e) => setLocalYearRange([localYearRange?.[0], parseInt(e.target.value)])}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="To"
                 />
@@ -228,7 +252,7 @@ const FilterBar = ({
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
             <span>Rating</span>
-            {localRatingRange && (
+            {localRatingRange?.[0] && localRatingRange?.[1] && (
               <span className="text-primary">
                 {localRatingRange[0]} - {localRatingRange[1]}
               </span>
@@ -243,7 +267,7 @@ const FilterBar = ({
                   max="10"
                   step="0.1"
                   value={localRatingRange?.[0] || ''}
-                  onChange={(e) => setLocalRatingRange([parseFloat(e.target.value), localRatingRange?.[1] || 10])}
+                  onChange={(e) => setLocalRatingRange([parseFloat(e.target.value), localRatingRange?.[1]])}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="From"
                 />
@@ -254,7 +278,7 @@ const FilterBar = ({
                   max="10"
                   step="0.1"
                   value={localRatingRange?.[1] || ''}
-                  onChange={(e) => setLocalRatingRange([localRatingRange?.[0] || 0, parseFloat(e.target.value)])}
+                  onChange={(e) => setLocalRatingRange([localRatingRange?.[0], parseFloat(e.target.value)])}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="To"
                 />
@@ -270,7 +294,7 @@ const FilterBar = ({
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
             <span>Popularity</span>
-            {localPopularityRange && (
+            {localPopularityRange?.[0] && localPopularityRange?.[1] && (
               <span className="text-primary">
                 {localPopularityRange[0]} - {localPopularityRange[1]}
               </span>
@@ -283,7 +307,7 @@ const FilterBar = ({
                   type="number"
                   min="0"
                   value={localPopularityRange?.[0] || ''}
-                  onChange={(e) => setLocalPopularityRange([parseInt(e.target.value), localPopularityRange?.[1] || 10000])}
+                  onChange={(e) => setLocalPopularityRange([parseInt(e.target.value), localPopularityRange?.[1]])}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="From"
                 />
@@ -292,7 +316,7 @@ const FilterBar = ({
                   type="number"
                   min="0"
                   value={localPopularityRange?.[1] || ''}
-                  onChange={(e) => setLocalPopularityRange([localPopularityRange?.[0] || 0, parseInt(e.target.value)])}
+                  onChange={(e) => setLocalPopularityRange([localPopularityRange?.[0], parseInt(e.target.value)])}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="To"
                 />

@@ -265,7 +265,7 @@ export const movieApi = {
   getTopRatedMovies: (page = 1, filters = {}) => {
     const params = new URLSearchParams({ page: page.toString() });
     addFilterParams(params, filters);
-    return api.get(`/api/movies/top-rated?${params.toString()}`);
+    return api.get(`/api/movies/top_rated?${params.toString()}`);
   },
   
   getUpcomingMovies: (page = 1, filters = {}) => {
@@ -277,7 +277,7 @@ export const movieApi = {
   getNowPlayingMovies: (page = 1, filters = {}) => {
     const params = new URLSearchParams({ page: page.toString() });
     addFilterParams(params, filters);
-    return api.get(`/api/movies/now-playing?${params.toString()}`);
+    return api.get(`/api/movies/now_playing?${params.toString()}`);
   },
   
   getListMovies: async (listId, page = 1, filters = {}) => {

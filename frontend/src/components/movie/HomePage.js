@@ -37,9 +37,9 @@ const HomePage = () => {
   const isMobile = useResponsiveDefaults();
   const { lists } = useLists();
   const [excludedLists, setExcludedLists] = useState([]);
-  const [yearRange, setYearRange] = useState([1990, new Date().getFullYear()]);
-  const [ratingRange, setRatingRange] = useState([7.0, 10.0]);
-  const [popularityRange, setPopularityRange] = useState([10000, 1000000]);
+  const [yearRange, setYearRange] = useState(null);
+  const [ratingRange, setRatingRange] = useState(null);
+  const [popularityRange, setPopularityRange] = useState(null);
   const [viewMode, setViewMode] = useState('scroll');
   const [isCompact, setIsCompact] = useState(isMobile);
   const [key, setKey] = useState(0);
@@ -162,9 +162,9 @@ const HomePage = () => {
   // Reset state when navigating to home from home
   useEffect(() => {
     setExcludedLists([]);
-    setYearRange([1990, new Date().getFullYear()]);
-    setRatingRange([7.0, 10.0]);
-    setPopularityRange([10000, 1000000]);
+    setYearRange(null);
+    setRatingRange(null);
+    setPopularityRange(null);
     setViewMode('scroll');
     setIsCompact(isMobile);
     setKey(prev => prev + 1);

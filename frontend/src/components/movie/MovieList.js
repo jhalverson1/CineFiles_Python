@@ -76,11 +76,10 @@ const MovieList = ({
     let listType = type;
     let effectiveListId = listId;
 
-    if (type === 'tmdb') {
-      // For TMDB lists, use the list ID from DEFAULT_MOVIE_LISTS
-      const defaultList = DEFAULT_MOVIE_LISTS.find(list => list.id === listId);
-      listType = defaultList?.id || listId;
-      effectiveListId = null; // Don't use listId for TMDB lists
+    // For TMDB lists, use the type directly
+    if (DEFAULT_MOVIE_LISTS.some(list => list.id === type)) {
+      listType = type;  // Use the type directly (e.g., 'popular', 'top_rated')
+      effectiveListId = null;
     } else if (type === 'filtered') {
       // For filtered lists, keep the type as 'filtered' and use the listId
       listType = 'filtered';
@@ -256,7 +255,25 @@ const MovieList = ({
             sortBy: currentFilters.sortBy
           });
         }
-      } else if (currentFilters.listId) {
+      } else if (currentFilters.listType === 'filter') {
+        // Custom filter list
+        response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
+          yearRange: currentFilters.yearRange,
+          ratingRange: currentFilters.ratingRange,
+          popularityRange: currentFilters.popularityRange,
+          genres: currentFilters.genres,
+          watchProviders: currentFilters.watchProviders,
+          watchRegion: currentFilters.watchRegion,
+          voteCountRange: currentFilters.voteCountRange,
+          runtimeRange: currentFilters.runtimeRange,
+          originalLanguage: currentFilters.originalLanguage,
+          spokenLanguages: currentFilters.spokenLanguages,
+          releaseTypes: currentFilters.releaseTypes,
+          includeKeywords: currentFilters.includeKeywords,
+          excludeKeywords: currentFilters.excludeKeywords,
+          sortBy: currentFilters.sortBy
+        });
+      } else if (currentFilters.listId && currentFilters.listType !== 'tmdb') {
         // Custom user list
         response = await movieApi.getListMovies(currentFilters.listId, currentPage, {
           yearRange: currentFilters.yearRange,
@@ -274,9 +291,6 @@ const MovieList = ({
           excludeKeywords: currentFilters.excludeKeywords,
           sortBy: currentFilters.sortBy
         });
-      } else if (!currentFilters.listType) {
-        // No list type or ID provided
-        throw new Error('Either listId or listType must be provided');
       } else {
         // Default TMDB lists
         const filterParams = {
@@ -296,13 +310,8 @@ const MovieList = ({
           sortBy: currentFilters.sortBy
         };
 
-        // Find the matching default list
-        const defaultList = DEFAULT_MOVIE_LISTS.find(list => list.id === currentFilters.listType);
-        if (!defaultList) {
-          throw new Error(`Invalid list type: ${currentFilters.listType}`);
-        }
-
-        switch (defaultList.id) {
+        // Use the listType directly as the endpoint for TMDB lists
+        switch (currentFilters.listType) {
           case 'popular':
             response = await movieApi.getPopularMovies(currentPage, filterParams);
             break;
