@@ -82,8 +82,14 @@ const FilterBar = ({
 
   // Update local state when props change
   useEffect(() => {
-    // Only update if props are explicitly set (not default values)
-    if (yearRange?.[0] && yearRange?.[1]) setLocalYearRange(yearRange);
+    // Update if yearRange exists, even if only one value is present
+    if (yearRange !== null) {
+      setLocalYearRange(yearRange);
+    }
+  }, [yearRange]);
+
+  useEffect(() => {
+    // Update if ratingRange exists, even if only one value is present
     if (ratingRange?.[0] && ratingRange?.[1]) setLocalRatingRange(ratingRange);
     if (popularityRange?.[0] && popularityRange?.[1]) setLocalPopularityRange(popularityRange);
     if (voteCountRange?.[0] && voteCountRange?.[1]) setLocalVoteCountRange(voteCountRange);
@@ -103,7 +109,6 @@ const FilterBar = ({
     if (excludeKeywords?.length > 0) setLocalExcludeKeywords(excludeKeywords);
     if (sortBy) setLocalSortBy(sortBy);
   }, [
-    yearRange,
     ratingRange,
     popularityRange,
     voteCountRange,
@@ -212,9 +217,9 @@ const FilterBar = ({
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
             <span>Year</span>
-            {localYearRange?.[0] && localYearRange?.[1] && (
+            {localYearRange !== null && (
               <span className="text-primary">
-                {localYearRange[0]} - {localYearRange[1]}
+                {localYearRange[0] || 'Any'} - {localYearRange[1] || 'Any'}
               </span>
             )}
           </button>
@@ -228,12 +233,13 @@ const FilterBar = ({
                   value={localYearRange?.[0] ?? ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setLocalYearRange([value === '' ? null : Number(value), localYearRange?.[1]]);
+                    const newValue = value === '' ? null : Number(value);
+                    setLocalYearRange(prev => [newValue, prev?.[1] ?? null]);
                   }}
                   onBlur={(e) => {
                     const value = e.target.value;
                     if (value && (Number(value) < 1900 || Number(value) > new Date().getFullYear())) {
-                      setLocalYearRange([null, localYearRange?.[1]]);
+                      setLocalYearRange(prev => [null, prev?.[1] ?? null]);
                     }
                   }}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -247,12 +253,13 @@ const FilterBar = ({
                   value={localYearRange?.[1] ?? ''}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setLocalYearRange([localYearRange?.[0], value === '' ? null : Number(value)]);
+                    const newValue = value === '' ? null : Number(value);
+                    setLocalYearRange(prev => [prev?.[0] ?? null, newValue]);
                   }}
                   onBlur={(e) => {
                     const value = e.target.value;
                     if (value && (Number(value) < 1900 || Number(value) > new Date().getFullYear())) {
-                      setLocalYearRange([localYearRange?.[0], null]);
+                      setLocalYearRange(prev => [prev?.[0] ?? null, null]);
                     }
                   }}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"

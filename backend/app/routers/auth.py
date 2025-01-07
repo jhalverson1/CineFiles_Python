@@ -13,6 +13,7 @@ Features:
 """
 
 from datetime import datetime
+import logging
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -34,6 +35,7 @@ from ..core.security import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/signup", response_model=UserResponse)
 async def signup(user: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -131,10 +133,12 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
     Raises:
         HTTPException: If refresh token is invalid
     """
+    logger.info("[Token Refresh] Starting token refresh process")
     try:
         payload = verify_token(refresh_token, REFRESH_SECRET_KEY, "refresh")
         email = payload.get("sub")
         if not email:
+            logger.error("[Token Refresh] Invalid refresh token - no email in payload")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token",
@@ -142,11 +146,13 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
             )
             
         # Verify user still exists
+        logger.info(f"[Token Refresh] Verifying user exists for email: {email}")
         query = select(User).where(User.email == email)
         result = await db.execute(query)
         user = result.scalar_one_or_none()
         
         if not user:
+            logger.error(f"[Token Refresh] User not found for email: {email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found",
@@ -154,10 +160,12 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
             )
             
         # Create new tokens
+        logger.info(f"[Token Refresh] Creating new tokens for user: {email}")
         token_data = {"sub": email}
         new_access_token = create_access_token(data=token_data)
         new_refresh_token = create_refresh_token(data=token_data)
         
+        logger.info("[Token Refresh] Successfully created new tokens")
         # Return both tokens
         return Token(
             access_token=new_access_token,
@@ -169,6 +177,7 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"[Token Refresh] Unexpected error during token refresh: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate refresh token",

@@ -309,12 +309,12 @@ def add_filter_params(
     exclude_keywords=None
 ):
     """Helper function to add common filter parameters."""
-    # Add year range filter
-    if start_year and end_year:
-        if start_year > end_year:
-            start_year, end_year = end_year, start_year
-        params["primary_release_date.gte"] = f"{start_year}-01-01"
-        params["primary_release_date.lte"] = f"{end_year}-12-31"
+    # Add year range filter (only if explicitly provided)
+    if start_year is not None or end_year is not None:
+        if start_year is not None:
+            params["primary_release_date.gte"] = f"{start_year}-01-01"
+        if end_year is not None:
+            params["primary_release_date.lte"] = f"{end_year}-12-31"
 
     # Add rating range filter
     if min_rating is not None:
@@ -509,32 +509,33 @@ async def get_filtered_movies(
         params["with_runtime.lte"] = str(max_runtime)
 
     # Add year range filter
-    if start_year and end_year:
-        if start_year > end_year:
+    if start_year is not None or end_year is not None:
+        if start_year is not None and end_year is not None and start_year > end_year:
             start_year, end_year = end_year, start_year
-        params["primary_release_date.gte"] = f"{start_year}-01-01"
-        params["primary_release_date.lte"] = f"{end_year}-12-31"
+        if start_year is not None:
+            params["primary_release_date.gte"] = f"{start_year}-01-01"
+        if end_year is not None:
+            params["primary_release_date.lte"] = f"{end_year}-12-31"
+    # Handle specific release date filters
     elif release_date_gte or release_date_lte:
         if release_date_gte:
             params["primary_release_date.gte"] = release_date_gte
         if release_date_lte:
             params["primary_release_date.lte"] = release_date_lte
 
-    # Add rating range filter
-    if min_rating is not None:
-        params["vote_average.gte"] = str(min_rating)
-    if max_rating is not None:
-        params["vote_average.lte"] = str(max_rating)
-
-    # Add popularity range filter
-    if min_popularity is not None:
-        params["popularity.gte"] = str(min_popularity)
-    if max_popularity is not None:
-        params["popularity.lte"] = str(max_popularity)
-
-    # Add genres filter
-    if genres:
-        params["with_genres"] = genres.replace(",", "|")
+    # Add common filter parameters
+    add_filter_params(
+        params,
+        None,  # start_year (already handled above)
+        None,  # end_year (already handled above)
+        min_rating,
+        max_rating,
+        min_popularity,
+        max_popularity,
+        genres,
+        include_keywords,
+        exclude_keywords
+    )
 
     # Add watch providers filter
     if watch_providers:

@@ -76,32 +76,14 @@ const MovieList = ({
     let listType = type;
     let effectiveListId = listId;
 
-    console.log('MovieList filters - Initial values:', {
-      type,
-      listId,
-      listType,
-      effectiveListId
-    });
-
     // For default type, use the listId as the type for TMDB lists
     if (type === 'default' && DEFAULT_MOVIE_LISTS.some(list => list.id === listId)) {
       listType = listId;  // Use the listId as the type (e.g., 'popular', 'top_rated')
       effectiveListId = null;
-      console.log('MovieList filters - TMDB list detected:', {
-        type,
-        listType,
-        effectiveListId,
-        matchingList: DEFAULT_MOVIE_LISTS.find(list => list.id === listId)
-      });
     } else if (type === 'filtered') {
       // For filtered lists, keep the type as 'filtered' and use the listId
       listType = 'filtered';
       effectiveListId = listId;
-      console.log('MovieList filters - Filtered list detected:', {
-        type,
-        listType,
-        effectiveListId
-      });
     }
 
     const newFilters = {
@@ -123,8 +105,6 @@ const MovieList = ({
       sortBy
     };
 
-    console.log('MovieList filters - Final filters object:', newFilters);
-    
     return newFilters;
   }, [
     type, 
@@ -147,16 +127,8 @@ const MovieList = ({
 
   // Reset state when filters or propMovies change
   useEffect(() => {
-    console.log('Reset effect triggered', { 
-      propMovies: !!propMovies,
-      filters,
-      isFirstMount: isFirstMount.current
-    });
-
-    // Skip the first mount since initial state is already set
     if (isFirstMount.current) {
       isFirstMount.current = false;
-      // Initialize loading state properly
       if (!propMovies) {
         setIsLoading(true);
       }
@@ -164,20 +136,16 @@ const MovieList = ({
     }
 
     if (!propMovies) {
-      // Only reset if filters have actually changed
       const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters);
       if (filtersChanged) {
-        console.log('Resetting state due to filter change');
         setPage(1);
         setAllMovies([]);
         setHasMore(true);
         setIsLoading(true);
       }
     } else {
-      // Only update if propMovies has changed
       const moviesChanged = JSON.stringify(propMovies) !== JSON.stringify(allMovies);
       if (moviesChanged) {
-        console.log('Updating movies from props');
         setAllMovies(propMovies);
         setHasMore(false);
         setIsLoading(false);
@@ -187,22 +155,12 @@ const MovieList = ({
 
   // Fetch movies function
   const fetchMovies = useCallback(async (currentPage, currentFilters) => {
-    console.log('MovieList fetchMovies - Starting fetch:', { 
-      currentPage,
-      currentFilters,
-      allMoviesLength: allMovies.length,
-      isLoading,
-      retryCount
-    });
-
     if (currentPage > 1 && !allMovies.length) {
-      console.log('MovieList fetchMovies - Skipping fetch - no movies for pagination');
       return;
     }
 
     const cacheKey = getCacheKey(currentPage, currentFilters);
     if (requestCache.current.has(cacheKey)) {
-      console.log('MovieList fetchMovies - Using cached response');
       const cachedData = requestCache.current.get(cacheKey);
       setAllMovies(prev => {
         if (JSON.stringify(prev) === JSON.stringify(cachedData.results)) {
@@ -218,58 +176,28 @@ const MovieList = ({
     setError(null);
     
     try {
-      console.log('MovieList fetchMovies - Making API request:', { 
-        currentPage, 
-        currentFilters,
-        isTMDBList: DEFAULT_MOVIE_LISTS.some(list => list.id === currentFilters.listType)
-      });
-
       let response;
       
-      // Check if this is a custom list or a default TMDB list
       if (currentFilters.listType === 'filtered') {
         console.log('MovieList fetchMovies - Handling filtered list');
-        // Custom filtered list
-        if (currentFilters.listId) {
-          // If we have a valid filter ID, use the filter settings endpoint
-          response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
-            yearRange: currentFilters.yearRange,
-            ratingRange: currentFilters.ratingRange,
-            popularityRange: currentFilters.popularityRange,
-            genres: currentFilters.genres,
-            watchProviders: currentFilters.watchProviders,
-            watchRegion: currentFilters.watchRegion,
-            voteCountRange: currentFilters.voteCountRange,
-            runtimeRange: currentFilters.runtimeRange,
-            originalLanguage: currentFilters.originalLanguage,
-            spokenLanguages: currentFilters.spokenLanguages,
-            releaseTypes: currentFilters.releaseTypes,
-            includeKeywords: currentFilters.includeKeywords,
-            excludeKeywords: currentFilters.excludeKeywords,
-            sortBy: currentFilters.sortBy
-          });
-        } else {
-          // If no filter ID, use the general filtered endpoint
-          response = await movieApi.getFilteredMovies(currentPage, {
-            yearRange: currentFilters.yearRange,
-            ratingRange: currentFilters.ratingRange,
-            popularityRange: currentFilters.popularityRange,
-            genres: currentFilters.genres,
-            watchProviders: currentFilters.watchProviders,
-            watchRegion: currentFilters.watchRegion,
-            voteCountRange: currentFilters.voteCountRange,
-            runtimeRange: currentFilters.runtimeRange,
-            originalLanguage: currentFilters.originalLanguage,
-            spokenLanguages: currentFilters.spokenLanguages,
-            releaseTypes: currentFilters.releaseTypes,
-            includeKeywords: currentFilters.includeKeywords,
-            excludeKeywords: currentFilters.excludeKeywords,
-            sortBy: currentFilters.sortBy
-          });
-        }
+        response = await movieApi.getFilteredMovies(currentPage, {
+          yearRange: currentFilters.yearRange,
+          ratingRange: currentFilters.ratingRange,
+          popularityRange: currentFilters.popularityRange,
+          genres: currentFilters.genres,
+          watchProviders: currentFilters.watchProviders,
+          watchRegion: currentFilters.watchRegion,
+          voteCountRange: currentFilters.voteCountRange,
+          runtimeRange: currentFilters.runtimeRange,
+          originalLanguage: currentFilters.originalLanguage,
+          spokenLanguages: currentFilters.spokenLanguages,
+          releaseTypes: currentFilters.releaseTypes,
+          includeKeywords: currentFilters.includeKeywords,
+          excludeKeywords: currentFilters.excludeKeywords,
+          sortBy: currentFilters.sortBy
+        });
       } else if (currentFilters.listType === 'filter') {
         console.log('MovieList fetchMovies - Handling filter list');
-        // Custom filter list
         response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
@@ -291,7 +219,6 @@ const MovieList = ({
           listType: currentFilters.listType,
           matchingList: DEFAULT_MOVIE_LISTS.find(list => list.id === currentFilters.listType)
         });
-        // Default TMDB lists
         const filterParams = {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
@@ -329,7 +256,6 @@ const MovieList = ({
         }
       } else if (currentFilters.listId) {
         console.log('MovieList fetchMovies - Handling custom user list');
-        // Custom user list
         response = await movieApi.getListMovies(currentFilters.listId, currentPage, {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
@@ -351,10 +277,7 @@ const MovieList = ({
         throw new Error(`Invalid list type: ${currentFilters.listType}`);
       }
       
-      // Reset retry count on success
       setRetryCount(0);
-      
-      // Cache the response
       requestCache.current.set(cacheKey, response);
       
       setAllMovies(prev => {
@@ -363,7 +286,6 @@ const MovieList = ({
           [...prev, ...(response.results || [])];
         
         if (JSON.stringify(prev) === JSON.stringify(newMovies)) {
-          console.log('Skipping identical movies update');
           return prev;
         }
         
@@ -379,15 +301,13 @@ const MovieList = ({
     } catch (err) {
       console.error('Error fetching movies:', err);
       
-      // Check if we should retry
       if (retryCount < MAX_RETRIES && err.response?.status !== 404) {
         console.log(`Retrying (${retryCount + 1}/${MAX_RETRIES}) in ${RETRY_DELAY}ms...`);
         setRetryCount(prev => prev + 1);
         setTimeout(() => {
           fetchMovies(currentPage, currentFilters);
-        }, RETRY_DELAY * Math.pow(2, retryCount)); // Exponential backoff
+        }, RETRY_DELAY * Math.pow(2, retryCount));
       } else {
-        // Max retries reached or 404 error, show error state
         setError(err.response?.status === 404 
           ? "This movie list is no longer available."
           : "Failed to load movies. Please try again later."
@@ -402,17 +322,12 @@ const MovieList = ({
   // Log state changes
   useEffect(() => {
     if (page !== prevPageRef.current) {
-      console.log('Page changed:', { prev: prevPageRef.current, new: page });
       prevPageRef.current = page;
     }
   }, [page]);
 
   useEffect(() => {
     if (allMovies !== prevAllMoviesRef.current) {
-      console.log('Movies changed:', { 
-        prevLength: prevAllMoviesRef.current?.length,
-        newLength: allMovies.length
-      });
       prevAllMoviesRef.current = allMovies;
     }
   }, [allMovies]);
@@ -420,7 +335,6 @@ const MovieList = ({
   // Debounced version of fetchMovies
   const debouncedFetchMovies = useMemo(
     () => debounce((currentPage, currentFilters) => {
-      console.log('Debounced fetch triggered', { currentPage, currentFilters });
       fetchMovies(currentPage, currentFilters);
     }, 300),
     [fetchMovies]
@@ -428,35 +342,20 @@ const MovieList = ({
 
   // Fetch movies when page or filters change
   useEffect(() => {
-    console.log('Fetch effect triggered', {
-      propMovies: !!propMovies,
-      page,
-      hasMore,
-      allMoviesLength: allMovies.length,
-      isLoading
-    });
-
     if (propMovies) {
-      console.log('Skipping fetch - using propMovies');
       return;
     }
     
-    // Skip if we're already loading or if we have cached data
     const cacheKey = getCacheKey(page, filters);
     if (requestCache.current.has(cacheKey)) {
-      console.log('Skipping fetch - using cached data');
       return;
     }
     
     if (page === 1 || (hasMore && allMovies.length > 0)) {
-      console.log('Initiating fetch');
       debouncedFetchMovies(page, filters);
-    } else {
-      console.log('Skipping fetch - conditions not met');
     }
     
     return () => {
-      console.log('Cleaning up fetch effect');
       debouncedFetchMovies.cancel();
     };
   }, [debouncedFetchMovies, page, filters, propMovies, hasMore, getCacheKey]);
