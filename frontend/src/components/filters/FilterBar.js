@@ -225,8 +225,17 @@ const FilterBar = ({
                   type="number"
                   min="1900"
                   max={new Date().getFullYear()}
-                  value={localYearRange?.[0] || ''}
-                  onChange={(e) => setLocalYearRange([parseInt(e.target.value), localYearRange?.[1]])}
+                  value={localYearRange?.[0] ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setLocalYearRange([value === '' ? null : Number(value), localYearRange?.[1]]);
+                  }}
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    if (value && (Number(value) < 1900 || Number(value) > new Date().getFullYear())) {
+                      setLocalYearRange([null, localYearRange?.[1]]);
+                    }
+                  }}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="From"
                 />
@@ -235,8 +244,17 @@ const FilterBar = ({
                   type="number"
                   min="1900"
                   max={new Date().getFullYear()}
-                  value={localYearRange?.[1] || ''}
-                  onChange={(e) => setLocalYearRange([localYearRange?.[0], parseInt(e.target.value)])}
+                  value={localYearRange?.[1] ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setLocalYearRange([localYearRange?.[0], value === '' ? null : Number(value)]);
+                  }}
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    if (value && (Number(value) < 1900 || Number(value) > new Date().getFullYear())) {
+                      setLocalYearRange([localYearRange?.[0], null]);
+                    }
+                  }}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="To"
                 />

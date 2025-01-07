@@ -163,19 +163,34 @@ const addFilterParams = (params, filters) => {
 
   console.log('Processing keywords:', { includeKeywords, excludeKeywords });
 
-  if (yearRange?.length === 2) {
-    params.append('start_year', yearRange[0].toString());
-    params.append('end_year', yearRange[1].toString());
+  // Only add year range if both values are valid numbers
+  if (yearRange?.length === 2 && yearRange[0] && yearRange[1]) {
+    const startYear = parseInt(yearRange[0]);
+    const endYear = parseInt(yearRange[1]);
+    if (!isNaN(startYear) && !isNaN(endYear)) {
+      params.append('start_year', startYear.toString());
+      params.append('end_year', endYear.toString());
+    }
   }
   
-  if (ratingRange?.length === 2) {
-    params.append('min_rating', ratingRange[0].toString());
-    params.append('max_rating', ratingRange[1].toString());
+  // Only add rating range if both values are valid numbers
+  if (ratingRange?.length === 2 && ratingRange[0] !== null && ratingRange[1] !== null) {
+    const minRating = parseFloat(ratingRange[0]);
+    const maxRating = parseFloat(ratingRange[1]);
+    if (!isNaN(minRating) && !isNaN(maxRating)) {
+      params.append('min_rating', minRating.toString());
+      params.append('max_rating', maxRating.toString());
+    }
   }
   
-  if (popularityRange?.length === 2) {
-    params.append('min_popularity', popularityRange[0].toString());
-    params.append('max_popularity', popularityRange[1].toString());
+  // Only add popularity range if both values are valid numbers
+  if (popularityRange?.length === 2 && popularityRange[0] !== null && popularityRange[1] !== null) {
+    const minPopularity = parseFloat(popularityRange[0]);
+    const maxPopularity = parseFloat(popularityRange[1]);
+    if (!isNaN(minPopularity) && !isNaN(maxPopularity)) {
+      params.append('min_popularity', minPopularity.toString());
+      params.append('max_popularity', maxPopularity.toString());
+    }
   }
   
   if (genres?.length > 0) {
@@ -193,7 +208,6 @@ const addFilterParams = (params, filters) => {
   if (releaseDate?.gte) {
     params.append('release_date_gte', releaseDate.gte);
   }
-  
   if (releaseDate?.lte) {
     params.append('release_date_lte', releaseDate.lte);
   }
@@ -208,16 +222,24 @@ const addFilterParams = (params, filters) => {
     params.append('watch_region', watchRegion);
   }
 
-  // Add vote count range
-  if (voteCountRange?.length === 2) {
-    params.append('min_vote_count', voteCountRange[0].toString());
-    params.append('max_vote_count', voteCountRange[1].toString());
+  // Add vote count range if both values are valid numbers
+  if (voteCountRange?.length === 2 && voteCountRange[0] !== null && voteCountRange[1] !== null) {
+    const minVoteCount = parseInt(voteCountRange[0]);
+    const maxVoteCount = parseInt(voteCountRange[1]);
+    if (!isNaN(minVoteCount) && !isNaN(maxVoteCount)) {
+      params.append('min_vote_count', minVoteCount.toString());
+      params.append('max_vote_count', maxVoteCount.toString());
+    }
   }
 
-  // Add runtime range
-  if (runtimeRange?.length === 2) {
-    params.append('min_runtime', runtimeRange[0].toString());
-    params.append('max_runtime', runtimeRange[1].toString());
+  // Add runtime range if both values are valid numbers
+  if (runtimeRange?.length === 2 && runtimeRange[0] !== null && runtimeRange[1] !== null) {
+    const minRuntime = parseInt(runtimeRange[0]);
+    const maxRuntime = parseInt(runtimeRange[1]);
+    if (!isNaN(minRuntime) && !isNaN(maxRuntime)) {
+      params.append('min_runtime', minRuntime.toString());
+      params.append('max_runtime', maxRuntime.toString());
+    }
   }
 
   // Add language filters
