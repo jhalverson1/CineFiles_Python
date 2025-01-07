@@ -138,7 +138,7 @@ async def get_popular_movies(
             logger.error(f"TMDB API error in get_popular_movies: {str(e)}")
             raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
 
-@router.get("/top-rated")
+@router.get("/top_rated")
 async def get_top_rated_movies(
     page: int = Query(1, ge=1),
     start_year: Optional[int] = None,
@@ -242,7 +242,7 @@ async def get_upcoming_movies(
             logger.error(f"TMDB API error in get_upcoming_movies: {str(e)}")
             raise HTTPException(status_code=500, detail=f"TMDB API error: {str(e)}")
 
-@router.get("/now-playing")
+@router.get("/now_playing")
 async def get_now_playing_movies(
     page: int = Query(1, ge=1),
     start_year: Optional[int] = None,

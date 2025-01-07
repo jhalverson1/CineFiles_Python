@@ -76,17 +76,33 @@ const MovieList = ({
     let listType = type;
     let effectiveListId = listId;
 
-    // For TMDB lists, use the type directly
-    if (DEFAULT_MOVIE_LISTS.some(list => list.id === type)) {
-      listType = type;  // Use the type directly (e.g., 'popular', 'top_rated')
+    console.log('MovieList filters - Initial values:', {
+      type,
+      listId,
+      listType,
+      effectiveListId
+    });
+
+    // For default type, use the listId as the type for TMDB lists
+    if (type === 'default' && DEFAULT_MOVIE_LISTS.some(list => list.id === listId)) {
+      listType = listId;  // Use the listId as the type (e.g., 'popular', 'top_rated')
       effectiveListId = null;
+      console.log('MovieList filters - TMDB list detected:', {
+        type,
+        listType,
+        effectiveListId,
+        matchingList: DEFAULT_MOVIE_LISTS.find(list => list.id === listId)
+      });
     } else if (type === 'filtered') {
       // For filtered lists, keep the type as 'filtered' and use the listId
       listType = 'filtered';
       effectiveListId = listId;
+      console.log('MovieList filters - Filtered list detected:', {
+        type,
+        listType,
+        effectiveListId
+      });
     }
-
-    console.log('Creating filters with keywords:', { includeKeywords, excludeKeywords });
 
     const newFilters = {
       listType,
@@ -106,18 +122,8 @@ const MovieList = ({
       excludeKeywords: excludeKeywords?.length > 0 ? excludeKeywords : undefined,
       sortBy
     };
-    
-    if (JSON.stringify(newFilters) !== JSON.stringify(prevFiltersRef.current)) {
-      console.log('Filters changed:', { 
-        prev: prevFiltersRef.current, 
-        new: newFilters,
-        includeKeywords: newFilters.includeKeywords,
-        excludeKeywords: newFilters.excludeKeywords
-      });
-      prevFiltersRef.current = newFilters;
-      // Clear cache when filters change
-      requestCache.current.clear();
-    }
+
+    console.log('MovieList filters - Final filters object:', newFilters);
     
     return newFilters;
   }, [
@@ -181,7 +187,7 @@ const MovieList = ({
 
   // Fetch movies function
   const fetchMovies = useCallback(async (currentPage, currentFilters) => {
-    console.log('fetchMovies called', { 
+    console.log('MovieList fetchMovies - Starting fetch:', { 
       currentPage,
       currentFilters,
       allMoviesLength: allMovies.length,
@@ -190,13 +196,13 @@ const MovieList = ({
     });
 
     if (currentPage > 1 && !allMovies.length) {
-      console.log('Skipping fetch - no movies for pagination');
+      console.log('MovieList fetchMovies - Skipping fetch - no movies for pagination');
       return;
     }
 
     const cacheKey = getCacheKey(currentPage, currentFilters);
     if (requestCache.current.has(cacheKey)) {
-      console.log('Using cached response');
+      console.log('MovieList fetchMovies - Using cached response');
       const cachedData = requestCache.current.get(cacheKey);
       setAllMovies(prev => {
         if (JSON.stringify(prev) === JSON.stringify(cachedData.results)) {
@@ -212,11 +218,17 @@ const MovieList = ({
     setError(null);
     
     try {
-      console.log('Making API request', { currentPage, currentFilters });
+      console.log('MovieList fetchMovies - Making API request:', { 
+        currentPage, 
+        currentFilters,
+        isTMDBList: DEFAULT_MOVIE_LISTS.some(list => list.id === currentFilters.listType)
+      });
+
       let response;
       
       // Check if this is a custom list or a default TMDB list
       if (currentFilters.listType === 'filtered') {
+        console.log('MovieList fetchMovies - Handling filtered list');
         // Custom filtered list
         if (currentFilters.listId) {
           // If we have a valid filter ID, use the filter settings endpoint
@@ -256,6 +268,7 @@ const MovieList = ({
           });
         }
       } else if (currentFilters.listType === 'filter') {
+        console.log('MovieList fetchMovies - Handling filter list');
         // Custom filter list
         response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
           yearRange: currentFilters.yearRange,
@@ -273,25 +286,11 @@ const MovieList = ({
           excludeKeywords: currentFilters.excludeKeywords,
           sortBy: currentFilters.sortBy
         });
-      } else if (currentFilters.listId && currentFilters.listType !== 'tmdb') {
-        // Custom user list
-        response = await movieApi.getListMovies(currentFilters.listId, currentPage, {
-          yearRange: currentFilters.yearRange,
-          ratingRange: currentFilters.ratingRange,
-          popularityRange: currentFilters.popularityRange,
-          genres: currentFilters.genres,
-          watchProviders: currentFilters.watchProviders,
-          watchRegion: currentFilters.watchRegion,
-          voteCountRange: currentFilters.voteCountRange,
-          runtimeRange: currentFilters.runtimeRange,
-          originalLanguage: currentFilters.originalLanguage,
-          spokenLanguages: currentFilters.spokenLanguages,
-          releaseTypes: currentFilters.releaseTypes,
-          includeKeywords: currentFilters.includeKeywords,
-          excludeKeywords: currentFilters.excludeKeywords,
-          sortBy: currentFilters.sortBy
+      } else if (DEFAULT_MOVIE_LISTS.some(list => list.id === currentFilters.listType)) {
+        console.log('MovieList fetchMovies - Handling TMDB list:', {
+          listType: currentFilters.listType,
+          matchingList: DEFAULT_MOVIE_LISTS.find(list => list.id === currentFilters.listType)
         });
-      } else {
         // Default TMDB lists
         const filterParams = {
           yearRange: currentFilters.yearRange,
@@ -328,6 +327,28 @@ const MovieList = ({
             console.error('Invalid list type:', currentFilters.listType);
             throw new Error(`Invalid list type: ${currentFilters.listType}`);
         }
+      } else if (currentFilters.listId) {
+        console.log('MovieList fetchMovies - Handling custom user list');
+        // Custom user list
+        response = await movieApi.getListMovies(currentFilters.listId, currentPage, {
+          yearRange: currentFilters.yearRange,
+          ratingRange: currentFilters.ratingRange,
+          popularityRange: currentFilters.popularityRange,
+          genres: currentFilters.genres,
+          watchProviders: currentFilters.watchProviders,
+          watchRegion: currentFilters.watchRegion,
+          voteCountRange: currentFilters.voteCountRange,
+          runtimeRange: currentFilters.runtimeRange,
+          originalLanguage: currentFilters.originalLanguage,
+          spokenLanguages: currentFilters.spokenLanguages,
+          releaseTypes: currentFilters.releaseTypes,
+          includeKeywords: currentFilters.includeKeywords,
+          excludeKeywords: currentFilters.excludeKeywords,
+          sortBy: currentFilters.sortBy
+        });
+      } else {
+        console.error('MovieList fetchMovies - Invalid list type:', currentFilters.listType);
+        throw new Error(`Invalid list type: ${currentFilters.listType}`);
       }
       
       // Reset retry count on success
