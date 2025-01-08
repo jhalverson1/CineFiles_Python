@@ -59,4 +59,24 @@ async def create_list(
     await db.refresh(db_list)
     return db_list
 
+@router.post("/watched/{movie_id}")
+async def toggle_watched_status(
+    movie_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """Toggle whether a movie is marked as watched by the current user."""
+    from ..services.list_service import toggle_watched_status
+    return await toggle_watched_status(db, current_user.id, movie_id)
+
+@router.post("/watchlist/{movie_id}")
+async def toggle_watchlist_status(
+    movie_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """Toggle whether a movie is in the current user's watchlist."""
+    from ..services.list_service import toggle_watchlist_status
+    return await toggle_watchlist_status(db, current_user.id, movie_id)
+
 # ... rest of the file unchanged ... 
