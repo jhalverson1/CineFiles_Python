@@ -51,6 +51,14 @@ const FilterBar = ({
   const [companiesOpen, setCompaniesOpen] = useState(false);
   const [castOpen, setCastOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [saveFilterOpen, setSaveFilterOpen] = useState(false);
+  const [loadFilterOpen, setLoadFilterOpen] = useState(false);
+  const [filterName, setFilterName] = useState('');
+  const [savedFilters, setSavedFilters] = useState([]);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(false);
+  const [error, setError] = useState(null);
+  const [activeFilterName, setActiveFilterName] = useState(null);
+  const [saveMode, setSaveMode] = useState('new'); // 'new' or 'update'
 
   // Refs for click outside handling
   const yearRef = useRef(null);
@@ -64,6 +72,136 @@ const FilterBar = ({
   const companiesRef = useRef(null);
   const castRef = useRef(null);
   const sortRef = useRef(null);
+  const saveFilterRef = useRef(null);
+  const loadFilterRef = useRef(null);
+
+  // Load saved filters on component mount
+  useEffect(() => {
+    loadSavedFilters();
+  }, []);
+
+  const loadSavedFilters = async () => {
+    try {
+      setIsLoadingFilters(true);
+      setError(null);
+      const filters = await filterSettingsApi.getFilterSettings();
+      setSavedFilters(filters || []);
+    } catch (err) {
+      console.error('Failed to load filters:', err);
+      setError('Failed to load saved filters');
+    } finally {
+      setIsLoadingFilters(false);
+    }
+  };
+
+  const handleSaveFilter = async (mode = 'new') => {
+    if (mode === 'new' && !filterName.trim()) {
+      setError('Please enter a filter name');
+      return;
+    }
+
+    try {
+      setError(null);
+      const filterData = {
+        name: mode === 'update' ? activeFilterName : filterName,
+        // Year range
+        release_date_gte: yearRange?.[0] ? new Date(yearRange[0], 0, 1).toISOString() : null,
+        release_date_lte: yearRange?.[1] ? new Date(yearRange[1], 11, 31).toISOString() : null,
+        
+        // Rating range
+        rating_gte: ratingRange?.[0] || null,
+        rating_lte: ratingRange?.[1] || null,
+        
+        // Vote count range
+        vote_count_gte: voteCountRange?.[0] || null,
+        vote_count_lte: voteCountRange?.[1] || null,
+        
+        // Runtime range
+        runtime_gte: runtimeRange?.[0] || null,
+        runtime_lte: runtimeRange?.[1] || null,
+        
+        // Other filters
+        genres: selectedGenres?.length > 0 ? selectedGenres.join(',') : null,
+        original_language: originalLanguage || null,
+        spoken_languages: spokenLanguages?.length > 0 ? spokenLanguages.join(',') : null,
+        release_types: releaseTypes?.length > 0 ? releaseTypes.join(',') : null,
+        watch_providers: watchProviders?.length > 0 ? watchProviders.join(',') : null,
+        watch_region: watchRegion || null,
+        watch_monetization_types: watchMonetizationTypes?.length > 0 ? watchMonetizationTypes.join(',') : null,
+        companies: companies?.length > 0 ? companies.join(',') : null,
+        origin_countries: originCountries?.length > 0 ? originCountries.join(',') : null,
+        cast: cast?.length > 0 ? cast.join(',') : null,
+        crew: crew?.length > 0 ? crew.join(',') : null,
+        sort_by: sortBy || null
+      };
+
+      if (mode === 'update') {
+        const currentFilter = savedFilters.find(f => f.name === activeFilterName);
+        if (currentFilter) {
+          await filterSettingsApi.updateFilterSetting(currentFilter.id, filterData);
+        }
+      } else {
+        await filterSettingsApi.createFilterSetting(filterData);
+      }
+
+      await loadSavedFilters();
+      setFilterName('');
+      setSaveFilterOpen(false);
+      setSaveMode('new');
+    } catch (err) {
+      console.error('Failed to save filter:', err);
+      setError('Failed to save filter');
+    }
+  };
+
+  const handleLoadFilter = async (filter) => {
+    try {
+      // Year range
+      if (filter.release_date_gte || filter.release_date_lte) {
+        const startYear = filter.release_date_gte ? new Date(filter.release_date_gte).getFullYear() : null;
+        const endYear = filter.release_date_lte ? new Date(filter.release_date_lte).getFullYear() : null;
+        onYearRangeChange([startYear, endYear]);
+      }
+
+      // Rating range
+      if (filter.rating_gte !== null || filter.rating_lte !== null) {
+        onRatingRangeChange([filter.rating_gte, filter.rating_lte]);
+      }
+
+      // Vote count range
+      if (filter.vote_count_gte !== null || filter.vote_count_lte !== null) {
+        onVoteCountRangeChange([filter.vote_count_gte, filter.vote_count_lte]);
+      }
+
+      // Runtime range
+      if (filter.runtime_gte !== null || filter.runtime_lte !== null) {
+        onRuntimeRangeChange([filter.runtime_gte, filter.runtime_lte]);
+      }
+
+      // Other filters
+      if (filter.genres) onGenresChange(filter.genres.split(',').map(Number));
+      if (filter.original_language) onOriginalLanguageChange(filter.original_language);
+      if (filter.spoken_languages) onSpokenLanguagesChange(filter.spoken_languages.split(','));
+      if (filter.release_types) onReleaseTypesChange(filter.release_types.split(',').map(Number));
+      if (filter.watch_providers) onWatchProvidersChange(filter.watch_providers.split(',').map(Number));
+      if (filter.watch_region) onWatchRegionChange(filter.watch_region);
+      if (filter.watch_monetization_types) onWatchMonetizationTypesChange(filter.watch_monetization_types.split(','));
+      if (filter.companies) onCompaniesChange(filter.companies.split(',').map(Number));
+      if (filter.origin_countries) onOriginCountriesChange(filter.origin_countries.split(','));
+      if (filter.cast) onCastChange(filter.cast.split(',').map(Number));
+      if (filter.crew) onCrewChange(filter.crew.split(',').map(Number));
+      if (filter.sort_by) onSortByChange(filter.sort_by);
+
+      // Set the active filter name
+      setActiveFilterName(filter.name);
+
+      setLoadFilterOpen(false);
+      if (onSubmit) onSubmit();
+    } catch (err) {
+      console.error('Failed to load filter:', err);
+      setError('Failed to load filter');
+    }
+  };
 
   // Click outside handler
   useEffect(() => {
@@ -102,11 +240,17 @@ const FilterBar = ({
       if (sortOpen && sortRef.current && !sortRef.current.contains(event.target)) {
         setSortOpen(false);
       }
+      if (saveFilterOpen && saveFilterRef.current && !saveFilterRef.current.contains(event.target)) {
+        setSaveFilterOpen(false);
+      }
+      if (loadFilterOpen && loadFilterRef.current && !loadFilterRef.current.contains(event.target)) {
+        setLoadFilterOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [yearOpen, ratingOpen, genreOpen, voteCountOpen, runtimeOpen, languageOpen, releaseTypeOpen, providersOpen, companiesOpen, castOpen, sortOpen]);
+  }, [yearOpen, ratingOpen, genreOpen, voteCountOpen, runtimeOpen, languageOpen, releaseTypeOpen, providersOpen, companiesOpen, castOpen, sortOpen, saveFilterOpen, loadFilterOpen]);
 
   // Local state for filter values
   const [localYearRange, setLocalYearRange] = useState(null);
@@ -212,6 +356,7 @@ const FilterBar = ({
     setLocalCast([]);
     setLocalCrew([]);
     setLocalSortBy(null);
+    setActiveFilterName(null);
 
     // Apply reset to parent
     if (onYearRangeChange) onYearRangeChange(null);
@@ -239,6 +384,29 @@ const FilterBar = ({
 
   return (
     <div className="flex flex-col gap-4">
+      {error && (
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
+          {error}
+        </div>
+      )}
+
+      {/* Active Filter Name */}
+      {activeFilterName && (
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-text-secondary">Active Filter:</span>
+          <span className="font-medium text-primary">{activeFilterName}</span>
+          <button
+            onClick={() => setActiveFilterName(null)}
+            className="p-1 text-text-disabled hover:text-text-primary rounded-lg hover:bg-background-active transition-colors"
+            aria-label="Clear active filter"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Main Filters Section */}
       <div className="flex flex-wrap gap-2 p-4 bg-background-secondary/50 rounded-lg border border-border/10">
         {/* Year Range Filter */}
@@ -651,36 +819,142 @@ const FilterBar = ({
       </div>
 
       {/* Actions Bar */}
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={handleReset}
-          className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          <span>Reset</span>
-        </button>
+      <div className="flex justify-between gap-2">
+        {/* Left-aligned buttons */}
+        <div className="flex gap-2">
+          {/* Load Filter Button */}
+          <div className="relative" ref={loadFilterRef}>
+            <button
+              onClick={() => setLoadFilterOpen(!loadFilterOpen)}
+              className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span>Load</span>
+            </button>
+            {loadFilterOpen && (
+              <div className="absolute bottom-full left-0 mb-2 p-2 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
+                {isLoadingFilters ? (
+                  <div className="flex items-center justify-center p-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                ) : savedFilters.length === 0 ? (
+                  <p className="text-sm text-text-secondary p-3">No saved filters</p>
+                ) : (
+                  savedFilters.map((filter) => (
+                    <button
+                      key={filter.id}
+                      onClick={() => handleLoadFilter(filter)}
+                      className="w-full px-4 py-2 text-left text-sm font-medium rounded-lg hover:bg-background-active transition-colors"
+                    >
+                      {filter.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
-        <button
-          onClick={handleSubmit}
-          className="h-9 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          {/* Save Filter Button */}
+          <div className="relative" ref={saveFilterRef}>
+            <button
+              onClick={() => setSaveFilterOpen(!saveFilterOpen)}
+              className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              <span>Save</span>
+            </button>
+            {saveFilterOpen && (
+              <div className="absolute bottom-full left-0 mb-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
+                {activeFilterName ? (
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => handleSaveFilter('update')}
+                      className="w-full h-9 bg-background-tertiary hover:bg-background-active text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Update "{activeFilterName}"
+                    </button>
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-border/10"></div>
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="px-2 text-text-secondary bg-background-secondary">or</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={filterName}
+                        onChange={(e) => setFilterName(e.target.value)}
+                        placeholder="Enter new filter name"
+                        className="w-full h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                      <button
+                        onClick={() => handleSaveFilter('new')}
+                        className="w-full h-9 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Save as New
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={filterName}
+                      onChange={(e) => setFilterName(e.target.value)}
+                      placeholder="Enter filter name"
+                      className="w-full h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <button
+                      onClick={() => handleSaveFilter('new')}
+                      className="w-full h-9 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right-aligned buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleReset}
+            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          <span>Apply Filters</span>
-        </button>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Reset</span>
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Apply Filters</span>
+          </button>
+        </div>
       </div>
     </div>
   );
