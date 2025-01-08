@@ -80,9 +80,9 @@ const MovieList = ({
     if (type === 'default' && DEFAULT_MOVIE_LISTS.some(list => list.id === listId)) {
       listType = listId;  // Use the listId as the type (e.g., 'popular', 'top_rated')
       effectiveListId = null;
-    } else if (type === 'filtered') {
-      // For filtered lists, keep the type as 'filtered' and use the listId
-      listType = 'filtered';
+    } else if (type === 'filter') {
+      // For filter settings, keep the type as 'filter' and use the listId
+      listType = 'filter';
       effectiveListId = listId;
     }
 
@@ -178,9 +178,9 @@ const MovieList = ({
     try {
       let response;
       
-      if (currentFilters.listType === 'filtered') {
-        console.log('MovieList fetchMovies - Handling filtered list');
-        response = await movieApi.getFilteredMovies(currentPage, {
+      if (currentFilters.listType === 'filter') {
+        console.log('MovieList fetchMovies - Handling filter setting');
+        response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
           popularityRange: currentFilters.popularityRange,
@@ -196,9 +196,9 @@ const MovieList = ({
           excludeKeywords: currentFilters.excludeKeywords,
           sortBy: currentFilters.sortBy
         });
-      } else if (currentFilters.listType === 'filter') {
-        console.log('MovieList fetchMovies - Handling filter list');
-        response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
+      } else if (currentFilters.listType === 'filtered') {
+        console.log('MovieList fetchMovies - Handling filtered list');
+        response = await movieApi.getFilteredMovies(currentPage, {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
           popularityRange: currentFilters.popularityRange,

@@ -706,7 +706,7 @@ async def get_filter_setting_movies(
         # Log database connection status
         logger.info(f"Database session: {db}")
         logger.info(f"Database session state: {db.is_active}")
-        
+
         # Get the filter setting from the database
         query = select(FilterSettings).where(FilterSettings.id == filter_id)
         logger.info(f"Executing database query: {query}")
@@ -736,81 +736,67 @@ async def get_filter_setting_movies(
             }
             
             try:
-                if filter_setting.year_range:
-                    logger.info(f"Parsing year_range: {filter_setting.year_range}")
-                    year_range = json.loads(filter_setting.year_range)
-                    params["primary_release_date.gte"] = f"{year_range[0]}-01-01"
-                    params["primary_release_date.lte"] = f"{year_range[1]}-12-31"
-                
-                if filter_setting.rating_range:
-                    logger.info(f"Parsing rating_range: {filter_setting.rating_range}")
-                    rating_range = json.loads(filter_setting.rating_range)
-                    params["vote_average.gte"] = str(rating_range[0])
-                    params["vote_average.lte"] = str(rating_range[1])
-                
-                if filter_setting.popularity_range:
-                    logger.info(f"Parsing popularity_range: {filter_setting.popularity_range}")
-                    popularity_range = json.loads(filter_setting.popularity_range)
-                    params["popularity.gte"] = str(popularity_range[0])
-                    params["popularity.lte"] = str(popularity_range[1])
+                # Handle release date range
+                if filter_setting.release_date_gte:
+                    params["primary_release_date.gte"] = filter_setting.release_date_gte.strftime("%Y-%m-%d")
+                if filter_setting.release_date_lte:
+                    params["primary_release_date.lte"] = filter_setting.release_date_lte.strftime("%Y-%m-%d")
 
+                # Handle rating range
+                if filter_setting.rating_gte is not None:
+                    params["vote_average.gte"] = str(filter_setting.rating_gte)
+                if filter_setting.rating_lte is not None:
+                    params["vote_average.lte"] = str(filter_setting.rating_lte)
+                
+                # Handle popularity range
+                if filter_setting.popularity_gte is not None:
+                    params["popularity.gte"] = str(filter_setting.popularity_gte)
+                if filter_setting.popularity_lte is not None:
+                    params["popularity.lte"] = str(filter_setting.popularity_lte)
+
+                # Handle genres
                 if filter_setting.genres:
-                    logger.info(f"Parsing genres: {filter_setting.genres}")
-                    genres_list = json.loads(filter_setting.genres)
-                    # Convert list of genre IDs to pipe-separated string
-                    params["with_genres"] = "|".join(str(g) for g in genres_list)
-                    logger.info(f"Formatted genres parameter: {params['with_genres']}")
+                    params["with_genres"] = filter_setting.genres
 
-                # Add watch providers from filter settings
+                # Handle watch providers
                 if filter_setting.watch_providers:
-                    logger.info(f"Parsing watch_providers: {filter_setting.watch_providers}")
-                    providers_list = json.loads(filter_setting.watch_providers)
-                    params["with_watch_providers"] = "|".join(str(p) for p in providers_list)
-                    logger.info(f"Formatted watch providers parameter: {params['with_watch_providers']}")
+                    params["with_watch_providers"] = filter_setting.watch_providers
 
-                # Add watch region from filter settings or use default
+                # Handle watch region
                 if filter_setting.watch_region:
                     params["watch_region"] = filter_setting.watch_region
                 else:
                     params["watch_region"] = "US"  # Default to US if not specified
 
-                # Add keywords from filter settings
+                # Handle keywords
                 if filter_setting.include_keywords:
-                    logger.info(f"Parsing include_keywords: {filter_setting.include_keywords}")
-                    keywords_list = json.loads(filter_setting.include_keywords)
-                    params["with_keywords"] = "|".join(str(k) for k in keywords_list)
-                    logger.info(f"Formatted include keywords parameter: {params['with_keywords']}")
-
+                    params["with_keywords"] = filter_setting.include_keywords
                 if filter_setting.exclude_keywords:
-                    logger.info(f"Parsing exclude_keywords: {filter_setting.exclude_keywords}")
-                    keywords_list = json.loads(filter_setting.exclude_keywords)
-                    params["without_keywords"] = "|".join(str(k) for k in keywords_list)
-                    logger.info(f"Formatted exclude keywords parameter: {params['without_keywords']}")
+                    params["without_keywords"] = filter_setting.exclude_keywords
 
-                # Add vote count range from filter settings
-                if filter_setting.vote_count_range:
-                    logger.info(f"Parsing vote_count_range: {filter_setting.vote_count_range}")
-                    vote_count_range = json.loads(filter_setting.vote_count_range)
-                    params["vote_count.gte"] = str(vote_count_range[0])
-                    params["vote_count.lte"] = str(vote_count_range[1])
+                # Handle vote count range
+                if filter_setting.vote_count_gte is not None:
+                    params["vote_count.gte"] = str(filter_setting.vote_count_gte)
+                if filter_setting.vote_count_lte is not None:
+                    params["vote_count.lte"] = str(filter_setting.vote_count_lte)
 
-                # Add runtime range from filter settings
-                if filter_setting.runtime_range:
-                    logger.info(f"Parsing runtime_range: {filter_setting.runtime_range}")
-                    runtime_range = json.loads(filter_setting.runtime_range)
-                    params["with_runtime.gte"] = str(runtime_range[0])
-                    params["with_runtime.lte"] = str(runtime_range[1])
+                # Handle runtime range
+                if filter_setting.runtime_gte is not None:
+                    params["with_runtime.gte"] = str(filter_setting.runtime_gte)
+                if filter_setting.runtime_lte is not None:
+                    params["with_runtime.lte"] = str(filter_setting.runtime_lte)
 
-                # Add release types from filter settings
+                # Handle release types
                 if filter_setting.release_types:
-                    logger.info(f"Parsing release_types: {filter_setting.release_types}")
-                    release_types_list = json.loads(filter_setting.release_types)
-                    params["with_release_type"] = "|".join(str(rt) for rt in release_types_list)
-                    logger.info(f"Formatted release types parameter: {params['with_release_type']}")
+                    params["with_release_type"] = filter_setting.release_types
 
-            except json.JSONDecodeError as e:
-                logger.error(f"Error parsing JSON ranges: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Error parsing filter settings: {str(e)}")
+                # Handle sort by
+                if filter_setting.sort_by:
+                    params["sort_by"] = filter_setting.sort_by
+
+            except Exception as e:
+                logger.error(f"Error processing filter settings: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error processing filter settings: {str(e)}")
             
             # Override with request parameters if provided
             if min_vote_count is not None:
@@ -881,6 +867,6 @@ async def get_filter_setting_movies(
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
     finally:
         logger.info("=" * 80) 
