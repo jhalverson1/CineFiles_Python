@@ -29,20 +29,32 @@ const onRefreshed = (access_token) => {
 
 // Function to refresh token
 const refreshAccessToken = async () => {
+  console.log('[Token Refresh] Starting token refresh');
   try {
     const refresh_token = localStorage.getItem('refresh_token');
     if (!refresh_token) {
+      console.log('[Token Refresh] No refresh token available');
       throw new Error('No refresh token available');
     }
 
-    const response = await axios.post(`${baseURL}/api/auth/refresh`, { refresh_token });
+    console.log('[Token Refresh] Attempting to refresh with token');
+    const params = new URLSearchParams();
+    params.append('refresh_token', refresh_token);
+    
+    const response = await axios.post(`${baseURL}/api/auth/refresh`, params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
     const { access_token, refresh_token: new_refresh_token } = response.data;
     
+    console.log('[Token Refresh] Successfully obtained new tokens');
     localStorage.setItem('token', access_token);
     localStorage.setItem('refresh_token', new_refresh_token);
     
     return access_token;
   } catch (error) {
+    console.error('[Token Refresh] Error refreshing token:', error.response?.data || error.message);
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('username');
@@ -77,6 +89,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    console.log('[API Interceptor] Response error:', {
+      status: error.response?.status,
+      url: originalRequest?.url,
+      retried: !!originalRequest._retry
+    });
+    
     // If error is not 401 or request has already been retried, reject
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
@@ -84,6 +102,7 @@ api.interceptors.response.use(
     
     // If already refreshing, queue this request
     if (isRefreshing) {
+      console.log('[API Interceptor] Token refresh in progress, queueing request');
       try {
         const token = await new Promise(resolve => {
           addSubscriber(token => {
@@ -98,16 +117,18 @@ api.interceptors.response.use(
     }
     
     // Start token refresh process
+    console.log('[API Interceptor] Starting new token refresh cycle');
     originalRequest._retry = true;
     isRefreshing = true;
     
     try {
       const access_token = await refreshAccessToken();
+      console.log('[API Interceptor] Token refresh successful, retrying original request');
       originalRequest.headers.Authorization = `Bearer ${access_token}`;
       onRefreshed(access_token);
       return api(originalRequest);
     } catch (refreshError) {
-      // If refresh fails, redirect to login
+      console.error('[API Interceptor] Token refresh failed, redirecting to login');
       window.location.href = '/login';
       return Promise.reject(refreshError);
     } finally {
@@ -140,6 +161,8 @@ export const authApi = {
 
 // Helper function to add filter parameters
 const addFilterParams = (params, filters) => {
+  console.log('Adding filter params:', filters);
+  
   const {
     yearRange,
     ratingRange,
@@ -147,22 +170,51 @@ const addFilterParams = (params, filters) => {
     genres,
     sortBy,
     minVoteCount,
-    releaseDate
+    releaseDate,
+    watchProviders,
+    watchRegion,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords
   } = filters;
 
+  console.log('Processing keywords:', { includeKeywords, excludeKeywords });
+
+  // Only add year range if both values are valid numbers
   if (yearRange?.length === 2) {
-    params.append('start_year', yearRange[0].toString());
-    params.append('end_year', yearRange[1].toString());
+    const startYear = yearRange[0] ? parseInt(yearRange[0]) : null;
+    const endYear = yearRange[1] ? parseInt(yearRange[1]) : null;
+    
+    if (startYear !== null && !isNaN(startYear)) {
+      params.append('start_year', startYear.toString());
+    }
+    if (endYear !== null && !isNaN(endYear)) {
+      params.append('end_year', endYear.toString());
+    }
   }
   
-  if (ratingRange?.length === 2) {
-    params.append('min_rating', ratingRange[0].toString());
-    params.append('max_rating', ratingRange[1].toString());
+  // Only add rating range if both values are valid numbers
+  if (ratingRange?.length === 2 && ratingRange[0] !== null && ratingRange[1] !== null) {
+    const minRating = parseFloat(ratingRange[0]);
+    const maxRating = parseFloat(ratingRange[1]);
+    if (!isNaN(minRating) && !isNaN(maxRating)) {
+      params.append('min_rating', minRating.toString());
+      params.append('max_rating', maxRating.toString());
+    }
   }
   
-  if (popularityRange?.length === 2) {
-    params.append('min_popularity', popularityRange[0].toString());
-    params.append('max_popularity', popularityRange[1].toString());
+  // Only add popularity range if both values are valid numbers
+  if (popularityRange?.length === 2 && popularityRange[0] !== null && popularityRange[1] !== null) {
+    const minPopularity = parseFloat(popularityRange[0]);
+    const maxPopularity = parseFloat(popularityRange[1]);
+    if (!isNaN(minPopularity) && !isNaN(maxPopularity)) {
+      params.append('min_popularity', minPopularity.toString());
+      params.append('max_popularity', maxPopularity.toString());
+    }
   }
   
   if (genres?.length > 0) {
@@ -180,10 +232,73 @@ const addFilterParams = (params, filters) => {
   if (releaseDate?.gte) {
     params.append('release_date_gte', releaseDate.gte);
   }
-  
   if (releaseDate?.lte) {
     params.append('release_date_lte', releaseDate.lte);
   }
+
+  // Add watch provider parameters
+  if (Array.isArray(watchProviders) && watchProviders.length > 0) {
+    console.log('Adding watch providers to params:', watchProviders);
+    params.append('watch_providers', watchProviders.join(','));
+  }
+  
+  if (watchRegion) {
+    params.append('watch_region', watchRegion);
+  }
+
+  // Add vote count range if both values are valid numbers
+  if (voteCountRange?.length === 2 && voteCountRange[0] !== null && voteCountRange[1] !== null) {
+    const minVoteCount = parseInt(voteCountRange[0]);
+    const maxVoteCount = parseInt(voteCountRange[1]);
+    if (!isNaN(minVoteCount) && !isNaN(maxVoteCount)) {
+      params.append('min_vote_count', minVoteCount.toString());
+      params.append('max_vote_count', maxVoteCount.toString());
+    }
+  }
+
+  // Add runtime range if both values are valid numbers
+  if (runtimeRange?.length === 2 && runtimeRange[0] !== null && runtimeRange[1] !== null) {
+    const minRuntime = parseInt(runtimeRange[0]);
+    const maxRuntime = parseInt(runtimeRange[1]);
+    if (!isNaN(minRuntime) && !isNaN(maxRuntime)) {
+      params.append('min_runtime', minRuntime.toString());
+      params.append('max_runtime', maxRuntime.toString());
+    }
+  }
+
+  // Add language filters
+  if (originalLanguage) {
+    params.append('original_language', originalLanguage);
+  }
+
+  if (Array.isArray(spokenLanguages) && spokenLanguages.length > 0) {
+    params.append('spoken_languages', spokenLanguages.join(','));
+  }
+
+  // Add release types
+  if (Array.isArray(releaseTypes) && releaseTypes.length > 0) {
+    console.log('Adding release types to params:', releaseTypes);
+    params.append('release_types', releaseTypes.join(','));
+  }
+
+  // Add keywords
+  if (Array.isArray(includeKeywords) && includeKeywords.length > 0) {
+    console.log('Adding include_keywords to params:', includeKeywords);
+    params.append('include_keywords', includeKeywords.join(','));
+  } else if (typeof includeKeywords === 'string' && includeKeywords.trim()) {
+    console.log('Adding include_keywords (string) to params:', includeKeywords);
+    params.append('include_keywords', includeKeywords.trim());
+  }
+
+  if (Array.isArray(excludeKeywords) && excludeKeywords.length > 0) {
+    console.log('Adding exclude_keywords to params:', excludeKeywords);
+    params.append('exclude_keywords', excludeKeywords.join(','));
+  } else if (typeof excludeKeywords === 'string' && excludeKeywords.trim()) {
+    console.log('Adding exclude_keywords (string) to params:', excludeKeywords);
+    params.append('exclude_keywords', excludeKeywords.trim());
+  }
+
+  console.log('Final params:', params.toString());
 };
 
 export const movieApi = {
@@ -196,7 +311,7 @@ export const movieApi = {
   getTopRatedMovies: (page = 1, filters = {}) => {
     const params = new URLSearchParams({ page: page.toString() });
     addFilterParams(params, filters);
-    return api.get(`/api/movies/top-rated?${params.toString()}`);
+    return api.get(`/api/movies/top_rated?${params.toString()}`);
   },
   
   getUpcomingMovies: (page = 1, filters = {}) => {
@@ -208,7 +323,7 @@ export const movieApi = {
   getNowPlayingMovies: (page = 1, filters = {}) => {
     const params = new URLSearchParams({ page: page.toString() });
     addFilterParams(params, filters);
-    return api.get(`/api/movies/now-playing?${params.toString()}`);
+    return api.get(`/api/movies/now_playing?${params.toString()}`);
   },
   
   getListMovies: async (listId, page = 1, filters = {}) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MovieList from './MovieList';
 import FilterBar from '../filters/FilterBar';
 import HomepageFilterManager from '../filters/HomepageFilterManager';
@@ -56,7 +56,17 @@ const HomePage = () => {
   const [excludeOpen, setExcludeOpen] = useState(false);
   const [homepageLists, setHomepageLists] = useState([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
-  const excludeRef = React.useRef(null);
+  const [watchProviders, setWatchProviders] = useState([]);
+  const [watchRegion, setWatchRegion] = useState('US');
+  const [voteCountRange, setVoteCountRange] = useState(null);
+  const [runtimeRange, setRuntimeRange] = useState(null);
+  const [originalLanguage, setOriginalLanguage] = useState(null);
+  const [spokenLanguages, setSpokenLanguages] = useState([]);
+  const [releaseTypes, setReleaseTypes] = useState([]);
+  const [includeKeywords, setIncludeKeywords] = useState([]);
+  const [excludeKeywords, setExcludeKeywords] = useState([]);
+  const [sortBy, setSortBy] = useState(null);
+  const excludeRef = useRef(null);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -64,9 +74,32 @@ const HomePage = () => {
       yearRange || 
       ratingRange || 
       popularityRange || 
-      (selectedGenres && selectedGenres.length > 0)
+      (selectedGenres && selectedGenres.length > 0) ||
+      (watchProviders && watchProviders.length > 0) ||
+      voteCountRange ||
+      runtimeRange ||
+      originalLanguage ||
+      (spokenLanguages && spokenLanguages.length > 0) ||
+      (releaseTypes && releaseTypes.length > 0) ||
+      (includeKeywords && includeKeywords.length > 0) ||
+      (excludeKeywords && excludeKeywords.length > 0) ||
+      sortBy
     );
-  }, [yearRange, ratingRange, popularityRange, selectedGenres]);
+  }, [
+    yearRange, 
+    ratingRange, 
+    popularityRange, 
+    selectedGenres, 
+    watchProviders,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords,
+    sortBy
+  ]);
 
   // Load homepage lists
   const loadHomepageLists = useCallback(async () => {
@@ -138,6 +171,16 @@ const HomePage = () => {
     setSearchResults(null);
     setSearchQuery('');
     setIsSearchOpen(false);
+    setWatchProviders([]);
+    setWatchRegion('US');
+    setVoteCountRange(null);
+    setRuntimeRange(null);
+    setOriginalLanguage(null);
+    setSpokenLanguages([]);
+    setReleaseTypes([]);
+    setIncludeKeywords([]);
+    setExcludeKeywords([]);
+    setSortBy(null);
   }, [location.key, isMobile]);
 
   // Handle search toggle
@@ -166,26 +209,6 @@ const HomePage = () => {
   useEffect(() => {
     setIsCompact(isMobile);
   }, [isMobile]);
-
-  // Handle scroll events
-  useEffect(() => {
-    let lastScrollY = window.scrollY;
-    
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY > 0) {
-        setIsVisible(false);
-      } else {
-        setIsVisible(true);
-      }
-      
-      lastScrollY = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleSearch = async (e) => {
     e?.preventDefault();
@@ -228,9 +251,7 @@ const HomePage = () => {
   return (
     <div>
       {/* Fixed Header Container */}
-      <div className={`fixed top-14 left-0 right-0 z-40 bg-background-secondary border-b border-border shadow-lg transition-transform duration-300 ${
-        isVisible ? 'translate-y-0' : '-translate-y-full'
-      }`}>
+      <div className="fixed top-14 left-0 right-0 z-40 bg-background-secondary border-b border-border shadow-lg">
         {/* Solid colored backdrop */}
         <div className="absolute inset-0 bg-background-secondary" />
         
@@ -415,6 +436,26 @@ const HomePage = () => {
                     onGenresChange={setSelectedGenres}
                     genres={genres}
                     isLoadingGenres={isLoadingGenres}
+                    watchProviders={watchProviders}
+                    onWatchProvidersChange={setWatchProviders}
+                    watchRegion={watchRegion}
+                    onWatchRegionChange={setWatchRegion}
+                    voteCountRange={voteCountRange}
+                    onVoteCountRangeChange={setVoteCountRange}
+                    runtimeRange={runtimeRange}
+                    onRuntimeRangeChange={setRuntimeRange}
+                    originalLanguage={originalLanguage}
+                    onOriginalLanguageChange={setOriginalLanguage}
+                    spokenLanguages={spokenLanguages}
+                    onSpokenLanguagesChange={setSpokenLanguages}
+                    releaseTypes={releaseTypes}
+                    onReleaseTypesChange={setReleaseTypes}
+                    includeKeywords={includeKeywords}
+                    onIncludeKeywordsChange={setIncludeKeywords}
+                    excludeKeywords={excludeKeywords}
+                    onExcludeKeywordsChange={setExcludeKeywords}
+                    sortBy={sortBy}
+                    onSortByChange={setSortBy}
                   />
                 </div>
               )}
@@ -537,6 +578,16 @@ const HomePage = () => {
                     excludedLists={excludedLists}
                     viewMode={viewMode}
                     isCompact={isCompact}
+                    watchProviders={watchProviders}
+                    watchRegion={watchRegion}
+                    voteCountRange={voteCountRange}
+                    runtimeRange={runtimeRange}
+                    originalLanguage={originalLanguage}
+                    spokenLanguages={spokenLanguages}
+                    releaseTypes={releaseTypes}
+                    includeKeywords={includeKeywords}
+                    excludeKeywords={excludeKeywords}
+                    sortBy={sortBy}
                   />
                 </section>
               ) : (
@@ -555,32 +606,36 @@ const HomePage = () => {
                     <div className="space-y-12">
                       {homepageLists.map((list) => (
                         <section key={`${list.type}-${list.id}`}>
-                          <h2 className="text-2xl font-semibold mb-4 text-text-primary pl-2 border-l-[6px] border-gold">
-                            {list.name}
-                          </h2>
-                          {list.type === 'default' ? (
-                            <MovieList
-                              key={`${list.id}-${key}`}
-                              type="tmdb"
-                              listId={list.id}
-                              excludedLists={excludedLists}
-                              viewMode={viewMode}
-                              isCompact={isCompact}
-                            />
-                          ) : (
-                            <MovieList
-                              key={`filtered-${list.id}-${key}`}
-                              type="filtered"
-                              listId={list.id}
-                              yearRange={list.year_range ? JSON.parse(list.year_range) : null}
-                              ratingRange={list.rating_range ? JSON.parse(list.rating_range) : null}
-                              popularityRange={list.popularity_range ? JSON.parse(list.popularity_range) : null}
-                              genres={list.genres ? JSON.parse(list.genres) : []}
-                              excludedLists={excludedLists}
-                              viewMode={viewMode}
-                              isCompact={isCompact}
-                            />
-                          )}
+                          <div className="mb-8">
+                            <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                              {list.name}
+                            </h2>
+                            <p className="text-text-secondary pl-2">
+                              {list.description}
+                            </p>
+                          </div>
+                          <MovieList
+                            key={`${list.type}-${list.id}-${key}`}
+                            type={list.type}
+                            listId={list.id}
+                            yearRange={yearRange}
+                            ratingRange={ratingRange}
+                            popularityRange={popularityRange}
+                            selectedGenres={selectedGenres}
+                            excludedLists={excludedLists}
+                            viewMode={viewMode}
+                            isCompact={isCompact}
+                            watchProviders={watchProviders}
+                            watchRegion={watchRegion}
+                            voteCountRange={voteCountRange}
+                            runtimeRange={runtimeRange}
+                            originalLanguage={originalLanguage}
+                            spokenLanguages={spokenLanguages}
+                            releaseTypes={releaseTypes}
+                            includeKeywords={includeKeywords}
+                            excludeKeywords={excludeKeywords}
+                            sortBy={sortBy}
+                          />
                         </section>
                       ))}
                     </div>

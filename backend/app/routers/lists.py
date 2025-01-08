@@ -27,6 +27,21 @@ from ..core.security import get_current_user
 
 router = APIRouter()
 
+@router.get("", response_model=List[ListSchema])
+async def get_lists(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """Get all lists for the current user."""
+    query = (
+        select(ListModel)
+        .where(ListModel.user_id == current_user.id)
+        .options(joinedload(ListModel.items))
+    )
+    result = await db.execute(query)
+    lists = result.unique().scalars().all()
+    return lists
+
 @router.post("", response_model=ListSchema)
 async def create_list(
     list_data: ListCreate,
