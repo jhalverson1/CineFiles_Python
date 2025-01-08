@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useLists } from '../../contexts/ListsContext';
 import { listsApi } from '../../utils/listsApi';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const BookmarkIcon = ({ className = "w-5 h-5" }) => (
   <svg 
@@ -16,23 +16,41 @@ const BookmarkIcon = ({ className = "w-5 h-5" }) => (
 );
 
 const WatchlistToggle = ({ movieId, isCompact = false, onToggle }) => {
-  const { lists, refreshLists } = useLists();
+  const { lists, updateListStatus } = useLists();
   const [isLoading, setIsLoading] = useState(false);
 
+  const watchedList = lists?.find(list => list.name === 'Watched');
   const watchlist = lists?.find(list => list.name === 'Watchlist');
+  const isWatched = watchedList?.items?.some(item => item.movie_id === movieId.toString());
   const isInWatchlist = watchlist?.items?.some(item => item.movie_id === movieId.toString());
 
   const handleToggle = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
+    if (isLoading) return;
+    
     setIsLoading(true);
+    
+    // Optimistically update UI
+    const previousStatus = { isWatched, isInWatchlist };
+    updateListStatus(movieId, {
+      is_watched: isWatched,
+      in_watchlist: !isInWatchlist
+    });
+    
     try {
-      await listsApi.toggleWatchlist(movieId.toString());
-      await refreshLists();
-      onToggle?.(movieId); // Call the callback if provided
+      const response = await listsApi.toggleWatchlist(movieId.toString());
+      // Update with actual server response
+      updateListStatus(movieId, response);
+      onToggle?.(movieId);
     } catch (error) {
       console.error('Error toggling watchlist status:', error);
+      // Revert to previous state on error
+      updateListStatus(movieId, {
+        is_watched: previousStatus.isWatched,
+        in_watchlist: previousStatus.isInWatchlist
+      });
       toast.error('Failed to update watchlist status');
     } finally {
       setIsLoading(false);

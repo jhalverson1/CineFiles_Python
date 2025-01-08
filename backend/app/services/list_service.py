@@ -17,11 +17,12 @@ ensures consistent business logic across the application.
 """
 
 from uuid import UUID
-from sqlalchemy import select
+from sqlalchemy import select, and_, delete
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.list_models import List, ListItem
 from ..models.user import User
+from typing import Dict, List as TypeList, Optional, Tuple
 
 async def create_list(db: AsyncSession, user_id: UUID, name: str, description: str = None) -> List:
     """
@@ -52,59 +53,193 @@ async def create_list(db: AsyncSession, user_id: UUID, name: str, description: s
     await db.refresh(db_list)
     return db_list
 
-async def create_default_lists(db: AsyncSession, user: User) -> None:
+async def get_user_default_lists(db: AsyncSession, user_id: UUID) -> Tuple[List, List]:
     """
-    Create the default set of lists for a new user.
+    Get or create both default lists (Watched and Watchlist) for a user in a single query.
     
     Args:
         db: Database session
-        user: User object to create lists for
-    
-    Notes:
-        - Creates "Watched" and "Watchlist" by default
-        - Lists are marked as is_default=True
-        - Called automatically during user registration
-        - Commits all lists in a single transaction
-    """
-    default_lists = [
-        {"name": "Watched", "description": "Movies you have watched"},
-        {"name": "Watchlist", "description": "Movies you want to watch"}
-    ]
-    
-    for list_data in default_lists:
-        db_list = List(
-            user_id=user.id,
-            name=list_data["name"],
-            description=list_data["description"],
-            is_default=True
-        )
-        db.add(db_list)
-    
-    await db.commit()
-
-async def get_user_lists(db: AsyncSession, user_id: UUID) -> list[List]:
-    """
-    Retrieve all lists belonging to a user.
-    
-    Args:
-        db: Database session
-        user_id: UUID of the user whose lists to retrieve
+        user_id: UUID of the user
     
     Returns:
-        list[List]: Array of List objects with items eagerly loaded
-    
-    Notes:
-        - Uses joinedload to prevent N+1 queries
-        - Returns both default and custom lists
-        - List items are eagerly loaded for efficiency
+        Tuple[List, List]: A tuple containing (watched_list, watchlist)
     """
-    query = (
-        select(List)
-        .options(joinedload(List.items))
-        .where(List.user_id == user_id)
+    # Query both lists in a single database call
+    query = select(List).where(
+        and_(
+            List.user_id == user_id,
+            List.is_default == True,
+            List.name.in_(["Watched", "Watchlist"])
+        )
     )
     result = await db.execute(query)
-    return result.unique().scalars().all()
+    existing_lists = result.scalars().all()
+    
+    watched_list = next((l for l in existing_lists if l.name == "Watched"), None)
+    watchlist = next((l for l in existing_lists if l.name == "Watchlist"), None)
+    
+    # Create any missing default lists
+    if not watched_list:
+        watched_list = List(
+            user_id=user_id,
+            name="Watched",
+            description="Movies you have watched",
+            is_default=True
+        )
+        db.add(watched_list)
+    
+    if not watchlist:
+        watchlist = List(
+            user_id=user_id,
+            name="Watchlist",
+            description="Movies you want to watch",
+            is_default=True
+        )
+        db.add(watchlist)
+    
+    if not watched_list or not watchlist:
+        await db.commit()
+        if not watched_list:
+            await db.refresh(watched_list)
+        if not watchlist:
+            await db.refresh(watchlist)
+    
+    return watched_list, watchlist
+
+async def get_movie_list_status(
+    db: AsyncSession,
+    user_id: UUID,
+    movie_id: str
+) -> Dict[str, bool]:
+    """
+    Get the watched and watchlist status for a movie in a single query.
+    
+    Args:
+        db: Database session
+        user_id: UUID of the user
+        movie_id: TMDB ID of the movie
+    
+    Returns:
+        Dict[str, bool]: Dictionary with 'is_watched' and 'in_watchlist' status
+    """
+    watched_list, watchlist = await get_user_default_lists(db, user_id)
+    
+    # Query both statuses in a single database call
+    query = select(ListItem).where(
+        and_(
+            ListItem.movie_id == movie_id,
+            ListItem.list_id.in_([watched_list.id, watchlist.id])
+        )
+    )
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return {
+        'is_watched': any(item.list_id == watched_list.id for item in items),
+        'in_watchlist': any(item.list_id == watchlist.id for item in items)
+    }
+
+async def toggle_watched_status(
+    db: AsyncSession,
+    user_id: UUID,
+    movie_id: str
+) -> Dict[str, bool]:
+    """
+    Toggle whether a movie is marked as watched by a user.
+    
+    Args:
+        db: Database session
+        user_id: UUID of the user
+        movie_id: TMDB ID of the movie
+    
+    Returns:
+        Dict[str, bool]: Dictionary with updated 'is_watched' and 'in_watchlist' status
+    """
+    watched_list, watchlist = await get_user_default_lists(db, user_id)
+    
+    # Get current status
+    status = await get_movie_list_status(db, user_id, movie_id)
+    
+    try:
+        if status['is_watched']:
+            # Remove from watched list
+            await db.execute(
+                delete(ListItem).where(
+                    and_(
+                        ListItem.list_id == watched_list.id,
+                        ListItem.movie_id == movie_id
+                    )
+                )
+            )
+            new_status = {'is_watched': False, 'in_watchlist': status['in_watchlist']}
+        else:
+            # Add to watched list
+            db.add(ListItem(list_id=watched_list.id, movie_id=movie_id))
+            
+            # Remove from watchlist if present
+            if status['in_watchlist']:
+                await db.execute(
+                    delete(ListItem).where(
+                        and_(
+                            ListItem.list_id == watchlist.id,
+                            ListItem.movie_id == movie_id
+                        )
+                    )
+                )
+            new_status = {'is_watched': True, 'in_watchlist': False}
+        
+        await db.commit()
+        return new_status
+    except Exception:
+        await db.rollback()
+        raise
+
+async def toggle_watchlist_status(
+    db: AsyncSession,
+    user_id: UUID,
+    movie_id: str
+) -> Dict[str, bool]:
+    """
+    Toggle whether a movie is in a user's watchlist.
+    
+    Args:
+        db: Database session
+        user_id: UUID of the user
+        movie_id: TMDB ID of the movie
+    
+    Returns:
+        Dict[str, bool]: Dictionary with updated 'is_watched' and 'in_watchlist' status
+    """
+    watched_list, watchlist = await get_user_default_lists(db, user_id)
+    
+    # Get current status
+    status = await get_movie_list_status(db, user_id, movie_id)
+    
+    try:
+        if status['in_watchlist']:
+            # Remove from watchlist
+            await db.execute(
+                delete(ListItem).where(
+                    and_(
+                        ListItem.list_id == watchlist.id,
+                        ListItem.movie_id == movie_id
+                    )
+                )
+            )
+            new_status = {'is_watched': status['is_watched'], 'in_watchlist': False}
+        else:
+            # Add to watchlist if not already watched
+            if not status['is_watched']:
+                db.add(ListItem(list_id=watchlist.id, movie_id=movie_id))
+                new_status = {'is_watched': False, 'in_watchlist': True}
+            else:
+                new_status = {'is_watched': True, 'in_watchlist': False}
+        
+        await db.commit()
+        return new_status
+    except Exception:
+        await db.rollback()
+        raise
 
 async def add_movie_to_list(
     db: AsyncSession, 
@@ -137,7 +272,7 @@ async def add_movie_to_list(
     db.add(list_item)
     await db.commit()
     await db.refresh(list_item)
-    return list_item 
+    return list_item
 
 async def get_or_create_watched_list(db: AsyncSession, user_id: UUID) -> List:
     """
@@ -175,63 +310,6 @@ async def get_or_create_watched_list(db: AsyncSession, user_id: UUID) -> List:
     
     return watched_list
 
-async def toggle_watched_status(db: AsyncSession, user_id: UUID, movie_id: str) -> bool:
-    """
-    Toggle whether a movie is marked as watched by a user.
-    
-    Args:
-        db: Database session
-        user_id: UUID of the user
-        movie_id: TMDB ID of the movie
-    
-    Returns:
-        bool: New watched status (True if watched, False if unwatched)
-    
-    Notes:
-        - Automatically creates Watched list if needed
-        - Removes movie if already watched
-        - Adds movie if not watched
-        - When marking as watched, removes from watchlist if present
-        - Returns new status for UI updates
-    """
-    watched_list = await get_or_create_watched_list(db, user_id)
-    
-    # Check if movie is already in the watched list
-    query = select(ListItem).where(
-        (ListItem.list_id == watched_list.id) & 
-        (ListItem.movie_id == movie_id)
-    )
-    result = await db.execute(query)
-    list_item = result.scalar_one_or_none()
-    
-    if list_item:
-        # Remove from watched list
-        await db.delete(list_item)
-        await db.commit()
-        return False
-    else:
-        # Add to watched list
-        list_item = ListItem(
-            list_id=watched_list.id,
-            movie_id=movie_id
-        )
-        db.add(list_item)
-        
-        # Remove from watchlist if present
-        watchlist = await get_or_create_watchlist(db, user_id)
-        watchlist_query = select(ListItem).where(
-            (ListItem.list_id == watchlist.id) & 
-            (ListItem.movie_id == movie_id)
-        )
-        watchlist_result = await db.execute(watchlist_query)
-        watchlist_item = watchlist_result.scalar_one_or_none()
-        
-        if watchlist_item:
-            await db.delete(watchlist_item)
-        
-        await db.commit()
-        return True
-
 async def get_or_create_watchlist(db: AsyncSession, user_id: UUID) -> List:
     """
     Retrieve or create the special "Watchlist" list for a user.
@@ -267,49 +345,6 @@ async def get_or_create_watchlist(db: AsyncSession, user_id: UUID) -> List:
         await db.refresh(watchlist)
     
     return watchlist
-
-async def toggle_watchlist_status(db: AsyncSession, user_id: UUID, movie_id: str) -> bool:
-    """
-    Toggle whether a movie is in a user's watchlist.
-    
-    Args:
-        db: Database session
-        user_id: UUID of the user
-        movie_id: TMDB ID of the movie
-    
-    Returns:
-        bool: New watchlist status (True if in watchlist, False if not)
-    
-    Notes:
-        - Automatically creates Watchlist if needed
-        - Removes movie if already in watchlist
-        - Adds movie if not in watchlist
-        - Returns new status for UI updates
-    """
-    watchlist = await get_or_create_watchlist(db, user_id)
-    
-    # Check if movie is already in the list
-    query = select(ListItem).where(
-        (ListItem.list_id == watchlist.id) & 
-        (ListItem.movie_id == movie_id)
-    )
-    result = await db.execute(query)
-    list_item = result.scalar_one_or_none()
-    
-    if list_item:
-        # Remove from watchlist
-        await db.delete(list_item)
-        await db.commit()
-        return False
-    else:
-        # Add to watchlist
-        list_item = ListItem(
-            list_id=watchlist.id,
-            movie_id=movie_id
-        )
-        db.add(list_item)
-        await db.commit()
-        return True 
 
 async def get_list_by_id(db: AsyncSession, list_id: UUID) -> List:
     """
@@ -423,3 +458,27 @@ async def delete_list(db: AsyncSession, list_id: UUID) -> bool:
     await db.delete(list_obj)
     await db.commit()
     return True 
+
+async def get_user_lists(db: AsyncSession, user_id: UUID) -> TypeList[List]:
+    """
+    Retrieve all lists belonging to a user.
+    
+    Args:
+        db: Database session
+        user_id: UUID of the user whose lists to retrieve
+    
+    Returns:
+        list[List]: Array of List objects with items eagerly loaded
+    
+    Notes:
+        - Uses joinedload to prevent N+1 queries
+        - Returns both default and custom lists
+        - List items are eagerly loaded for efficiency
+    """
+    query = (
+        select(List)
+        .options(joinedload(List.items))
+        .where(List.user_id == user_id)
+    )
+    result = await db.execute(query)
+    return result.unique().scalars().all() 
