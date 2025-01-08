@@ -59,6 +59,70 @@ const FilterBar = ({
   const [keywordsOpen, setKeywordsOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
 
+  // Refs for click outside handling
+  const yearRef = useRef(null);
+  const ratingRef = useRef(null);
+  const popularityRef = useRef(null);
+  const genreRef = useRef(null);
+  const voteCountRef = useRef(null);
+  const runtimeRef = useRef(null);
+  const languageRef = useRef(null);
+  const releaseTypeRef = useRef(null);
+  const providersRef = useRef(null);
+  const companiesRef = useRef(null);
+  const castRef = useRef(null);
+  const keywordsRef = useRef(null);
+  const sortRef = useRef(null);
+
+  // Click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check each dropdown and close if clicked outside
+      if (yearOpen && yearRef.current && !yearRef.current.contains(event.target)) {
+        setYearOpen(false);
+      }
+      if (ratingOpen && ratingRef.current && !ratingRef.current.contains(event.target)) {
+        setRatingOpen(false);
+      }
+      if (popularityOpen && popularityRef.current && !popularityRef.current.contains(event.target)) {
+        setPopularityOpen(false);
+      }
+      if (genreOpen && genreRef.current && !genreRef.current.contains(event.target)) {
+        setGenreOpen(false);
+      }
+      if (voteCountOpen && voteCountRef.current && !voteCountRef.current.contains(event.target)) {
+        setVoteCountOpen(false);
+      }
+      if (runtimeOpen && runtimeRef.current && !runtimeRef.current.contains(event.target)) {
+        setRuntimeOpen(false);
+      }
+      if (languageOpen && languageRef.current && !languageRef.current.contains(event.target)) {
+        setLanguageOpen(false);
+      }
+      if (releaseTypeOpen && releaseTypeRef.current && !releaseTypeRef.current.contains(event.target)) {
+        setReleaseTypeOpen(false);
+      }
+      if (providersOpen && providersRef.current && !providersRef.current.contains(event.target)) {
+        setProvidersOpen(false);
+      }
+      if (companiesOpen && companiesRef.current && !companiesRef.current.contains(event.target)) {
+        setCompaniesOpen(false);
+      }
+      if (castOpen && castRef.current && !castRef.current.contains(event.target)) {
+        setCastOpen(false);
+      }
+      if (keywordsOpen && keywordsRef.current && !keywordsRef.current.contains(event.target)) {
+        setKeywordsOpen(false);
+      }
+      if (sortOpen && sortRef.current && !sortRef.current.contains(event.target)) {
+        setSortOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [yearOpen, ratingOpen, popularityOpen, genreOpen, voteCountOpen, runtimeOpen, languageOpen, releaseTypeOpen, providersOpen, companiesOpen, castOpen, keywordsOpen, sortOpen]);
+
   // Local state for filter values
   const [localYearRange, setLocalYearRange] = useState(null);
   const [localRatingRange, setLocalRatingRange] = useState(null);
@@ -211,7 +275,7 @@ const FilterBar = ({
       {/* Main Filters Section */}
       <div className="flex flex-wrap gap-2 p-4 bg-background-secondary/50 rounded-lg border border-border/10">
         {/* Year Range Filter */}
-        <div className="relative">
+        <div className="relative"ref={yearRef}>
           <button
             onClick={() => setYearOpen(!yearOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -271,7 +335,7 @@ const FilterBar = ({
         </div>
 
         {/* Rating Range Filter */}
-        <div className="relative">
+        <div className="relative"ref={ratingRef}>
           <button
             onClick={() => setRatingOpen(!ratingOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -313,7 +377,7 @@ const FilterBar = ({
         </div>
 
         {/* Popularity Range Filter */}
-        <div className="relative">
+        <div className="relative"ref={popularityRef}>
           <button
             onClick={() => setPopularityOpen(!popularityOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -351,7 +415,7 @@ const FilterBar = ({
         </div>
 
         {/* Vote Count Range Filter */}
-        <div className="relative">
+        <div className="relative"ref={voteCountRef}>
           <button
             onClick={() => setVoteCountOpen(!voteCountOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -389,7 +453,7 @@ const FilterBar = ({
         </div>
 
         {/* Runtime Range Filter */}
-        <div className="relative">
+        <div className="relative"ref={runtimeRef}>
           <button
             onClick={() => setRuntimeOpen(!runtimeOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -429,7 +493,7 @@ const FilterBar = ({
         </div>
 
         {/* Genres Filter */}
-        <div className="relative">
+        <div className="relative"ref={genreRef}>
           <button
             onClick={() => setGenreOpen(!genreOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -474,7 +538,7 @@ const FilterBar = ({
         </div>
 
         {/* Original Language Filter */}
-        <div className="relative">
+        <div className="relative"ref={languageRef}>
           <button
             onClick={() => setLanguageOpen(!languageOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -516,7 +580,7 @@ const FilterBar = ({
         </div>
 
         {/* Release Types Filter */}
-        <div className="relative">
+        <div className="relative"ref={releaseTypeRef}>
           <button
             onClick={() => setReleaseTypeOpen(!releaseTypeOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -560,7 +624,7 @@ const FilterBar = ({
         </div>
 
         {/* Watch Providers Filter */}
-        <div className="relative">
+        <div className="relative"ref={providersRef}>
           <button
             onClick={() => setProvidersOpen(!providersOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -606,7 +670,7 @@ const FilterBar = ({
         </div>
 
         {/* Keywords Filter */}
-        <div className="relative">
+        <div className="relative"ref={keywordsRef}>
           <button
             onClick={() => setKeywordsOpen(!keywordsOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -647,7 +711,7 @@ const FilterBar = ({
         </div>
 
         {/* Sort By Filter */}
-        <div className="relative">
+        <div className="relative"ref={sortRef}>
           <button
             onClick={() => setSortOpen(!sortOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
