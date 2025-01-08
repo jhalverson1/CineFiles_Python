@@ -12,7 +12,7 @@ All database-related core functionality is centralized here.
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import QueuePool
 from app.core.config import get_settings
 import logging
 from urllib.parse import urlparse, urlunparse
@@ -38,7 +38,7 @@ def get_sync_engine():
     
     logger.info(f"Creating sync engine with URL scheme: {urlparse(sync_url).scheme}")
     from sqlalchemy import create_engine
-    return create_engine(sync_url, poolclass=NullPool)
+    return create_engine(sync_url, poolclass=QueuePool)
 
 def get_async_engine():
     # Parse the URL to ensure correct format
@@ -52,7 +52,12 @@ def get_async_engine():
     logger.info(f"Creating async engine with URL scheme: {urlparse(async_url).scheme}")
     return create_async_engine(
         async_url,
-        poolclass=NullPool,
+        pool_size=20,  # Maximum number of connections in the pool
+        max_overflow=10,  # Maximum number of connections that can be created beyond pool_size
+        pool_timeout=30,  # Timeout for getting a connection from the pool
+        pool_pre_ping=True,  # Enable connection health checks
+        pool_recycle=3600,  # Recycle connections after 1 hour
+        echo=settings.DEBUG,  # SQL query logging based on debug mode
     )
 
 # Create session factory

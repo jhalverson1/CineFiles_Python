@@ -129,4 +129,9 @@ class List(ListBase):
     items: List[ListItem] = []
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class ListStatusResponse(BaseModel):
+    """Response model for toggle operations that return both watched and watchlist status."""
+    is_watched: bool
+    in_watchlist: bool 
