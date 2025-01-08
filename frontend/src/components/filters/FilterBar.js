@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { movieApi, filterSettingsApi } from '../../utils/api';
+import { getImageUrl } from '../../utils/image';
 
 const FilterBar = ({
   yearRange,
   onYearRangeChange,
   ratingRange,
   onRatingRangeChange,
-  popularityRange,
-  onPopularityRangeChange,
   voteCountRange,
   onVoteCountRangeChange,
   runtimeRange,
@@ -36,10 +35,6 @@ const FilterBar = ({
   onCastChange,
   crew,
   onCrewChange,
-  includeKeywords,
-  onIncludeKeywordsChange,
-  excludeKeywords,
-  onExcludeKeywordsChange,
   sortBy,
   onSortByChange,
   onSubmit
@@ -47,7 +42,6 @@ const FilterBar = ({
   // UI state for dropdowns
   const [yearOpen, setYearOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
-  const [popularityOpen, setPopularityOpen] = useState(false);
   const [genreOpen, setGenreOpen] = useState(false);
   const [voteCountOpen, setVoteCountOpen] = useState(false);
   const [runtimeOpen, setRuntimeOpen] = useState(false);
@@ -56,13 +50,11 @@ const FilterBar = ({
   const [providersOpen, setProvidersOpen] = useState(false);
   const [companiesOpen, setCompaniesOpen] = useState(false);
   const [castOpen, setCastOpen] = useState(false);
-  const [keywordsOpen, setKeywordsOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
 
   // Refs for click outside handling
   const yearRef = useRef(null);
   const ratingRef = useRef(null);
-  const popularityRef = useRef(null);
   const genreRef = useRef(null);
   const voteCountRef = useRef(null);
   const runtimeRef = useRef(null);
@@ -71,7 +63,6 @@ const FilterBar = ({
   const providersRef = useRef(null);
   const companiesRef = useRef(null);
   const castRef = useRef(null);
-  const keywordsRef = useRef(null);
   const sortRef = useRef(null);
 
   // Click outside handler
@@ -83,9 +74,6 @@ const FilterBar = ({
       }
       if (ratingOpen && ratingRef.current && !ratingRef.current.contains(event.target)) {
         setRatingOpen(false);
-      }
-      if (popularityOpen && popularityRef.current && !popularityRef.current.contains(event.target)) {
-        setPopularityOpen(false);
       }
       if (genreOpen && genreRef.current && !genreRef.current.contains(event.target)) {
         setGenreOpen(false);
@@ -111,9 +99,6 @@ const FilterBar = ({
       if (castOpen && castRef.current && !castRef.current.contains(event.target)) {
         setCastOpen(false);
       }
-      if (keywordsOpen && keywordsRef.current && !keywordsRef.current.contains(event.target)) {
-        setKeywordsOpen(false);
-      }
       if (sortOpen && sortRef.current && !sortRef.current.contains(event.target)) {
         setSortOpen(false);
       }
@@ -121,12 +106,11 @@ const FilterBar = ({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [yearOpen, ratingOpen, popularityOpen, genreOpen, voteCountOpen, runtimeOpen, languageOpen, releaseTypeOpen, providersOpen, companiesOpen, castOpen, keywordsOpen, sortOpen]);
+  }, [yearOpen, ratingOpen, genreOpen, voteCountOpen, runtimeOpen, languageOpen, releaseTypeOpen, providersOpen, companiesOpen, castOpen, sortOpen]);
 
   // Local state for filter values
   const [localYearRange, setLocalYearRange] = useState(null);
   const [localRatingRange, setLocalRatingRange] = useState(null);
-  const [localPopularityRange, setLocalPopularityRange] = useState(null);
   const [localVoteCountRange, setLocalVoteCountRange] = useState(voteCountRange);
   const [localRuntimeRange, setLocalRuntimeRange] = useState(runtimeRange);
   const [localSelectedGenres, setLocalSelectedGenres] = useState(selectedGenres);
@@ -140,8 +124,6 @@ const FilterBar = ({
   const [localOriginCountries, setLocalOriginCountries] = useState(originCountries);
   const [localCast, setLocalCast] = useState(cast);
   const [localCrew, setLocalCrew] = useState(crew);
-  const [localIncludeKeywords, setLocalIncludeKeywords] = useState(includeKeywords);
-  const [localExcludeKeywords, setLocalExcludeKeywords] = useState(excludeKeywords);
   const [localSortBy, setLocalSortBy] = useState(sortBy);
 
   // Update local state when props change
@@ -155,7 +137,6 @@ const FilterBar = ({
   useEffect(() => {
     // Update if ratingRange exists, even if only one value is present
     if (ratingRange?.[0] && ratingRange?.[1]) setLocalRatingRange(ratingRange);
-    if (popularityRange?.[0] && popularityRange?.[1]) setLocalPopularityRange(popularityRange);
     if (voteCountRange?.[0] && voteCountRange?.[1]) setLocalVoteCountRange(voteCountRange);
     if (runtimeRange?.[0] && runtimeRange?.[1]) setLocalRuntimeRange(runtimeRange);
     if (selectedGenres?.length > 0) setLocalSelectedGenres(selectedGenres);
@@ -169,12 +150,9 @@ const FilterBar = ({
     if (originCountries?.length > 0) setLocalOriginCountries(originCountries);
     if (cast?.length > 0) setLocalCast(cast);
     if (crew?.length > 0) setLocalCrew(crew);
-    if (includeKeywords?.length > 0) setLocalIncludeKeywords(includeKeywords);
-    if (excludeKeywords?.length > 0) setLocalExcludeKeywords(excludeKeywords);
     if (sortBy) setLocalSortBy(sortBy);
   }, [
     ratingRange,
-    popularityRange,
     voteCountRange,
     runtimeRange,
     selectedGenres,
@@ -188,8 +166,6 @@ const FilterBar = ({
     originCountries,
     cast,
     crew,
-    includeKeywords,
-    excludeKeywords,
     sortBy
   ]);
 
@@ -197,7 +173,6 @@ const FilterBar = ({
     // Apply all filters at once
     if (onYearRangeChange) onYearRangeChange(localYearRange);
     if (onRatingRangeChange) onRatingRangeChange(localRatingRange);
-    if (onPopularityRangeChange) onPopularityRangeChange(localPopularityRange);
     if (onVoteCountRangeChange) onVoteCountRangeChange(localVoteCountRange);
     if (onRuntimeRangeChange) onRuntimeRangeChange(localRuntimeRange);
     if (onGenresChange) onGenresChange(localSelectedGenres);
@@ -211,8 +186,6 @@ const FilterBar = ({
     if (onOriginCountriesChange) onOriginCountriesChange(localOriginCountries);
     if (onCastChange) onCastChange(localCast);
     if (onCrewChange) onCrewChange(localCrew);
-    if (onIncludeKeywordsChange) onIncludeKeywordsChange(localIncludeKeywords);
-    if (onExcludeKeywordsChange) onExcludeKeywordsChange(localExcludeKeywords);
     if (onSortByChange) onSortByChange(localSortBy);
 
     // Call the onSubmit handler if provided
@@ -225,7 +198,6 @@ const FilterBar = ({
     // Reset local state
     setLocalYearRange(null);
     setLocalRatingRange(null);
-    setLocalPopularityRange(null);
     setLocalVoteCountRange(null);
     setLocalRuntimeRange(null);
     setLocalSelectedGenres([]);
@@ -239,14 +211,11 @@ const FilterBar = ({
     setLocalOriginCountries([]);
     setLocalCast([]);
     setLocalCrew([]);
-    setLocalIncludeKeywords([]);
-    setLocalExcludeKeywords([]);
     setLocalSortBy(null);
 
     // Apply reset to parent
     if (onYearRangeChange) onYearRangeChange(null);
     if (onRatingRangeChange) onRatingRangeChange(null);
-    if (onPopularityRangeChange) onPopularityRangeChange(null);
     if (onVoteCountRangeChange) onVoteCountRangeChange(null);
     if (onRuntimeRangeChange) onRuntimeRangeChange(null);
     if (onGenresChange) onGenresChange([]);
@@ -260,8 +229,6 @@ const FilterBar = ({
     if (onOriginCountriesChange) onOriginCountriesChange([]);
     if (onCastChange) onCastChange([]);
     if (onCrewChange) onCrewChange([]);
-    if (onIncludeKeywordsChange) onIncludeKeywordsChange([]);
-    if (onExcludeKeywordsChange) onExcludeKeywordsChange([]);
     if (onSortByChange) onSortByChange(null);
 
     // Call the onSubmit handler if provided
@@ -368,44 +335,6 @@ const FilterBar = ({
                   step="0.1"
                   value={localRatingRange?.[1] || ''}
                   onChange={(e) => setLocalRatingRange([localRatingRange?.[0], parseFloat(e.target.value)])}
-                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder="To"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Popularity Range Filter */}
-        <div className="relative"ref={popularityRef}>
-          <button
-            onClick={() => setPopularityOpen(!popularityOpen)}
-            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-          >
-            <span>Popularity</span>
-            {localPopularityRange?.[0] && localPopularityRange?.[1] && (
-              <span className="text-primary">
-                {localPopularityRange[0]} - {localPopularityRange[1]}
-              </span>
-            )}
-          </button>
-          {popularityOpen && (
-            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min="0"
-                  value={localPopularityRange?.[0] || ''}
-                  onChange={(e) => setLocalPopularityRange([parseInt(e.target.value), localPopularityRange?.[1]])}
-                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder="From"
-                />
-                <span className="text-sm text-text-secondary font-medium">to</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={localPopularityRange?.[1] || ''}
-                  onChange={(e) => setLocalPopularityRange([localPopularityRange?.[0], parseInt(e.target.value)])}
                   className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   placeholder="To"
                 />
@@ -624,7 +553,7 @@ const FilterBar = ({
         </div>
 
         {/* Watch Providers Filter */}
-        <div className="relative"ref={providersRef}>
+        <div className="relative" ref={providersRef}>
           <button
             onClick={() => setProvidersOpen(!providersOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -635,76 +564,45 @@ const FilterBar = ({
             )}
           </button>
           {providersOpen && (
-            <div className="absolute top-full left-0 mt-2 p-2 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[200px] z-50">
-              {[
-                { id: 8, name: 'Netflix' },
-                { id: 9, name: 'Prime Video' },
-                { id: 337, name: 'Disney+' },
-                { id: 384, name: 'HBO Max' },
-                { id: 15, name: 'Hulu' },
-                { id: 531, name: 'Paramount+' },
-                { id: 283, name: 'Crunchyroll' },
-                { id: 2, name: 'Apple TV' }
-              ].map((provider) => (
-                <button
-                  key={provider.id}
-                  onClick={() => {
-                    const isSelected = localWatchProviders?.includes(provider.id);
-                    setLocalWatchProviders(
-                      isSelected
-                        ? localWatchProviders.filter((id) => id !== provider.id)
-                        : [...(localWatchProviders || []), provider.id]
-                    );
-                  }}
-                  className={`w-full px-4 py-2 text-left text-sm font-medium rounded-lg transition-colors ${
-                    localWatchProviders?.includes(provider.id)
-                      ? 'bg-primary text-white'
-                      : 'hover:bg-background-active'
-                  }`}
-                >
-                  {provider.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Keywords Filter */}
-        <div className="relative"ref={keywordsRef}>
-          <button
-            onClick={() => setKeywordsOpen(!keywordsOpen)}
-            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-          >
-            <span>Keywords</span>
-            {(localIncludeKeywords?.length > 0 || localExcludeKeywords?.length > 0) && (
-              <span className="text-primary">
-                +{localIncludeKeywords?.length || 0} -{localExcludeKeywords?.length || 0}
-              </span>
-            )}
-          </button>
-          {keywordsOpen && (
-            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[320px] z-50">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Include Keywords</label>
-                  <input
-                    type="text"
-                    value={localIncludeKeywords?.join(', ') || ''}
-                    onChange={(e) => setLocalIncludeKeywords(e.target.value.split(',').map(k => k.trim()).filter(Boolean))}
-                    className="w-full h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="Enter keywords, separated by commas"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Exclude Keywords</label>
-                  <input
-                    type="text"
-                    value={localExcludeKeywords?.join(', ') || ''}
-                    onChange={(e) => setLocalExcludeKeywords(e.target.value.split(',').map(k => k.trim()).filter(Boolean))}
-                    className="w-full h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="Enter keywords, separated by commas"
-                  />
-                </div>
+            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[280px] z-50">
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  { id: 8, name: 'Netflix', logo_path: '/t2yyOv40HZeVlLjYsCsPHnWLk4W.jpg' },
+                  { id: 9, name: 'Prime Video', logo_path: '/emthp39XA2YScoYL1p0sdbAH2WA.jpg' },
+                  { id: 337, name: 'Disney+', logo_path: '/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg' },
+                  { id: 384, name: 'HBO Max', logo_path: '/aS2zvJWn9mwiCOeaaCkIh4wleZS.jpg' },
+                  { id: 15, name: 'Hulu', logo_path: '/giwM8XX4V2AQb9vsoN7yti82tKK.jpg' },
+                  { id: 531, name: 'Paramount+', logo_path: '/pkAHkRhIq3Iu0ZlEhDzbguSlyZF.jpg' },
+                  { id: 283, name: 'Crunchyroll', logo_path: '/8Gt1iClBlzTeQs8WQm8UrCoIxnQ.jpg' },
+                  { id: 2, name: 'Apple TV', logo_path: '/q6tl6Ib6X5FT80RMlcDbexIo4St.jpg' }
+                ].map((provider) => (
+                  <button
+                    key={provider.id}
+                    onClick={() => {
+                      const isSelected = localWatchProviders?.includes(provider.id);
+                      setLocalWatchProviders(
+                        isSelected
+                          ? localWatchProviders.filter((id) => id !== provider.id)
+                          : [...(localWatchProviders || []), provider.id]
+                      );
+                    }}
+                    className={`relative group aspect-square rounded-lg overflow-hidden transition-all duration-200 ${
+                      localWatchProviders?.includes(provider.id)
+                        ? 'ring-2 ring-primary scale-105'
+                        : 'hover:scale-105'
+                    }`}
+                    title={provider.name}
+                  >
+                    <img
+                      src={getImageUrl(provider.logo_path, 'w92')}
+                      alt={provider.name}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <div className={`absolute inset-0 bg-black/50 transition-opacity duration-200 ${
+                      localWatchProviders?.includes(provider.id) ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'
+                    }`} />
+                  </button>
+                ))}
               </div>
             </div>
           )}
