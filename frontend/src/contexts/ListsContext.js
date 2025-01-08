@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { listsApi } from '../utils/listsApi';
+import { useAuth } from './AuthContext';
 
 const ListsContext = createContext();
 
@@ -12,23 +13,32 @@ export const useLists = () => {
 };
 
 export const ListsProvider = ({ children }) => {
+  const { isLoggedIn } = useAuth();
   const [lists, setLists] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const refreshLists = useCallback(async () => {
+    if (!isLoggedIn) {
+      setLists([]);
+      setLoading(false);
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await listsApi.getLists();
       setLists(response);
     } catch (error) {
       console.error('Error fetching lists:', error);
+      setLists([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     refreshLists();
-  }, [refreshLists]);
+  }, [refreshLists, isLoggedIn]);
 
   const updateListStatus = useCallback((movieId, { is_watched, in_watchlist }) => {
     setLists(currentLists => {

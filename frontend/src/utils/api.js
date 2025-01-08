@@ -99,6 +99,13 @@ api.interceptors.response.use(
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }
+
+    // Don't try to refresh if we're on the login page or making an auth request
+    const isAuthEndpoint = originalRequest.url.includes('/api/auth/');
+    const isLoginPage = window.location.pathname === '/login';
+    if (isAuthEndpoint || isLoginPage) {
+      return Promise.reject(error);
+    }
     
     // If already refreshing, queue this request
     if (isRefreshing) {
@@ -129,7 +136,9 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       console.error('[API Interceptor] Token refresh failed, redirecting to login');
-      window.location.href = '/login';
+      if (!isLoginPage) {
+        window.location.href = '/login';
+      }
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
