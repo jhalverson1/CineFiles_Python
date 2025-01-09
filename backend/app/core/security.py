@@ -37,8 +37,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-for-development")
 REFRESH_SECRET_KEY = os.getenv("JWT_REFRESH_SECRET_KEY", "your-refresh-secret-key-for-development")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 0.5  # 30 seconds
-REFRESH_TOKEN_EXPIRE_DAYS = 0.000694444  # 1 minute (1/1440 of a day)
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
+REFRESH_TOKEN_EXPIRE_DAYS = 90  # 3 months
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
