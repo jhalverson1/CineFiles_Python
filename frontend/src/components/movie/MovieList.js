@@ -524,15 +524,15 @@ const MovieList = ({
     return (
       <div>
         <div className={`grid ${
-          effectiveIsCompact 
-            ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-0.5 px-0.5' 
+          viewMode === 'grid'
+            ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-2 px-1' 
             : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 px-2'
         }`}>
           <AnimatePresence mode="popLayout">
             {displayedMovies.map((movie) => (
               <motion.div
                 key={movie.id}
-                className="w-full"
+                className={`w-full ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'}`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ 
@@ -583,11 +583,7 @@ const MovieList = ({
     <div>
       {isLoading && displayedMovies.length === 0 ? (
         <div className={viewMode === 'grid' 
-          ? `grid ${
-              effectiveIsCompact 
-                ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-0.5 px-0.5'
-                : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 px-2'
-            }`
+          ? `grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-2 px-1`
           : "flex gap-4 p-4"
         }>
           {Array(6).fill(null).map((_, index) => (
@@ -595,14 +591,12 @@ const MovieList = ({
               key={`skeleton-${index}`}
               className={`${
                 viewMode === 'scroll' ? 'flex-none' : 'w-full'
-              } ${
-                effectiveIsCompact ? 'w-[120px]' : 'w-[180px]'
-              } bg-background-secondary rounded-lg overflow-hidden animate-pulse`}
+              } ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'} bg-background-secondary rounded-lg overflow-hidden animate-pulse`}
             >
               <div className="aspect-[2/3] bg-background-active" />
-              <div className="p-4">
-                <div className="h-4 bg-background-active rounded w-3/4 mb-2" />
-                <div className="h-4 bg-background-active rounded w-1/2" />
+              <div className="p-2">
+                <div className="h-3 bg-background-active rounded w-3/4 mb-1" />
+                <div className="h-3 bg-background-active rounded w-1/2" />
               </div>
             </div>
           ))}

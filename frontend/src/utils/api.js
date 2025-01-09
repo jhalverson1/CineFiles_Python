@@ -67,6 +67,14 @@ api.interceptors.request.use(
     
     if (!isAuthEndpoint) {
       const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refresh_token');
+      
+      // If we have no tokens at all, redirect to login
+      if (!token && !refreshToken) {
+        window.location.href = '/login';
+        return Promise.reject('No authentication tokens found');
+      }
+      
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -90,11 +98,19 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Don't try to refresh if we're on the login page or making an auth request
-    const isAuthEndpoint = originalRequest.url.includes('/api/auth/');
+    // Don't try to refresh if we're on the login page or making a login/signup request
+    const isAuthEndpoint = originalRequest.url.includes('/api/auth/login') || 
+                          originalRequest.url.includes('/api/auth/signup');
     const isLoginPage = window.location.pathname === '/login';
     if (isAuthEndpoint || isLoginPage) {
       return Promise.reject(error);
+    }
+    
+    // Check if we have a refresh token
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      window.location.href = '/login';
+      return Promise.reject('No refresh token available');
     }
     
     // If already refreshing, queue this request
@@ -108,6 +124,7 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);
       } catch (err) {
+        window.location.href = '/login';
         return Promise.reject(err);
       }
     }
@@ -122,6 +139,9 @@ api.interceptors.response.use(
       onRefreshed(access_token);
       return api(originalRequest);
     } catch (refreshError) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('username');
       if (!isLoginPage) {
         window.location.href = '/login';
       }
