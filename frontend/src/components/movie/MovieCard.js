@@ -33,7 +33,7 @@ const MovieCard = ({
   const isDefaultList = currentList?.is_default;
 
   return (
-    <div className={`relative ${isCompact ? 'w-[120px]' : 'w-[180px]'} group`}>
+    <div className="relative w-full group">
       <Link 
         to={`/movies/${movie.id}`}
         className="block bg-background-secondary rounded-lg overflow-hidden relative z-10 h-full"
