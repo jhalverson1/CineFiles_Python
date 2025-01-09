@@ -29,15 +29,13 @@ const onRefreshed = (access_token) => {
 
 // Function to refresh token
 const refreshAccessToken = async () => {
-  console.log('[Token Refresh] Starting token refresh');
+  logger.debug('[Token Refresh] Starting refresh');
   try {
     const refresh_token = localStorage.getItem('refresh_token');
     if (!refresh_token) {
-      console.log('[Token Refresh] No refresh token available');
       throw new Error('No refresh token available');
     }
 
-    console.log('[Token Refresh] Attempting to refresh with token');
     const params = new URLSearchParams();
     params.append('refresh_token', refresh_token);
     
@@ -48,13 +46,11 @@ const refreshAccessToken = async () => {
     });
     const { access_token, refresh_token: new_refresh_token } = response.data;
     
-    console.log('[Token Refresh] Successfully obtained new tokens');
     localStorage.setItem('token', access_token);
     localStorage.setItem('refresh_token', new_refresh_token);
     
     return access_token;
   } catch (error) {
-    console.error('[Token Refresh] Error refreshing token:', error.response?.data || error.message);
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('username');
@@ -89,12 +85,6 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    console.log('[API Interceptor] Response error:', {
-      status: error.response?.status,
-      url: originalRequest?.url,
-      retried: !!originalRequest._retry
-    });
-    
     // If error is not 401 or request has already been retried, reject
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
@@ -109,7 +99,6 @@ api.interceptors.response.use(
     
     // If already refreshing, queue this request
     if (isRefreshing) {
-      console.log('[API Interceptor] Token refresh in progress, queueing request');
       try {
         const token = await new Promise(resolve => {
           addSubscriber(token => {
@@ -124,18 +113,15 @@ api.interceptors.response.use(
     }
     
     // Start token refresh process
-    console.log('[API Interceptor] Starting new token refresh cycle');
     originalRequest._retry = true;
     isRefreshing = true;
     
     try {
       const access_token = await refreshAccessToken();
-      console.log('[API Interceptor] Token refresh successful, retrying original request');
       originalRequest.headers.Authorization = `Bearer ${access_token}`;
       onRefreshed(access_token);
       return api(originalRequest);
     } catch (refreshError) {
-      console.error('[API Interceptor] Token refresh failed, redirecting to login');
       if (!isLoginPage) {
         window.location.href = '/login';
       }
@@ -165,6 +151,38 @@ export const authApi = {
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('username');
     return Promise.resolve();
+  },
+  testAuth: async () => {
+    console.log('[Auth Test] Starting auth test');
+    console.log('[Auth Test] Current tokens:', {
+      access_token: localStorage.getItem('token')?.substring(0, 10) + '...',
+      refresh_token: localStorage.getItem('refresh_token')?.substring(0, 10) + '...',
+      username: localStorage.getItem('username')
+    });
+    
+    try {
+      // First test regular auth
+      const response = await api.get('/api/auth/test-auth');
+      console.log('[Auth Test] Regular auth successful:', response);
+      
+      // Then test with forced expiry
+      console.log('[Auth Test] Testing token expiry...');
+      const expiryResponse = await api.get('/api/auth/test-auth-expiry');
+      console.log('[Auth Test] Expiry test successful:', expiryResponse);
+      
+      return { regular: response, expiry: expiryResponse };
+    } catch (error) {
+      console.error('[Auth Test] Request failed:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers
+        }
+      });
+      throw error;
+    }
   },
 };
 

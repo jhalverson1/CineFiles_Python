@@ -15,7 +15,7 @@ Features:
 from datetime import datetime
 import logging
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -119,7 +119,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
     )
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
+async def refresh_token(refresh_token: str = Form(...), db: AsyncSession = Depends(get_db)):
     """
     Create a new access token using a refresh token.
     
@@ -196,3 +196,64 @@ async def read_users_me(current_user: Annotated[User, Depends(get_current_user)]
         UserSchema: Current user's profile information
     """
     return current_user 
+
+@router.get("/test-auth", response_model=dict)
+async def test_auth(current_user: Annotated[User, Depends(get_current_user)]):
+    """
+    Test endpoint to verify authentication and token refresh.
+    Returns timestamp to verify the request was successful.
+    """
+    return {
+        "message": "Authentication successful",
+        "timestamp": datetime.utcnow().isoformat(),
+        "user_email": current_user.email
+    } 
+
+@router.get("/test-auth-expiry")
+async def test_auth_expiry(request: Request, current_user: Annotated[User, Depends(get_current_user)]):
+    """
+    Test endpoint that simulates token expiration by validating with a shorter expiry time.
+    Only forces expiry on the first attempt, allows retry with refreshed token.
+    """
+    logger.info("[Test Auth Expiry] Starting token expiry test")
+    
+    # Force token validation with a very short expiry time
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        logger.error("[Test Auth Expiry] No valid authorization header found")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    token = auth_header.split(' ')[1]
+    
+    # Check if this is a retry attempt by looking at the token
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        is_retry = payload.get("iat", 0) > datetime.utcnow().timestamp() - 5  # Token issued in last 5 seconds
+        
+        if is_retry:
+            logger.info("[Test Auth Expiry] Detected retry with fresh token, allowing request")
+            return {
+                "message": "Authentication successful (retry)",
+                "timestamp": datetime.utcnow().isoformat(),
+                "user_email": current_user.email
+            }
+            
+        # Force expiry for first attempt
+        logger.info("[Test Auth Expiry] First attempt, forcing token expiry")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+    except Exception as e:
+        logger.error(f"[Test Auth Expiry] Token verification failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) 
