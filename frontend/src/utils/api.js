@@ -457,6 +457,16 @@ export const movieApi = {
     return api.get(`/api/movies/popular?${params.toString()}`);
   },
   
+  searchMovies: async (query, page = 1) => {
+    const params = new URLSearchParams({
+      query: query.trim(),
+      page: page.toString(),
+      include_adult: 'false',
+      language: 'en-US'
+    });
+    return api.get(`/api/movies/search?${params.toString()}`);
+  },
+  
   getTopRatedMovies: (page = 1, filters = {}) => {
     const params = new URLSearchParams({ page: page.toString() });
     addFilterParams(params, filters);
