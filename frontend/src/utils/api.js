@@ -15,6 +15,7 @@ const api = axios.create({
 // Add a flag to prevent multiple token refreshes at once
 let isRefreshing = false;
 let refreshSubscribers = [];
+let refreshPromise = null;
 
 // Function to add failed requests to queue
 const addSubscriber = (callback) => {
@@ -29,32 +30,57 @@ const onRefreshed = (access_token) => {
 
 // Function to refresh token
 const refreshAccessToken = async () => {
-  logger.debug('[Token Refresh] Starting refresh');
+  // If already refreshing, return the existing promise
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+  
   try {
     const refresh_token = localStorage.getItem('refresh_token');
     if (!refresh_token) {
       throw new Error('No refresh token available');
     }
 
-    const params = new URLSearchParams();
-    params.append('refresh_token', refresh_token);
-    
-    const response = await axios.post(`${baseURL}/api/auth/refresh`, params, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
-    const { access_token, refresh_token: new_refresh_token } = response.data;
-    
-    localStorage.setItem('token', access_token);
-    localStorage.setItem('refresh_token', new_refresh_token);
-    
+    // Create new refresh promise
+    refreshPromise = (async () => {
+      const params = new URLSearchParams();
+      params.append('refresh_token', refresh_token);
+      
+      const response = await axios.post(`${baseURL}/api/auth/refresh`, params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+      const { access_token, refresh_token: new_refresh_token } = response.data;
+      
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('refresh_token', new_refresh_token);
+      
+      return access_token;
+    })();
+
+    const access_token = await refreshPromise;
     return access_token;
   } catch (error) {
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('username');
     throw error;
+  } finally {
+    refreshPromise = null;
+  }
+};
+
+// Function to check if a token is expired
+const isTokenExpired = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(window.atob(base64));
+    return (payload.exp * 1000) <= Date.now();
+  } catch (error) {
+    console.error('[Token Check] Error checking token expiration:', error);
+    return true;  // Assume expired if we can't decode
   }
 };
 
@@ -75,7 +101,19 @@ api.interceptors.request.use(
         return Promise.reject('No authentication tokens found');
       }
       
-      if (token) {
+      // Check if access token is expired and we have a refresh token
+      if (token && refreshToken && isTokenExpired(token)) {
+        try {
+          const newAccessToken = await refreshAccessToken();
+          config.headers.Authorization = `Bearer ${newAccessToken}`;
+        } catch (error) {
+          // Only redirect if refresh token is expired or invalid
+          if (error.response?.status === 401) {
+            window.location.href = '/login';
+          }
+          return Promise.reject('Token refresh failed');
+        }
+      } else if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
@@ -152,6 +190,65 @@ api.interceptors.response.use(
   }
 );
 
+// Function to decode JWT and check expiration
+const checkTokenExpiration = () => {
+  const token = localStorage.getItem('token');
+  const refreshToken = localStorage.getItem('refresh_token');
+  
+  const decodeJWT = (token) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(window.atob(base64));
+      return {
+        expiresAt: new Date(payload.exp * 1000),
+        issuedAt: new Date(payload.iat * 1000),
+        type: payload.token_type,
+        email: payload.sub,
+        timeUntilExpiry: (payload.exp * 1000) - Date.now()
+      };
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
+  };
+  
+  console.log('\n=== Token Status ===');
+  if (token) {
+    const decodedAccess = decodeJWT(token);
+    console.log('Access Token:', {
+      expiresAt: decodedAccess?.expiresAt,
+      issuedAt: decodedAccess?.issuedAt,
+      type: decodedAccess?.type,
+      email: decodedAccess?.email,
+      timeUntilExpiry: decodedAccess?.timeUntilExpiry + 'ms',
+      hasExpired: decodedAccess?.timeUntilExpiry < 0
+    });
+  } else {
+    console.log('No access token found');
+  }
+  
+  if (refreshToken) {
+    const decodedRefresh = decodeJWT(refreshToken);
+    console.log('Refresh Token:', {
+      expiresAt: decodedRefresh?.expiresAt,
+      issuedAt: decodedRefresh?.issuedAt,
+      type: decodedRefresh?.type,
+      email: decodedRefresh?.email,
+      timeUntilExpiry: decodedRefresh?.timeUntilExpiry + 'ms',
+      hasExpired: decodedRefresh?.timeUntilExpiry < 0
+    });
+  } else {
+    console.log('No refresh token found');
+  }
+  console.log('===================\n');
+};
+
+// Make token checker available globally
+if (typeof window !== 'undefined') {
+  window.checkTokens = checkTokenExpiration;
+}
+
 export const authApi = {
   login: async (formData) => {
     const response = await api.post('/api/auth/login', formData, {
@@ -162,6 +259,10 @@ export const authApi = {
     localStorage.setItem('token', response.access_token);
     localStorage.setItem('refresh_token', response.refresh_token);
     localStorage.setItem('username', response.username);
+    
+    // Check token expiration times after login
+    checkTokenExpiration();
+    
     return response;
   },
   signup: (userData) => api.post('/api/auth/signup', userData),
@@ -204,6 +305,7 @@ export const authApi = {
       throw error;
     }
   },
+  checkTokens: checkTokenExpiration,  // Expose the check function
 };
 
 // Helper function to add filter parameters

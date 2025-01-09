@@ -37,8 +37,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-for-development")
 REFRESH_SECRET_KEY = os.getenv("JWT_REFRESH_SECRET_KEY", "your-refresh-secret-key-for-development")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
-REFRESH_TOKEN_EXPIRE_DAYS = 90  # 3 months
+ACCESS_TOKEN_EXPIRE_MINUTES = 0.5  # 30 seconds
+REFRESH_TOKEN_EXPIRE_DAYS = 0.000694444  # 1 minute (1/1440 of a day)
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -130,8 +130,12 @@ def verify_token(token: str, secret_key: str = SECRET_KEY, verify_type: str = "a
         HTTPException: If token is invalid or expired
     """
     try:
+        logger.info(f"[Token Verify] Verifying {verify_type} token")
         payload = jwt.decode(token, secret_key, algorithms=[ALGORITHM])
+        logger.info(f"[Token Verify] Token payload: {payload}")
+        
         if payload.get("token_type") != verify_type:
+            logger.error(f"[Token Verify] Invalid token type. Expected {verify_type}, got {payload.get('token_type')}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"Invalid token type. Expected {verify_type}",
@@ -148,7 +152,15 @@ def verify_token(token: str, secret_key: str = SECRET_KEY, verify_type: str = "a
             )
                 
         return payload
-    except JWTError:
+    except jwt.ExpiredSignatureError:
+        logger.error(f"[Token Verify] Token has expired")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.JWTError as e:
+        logger.error(f"[Token Verify] JWT verification failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -172,28 +184,65 @@ async def get_current_user(
     Raises:
         HTTPException: If token is invalid or user not found
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    logger.info("[Auth] Validating access token")
     
     try:
+        # First try to decode without verification to log the token contents
+        try:
+            unverified_payload = jwt.decode(token, options={"verify_signature": False})
+            logger.info(f"[Auth] Token claims: exp={unverified_payload.get('exp')}, iat={unverified_payload.get('iat')}, type={unverified_payload.get('token_type')}")
+        except Exception as e:
+            logger.error(f"[Auth] Could not decode token for logging: {str(e)}")
+        
+        # Now do the actual verification
         payload = verify_token(token, SECRET_KEY, "access")
         email: str = payload.get("sub")
         if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+            logger.error("[Auth] No email found in token payload")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token claims",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        logger.info(f"[Auth] Token validated successfully for user: {email}")
         
-    query = select(User).where(User.email == email)
-    result = await db.execute(query)
-    user = result.scalar_one_or_none()
-    
-    if user is None:
-        raise credentials_exception
+        # Verify user exists
+        query = select(User).where(User.email == email)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
         
-    return user
+        if user is None:
+            logger.error(f"[Auth] User not found for email: {email}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        return user
+        
+    except jwt.ExpiredSignatureError as e:
+        logger.error(f"[Auth] Token has expired: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except jwt.JWTError as e:
+        logger.error(f"[Auth] JWT validation failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as e:
+        logger.error(f"[Auth] Unexpected error during authentication: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 async def authenticate_user(email: str, password: str, db: AsyncSession) -> Optional[User]:
     """

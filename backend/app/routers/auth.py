@@ -135,6 +135,7 @@ async def refresh_token(refresh_token: str = Form(...), db: AsyncSession = Depen
     """
     logger.info("[Token Refresh] Starting token refresh process")
     try:
+        logger.info("[Token Refresh] Verifying refresh token")
         payload = verify_token(refresh_token, REFRESH_SECRET_KEY, "refresh")
         email = payload.get("sub")
         if not email:
