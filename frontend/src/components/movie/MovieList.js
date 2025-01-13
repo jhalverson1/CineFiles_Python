@@ -438,6 +438,132 @@ const MovieList = ({
     />
   );
 
+  // Calculate number of skeleton items based on view mode and screen size
+  const getSkeletonCount = () => {
+    if (viewMode === 'scroll') return 8;
+    
+    // For grid view, calculate based on viewport
+    const width = window.innerWidth;
+    if (width >= 1536) return 20; // 2xl - 10 columns
+    if (width >= 1280) return 16; // xl - 8 columns
+    if (width >= 1024) return 12; // lg - 6 columns
+    if (width >= 768) return 8;   // md - 4 columns
+    if (width >= 640) return 6;   // sm - 3 columns
+    return 4;                     // xs - 2 columns
+  };
+
+  // Stagger animation variants for movie items
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { 
+      opacity: 0,
+      y: 20,
+      scale: 0.95
+    },
+    show: { 
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    },
+    exit: {
+      opacity: 0,
+      scale: 0.95,
+      y: -20,
+      transition: {
+        duration: 0.2,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const renderSkeleton = () => {
+    const skeletonCount = getSkeletonCount();
+    
+    return (
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className={viewMode === 'grid' 
+          ? `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-2 px-1`
+          : "flex gap-4 p-4"
+        }
+      >
+        {Array(skeletonCount).fill(null).map((_, index) => (
+          <motion.div
+            key={`skeleton-${index}`}
+            variants={itemVariants}
+            className={`${
+              viewMode === 'scroll' 
+                ? `flex-none ${effectiveIsCompact ? 'w-[120px]' : 'w-[180px]'}`
+                : 'w-full'
+            } ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'}`}
+          >
+            <div className="relative w-full group">
+              <div className="block bg-background-secondary rounded-lg overflow-hidden relative z-10 h-full">
+                <div className="aspect-[2/3] relative">
+                  {/* Action Buttons Skeleton */}
+                  <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 md:p-2 md:gap-2">
+                    <div className="flex-1">
+                      <div className="w-8 h-8 rounded-full bg-background-active relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                      </div>
+                    </div>
+                    <div className="flex flex-1 justify-end gap-1 md:gap-2">
+                      <div className="flex-1 flex justify-center">
+                        <div className="w-8 h-8 rounded-full bg-background-active relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                        </div>
+                      </div>
+                      <div className="flex-1 flex justify-center">
+                        <div className="w-8 h-8 rounded-full bg-background-active relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Poster Skeleton */}
+                  <div className="w-full h-full bg-background-active relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                  </div>
+                </div>
+                {/* Title and Info Skeleton */}
+                <div className="p-2 space-y-2">
+                  <div className="h-4 bg-background-active rounded relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                  </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="h-3 w-10 bg-background-active rounded relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                    </div>
+                    <div className="h-3 w-12 bg-background-active rounded relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+    );
+  };
+
   if (error) {
     return (
       <div className="text-red-500 text-center py-4">
@@ -475,30 +601,28 @@ const MovieList = ({
           )}
 
           <div ref={scrollContainerRef} className="overflow-x-auto scrollbar-hide relative">
-            <div className="flex gap-4 p-4">
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="flex gap-4 p-4"
+            >
               <AnimatePresence mode="popLayout">
                 {displayedMovies.map((movie) => (
                   <motion.div
                     key={movie.id}
+                    variants={itemVariants}
                     className={`flex-none ${effectiveIsCompact ? 'w-[120px]' : 'w-[180px]'}`}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ 
-                      opacity: 0,
-                      scale: 0.8,
-                      y: -20,
-                      transition: {
-                        duration: 0.3,
-                        ease: [0.4, 0, 0.2, 1]
-                      }
-                    }}
                     layout
                   >
                     {renderMovieCard(movie)}
                   </motion.div>
                 ))}
                 {hasMore && (
-                  <div className={`flex-none ${effectiveIsCompact ? 'w-[60px]' : 'w-[90px]'} flex items-center justify-center`}>
+                  <motion.div 
+                    variants={itemVariants}
+                    className={`flex-none ${effectiveIsCompact ? 'w-[60px]' : 'w-[90px]'} flex items-center justify-center`}
+                  >
                     {isLoading ? (
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary/20" />
                     ) : (
@@ -512,10 +636,10 @@ const MovieList = ({
                         </svg>
                       </button>
                     )}
-                  </div>
+                  </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
           </div>
         </div>
       );
@@ -523,38 +647,36 @@ const MovieList = ({
 
     return (
       <div>
-        <div className={`grid ${
-          viewMode === 'grid'
-            ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-2 px-1' 
-            : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 px-2'
-        }`}>
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className={`grid ${
+            viewMode === 'grid'
+              ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-2 px-1' 
+              : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 px-2'
+          }`}
+        >
           <AnimatePresence mode="popLayout">
             {displayedMovies.map((movie) => (
               <motion.div
                 key={movie.id}
+                variants={itemVariants}
                 className={`w-full ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ 
-                  opacity: 0,
-                  scale: 0.8,
-                  y: -20,
-                  transition: {
-                    duration: 0.3,
-                    ease: [0.4, 0, 0.2, 1]
-                  }
-                }}
                 layout
               >
                 {renderMovieCard(movie)}
               </motion.div>
             ))}
           </AnimatePresence>
-        </div>
+        </motion.div>
         
         {/* Load More Button (only for grid view) */}
         {hasMore && (
-          <div className="flex justify-center mt-8 mb-4">
+          <motion.div 
+            variants={itemVariants}
+            className="flex justify-center mt-8 mb-4"
+          >
             <button
               onClick={handleLoadMore}
               disabled={isLoading}
@@ -576,7 +698,7 @@ const MovieList = ({
                 'Load More'
               )}
             </button>
-          </div>
+          </motion.div>
         )}
       </div>
     );
@@ -584,56 +706,29 @@ const MovieList = ({
 
   return (
     <div>
-      {isLoading && displayedMovies.length === 0 ? (
-        <div className={viewMode === 'grid' 
-          ? `grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-2 px-1`
-          : "flex gap-4 p-4"
-        }>
-          {Array(6).fill(null).map((_, index) => (
-            <div
-              key={`skeleton-${index}`}
-              className={`${
-                viewMode === 'scroll' 
-                  ? `flex-none ${effectiveIsCompact ? 'w-[120px]' : 'w-[180px]'}`
-                  : 'w-full'
-              } ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'}`}
-            >
-              <div className="relative w-full group">
-                <div className="block bg-background-secondary rounded-lg overflow-hidden relative z-10 h-full">
-                  <div className="aspect-[2/3] relative">
-                    {/* Action Buttons Skeleton */}
-                    <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 md:p-2 md:gap-2">
-                      <div className="flex-1">
-                        <div className="w-8 h-8 rounded-full bg-background-active animate-pulse" />
-                      </div>
-                      <div className="flex flex-1 justify-end gap-1 md:gap-2">
-                        <div className="flex-1 flex justify-center">
-                          <div className="w-8 h-8 rounded-full bg-background-active animate-pulse" />
-                        </div>
-                        <div className="flex-1 flex justify-center">
-                          <div className="w-8 h-8 rounded-full bg-background-active animate-pulse" />
-                        </div>
-                      </div>
-                    </div>
-                    {/* Poster Skeleton */}
-                    <div className="w-full h-full bg-background-active animate-pulse" />
-                  </div>
-                  {/* Title and Info Skeleton */}
-                  <div className="p-2">
-                    <div className="h-4 bg-background-active rounded animate-pulse mb-2" />
-                    <div className="flex justify-between items-center">
-                      <div className="h-3 w-10 bg-background-active rounded animate-pulse" />
-                      <div className="h-3 w-12 bg-background-active rounded animate-pulse" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        renderMovieList()
-      )}
+      <AnimatePresence mode="wait">
+        {isLoading && displayedMovies.length === 0 ? (
+          <motion.div
+            key="skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {renderSkeleton()}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {renderMovieList()}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
