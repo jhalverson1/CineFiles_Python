@@ -7,6 +7,7 @@ import { movieApi, filterSettingsApi } from '../../utils/api';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLists } from '../../contexts/ListsContext';
 import { DEFAULT_MOVIE_LISTS } from '../../constants/movieLists';
+import { variants } from '../../utils/theme';
 
 // Custom hook for responsive design
 const useResponsiveDefaults = () => {
@@ -36,8 +37,8 @@ const HomePage = () => {
   const isMobile = useResponsiveDefaults();
   const { lists } = useLists();
   const [excludedLists, setExcludedLists] = useState([]);
-  const [yearRange, setYearRange] = useState(null);
-  const [ratingRange, setRatingRange] = useState(null);
+  const [yearRange, setYearRange] = useState([1900, new Date().getFullYear()]);
+  const [ratingRange, setRatingRange] = useState([0, 10]);
   const [popularityRange, setPopularityRange] = useState(null);
   const [viewMode, setViewMode] = useState('scroll');
   const [isCompact, setIsCompact] = useState(isMobile);
@@ -161,8 +162,8 @@ const HomePage = () => {
   // Reset state when navigating to home from home
   useEffect(() => {
     setExcludedLists([]);
-    setYearRange(null);
-    setRatingRange(null);
+    setYearRange([1900, new Date().getFullYear()]);
+    setRatingRange([0, 10]);
     setPopularityRange(null);
     setViewMode('scroll');
     setIsCompact(isMobile);
@@ -250,37 +251,36 @@ const HomePage = () => {
   return (
     <div>
       {/* Fixed Header Container */}
-      <div className="fixed top-14 left-0 right-0 z-40 bg-background-secondary border-b border-border shadow-lg">
+      <div className={variants.header.container}>
         {/* Solid colored backdrop */}
-        <div className="absolute inset-0 bg-background-secondary" />
+        <div className={variants.header.backdrop} />
         
         {/* Content */}
-        <div className="relative container mx-auto px-4 md:px-8 lg:px-12">
-          <div className="py-4">
+        <div className={variants.header.content}>
+          <div className={variants.header.toolbar}>
             {/* Action Toolbar */}
             <div className="flex items-center justify-between">
               {/* Left side - Filter and Search */}
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleFilterToggle}
-                  className={`p-2 rounded-lg transition-colors ${
+                  className={`inline-flex items-center px-4 py-2 border rounded-md transition-colors ${
                     isFiltersOpen 
-                      ? 'bg-background-tertiary text-text-primary' 
-                      : 'bg-background-primary text-text-disabled hover:text-text-primary'
+                      ? variants.filter.button.active
+                      : variants.filter.button.inactive
                   }`}
                   aria-label="Toggle filters"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                  </svg>
+                  <span className="text-sm font-medium mr-2">FILTER & SORT</span>
+                  <span className="text-lg leading-none">≡</span>
                 </button>
                 {/* Search Button */}
                 <button
                   onClick={handleSearchToggle}
-                  className={`p-2 rounded-lg transition-colors ${
+                  className={`${variants.header.button.base} ${
                     isSearchOpen 
-                      ? 'bg-background-tertiary text-text-primary' 
-                      : 'bg-background-primary text-text-disabled hover:text-text-primary'
+                      ? variants.header.button.active
+                      : variants.header.button.inactive
                   }`}
                   aria-label="Toggle search"
                 >
@@ -293,119 +293,49 @@ const HomePage = () => {
                 <div className="relative" ref={excludeRef}>
                   <button
                     onClick={() => setExcludeOpen(!excludeOpen)}
-                    className={`p-2 rounded-lg transition-colors ${
+                    className={`${variants.header.button.base} ${
                       excludeOpen 
-                        ? 'bg-background-tertiary text-text-primary' 
-                        : 'bg-background-primary text-text-disabled hover:text-text-primary'
+                        ? variants.header.button.active 
+                        : variants.header.button.inactive
                     }`}
                     aria-label="Toggle exclude lists"
                   >
-                    <div className="relative">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        <circle cx="12" cy="12" r="10" strokeWidth={2} className="opacity-50" />
-                      </svg>
-                      {excludedLists.length > 0 && (
-                        <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center">
-                          <div className="absolute inline-flex h-full w-full animate-ping rounded-full bg-text-secondary/20 opacity-75"></div>
-                          <div className="relative inline-flex h-3 w-3 rounded-full bg-text-secondary/40"></div>
-                        </div>
-                      )}
-                    </div>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
-                  {excludeOpen && (
-                    <div className="absolute z-[100] mt-2 w-64 bg-background-secondary/95 backdrop-blur-md border border-border/50 rounded-xl shadow-lg overflow-hidden">
-                      <div className="p-3 border-b border-border/10">
-                        <h3 className="font-medium text-sm text-text-primary mb-1">Exclude movies from lists</h3>
-                        <p className="text-xs text-text-secondary">Movies from selected lists will be hidden from results</p>
-                      </div>
-                      <div className="max-h-60 overflow-y-auto scrollbar-hide py-1">
-                        {lists.map((list) => (
-                          <button
-                            key={list.id}
-                            className="w-full flex items-center px-4 py-3 md:py-2 hover:bg-background-active/50 cursor-pointer transition-colors duration-200 group text-left"
-                            onClick={() => setExcludedLists(
-                              excludedLists.includes(list.id)
-                                ? excludedLists.filter(id => id !== list.id)
-                                : [...excludedLists, list.id]
-                            )}
-                          >
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors mr-3 ${
-                              excludedLists.includes(list.id)
-                                ? 'bg-primary border-primary/80'
-                                : 'border-text-disabled/30 group-hover:border-text-disabled/50'
-                            }`}>
-                              {excludedLists.includes(list.id) && (
-                                <svg className="w-3 h-3 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                            <span className="text-sm text-text-primary group-hover:text-text-primary/90">
-                              {list.name}
-                              <span className="ml-2 text-xs text-text-secondary px-2 py-0.5 rounded-full bg-background-tertiary/30">
-                                {list.items?.length || 0}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* Homepage Manager Button */}
-                <button
-                  onClick={() => setIsHomepageManagerOpen(true)}
-                  className="p-2 rounded-lg bg-background-primary text-text-disabled hover:text-text-primary transition-colors"
-                  aria-label="Manage homepage lists"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Right side - Action Buttons */}
-              <div className="flex items-center gap-3">
                 {/* View Mode Toggle */}
-                <div className="flex items-center bg-background-primary rounded-lg p-1">
+                {!isMobile && (
                   <button
-                    onClick={() => setViewMode('scroll')}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      viewMode === 'scroll'
-                        ? 'bg-background-tertiary text-text-primary'
-                        : 'text-text-disabled hover:text-text-primary'
-                    }`}
-                    aria-label="Switch to scroll view"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setViewMode('grid');
-                      setIsCompact(true); // Force compact mode when switching to grid
-                    }}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    onClick={() => setViewMode(viewMode === 'scroll' ? 'grid' : 'scroll')}
+                    className={`${variants.header.button.base} ${
                       viewMode === 'grid'
-                        ? 'bg-background-tertiary text-text-primary'
-                        : 'text-text-disabled hover:text-text-primary'
+                        ? variants.header.button.active
+                        : variants.header.button.inactive
                     }`}
-                    aria-label="Switch to grid view"
+                    aria-label={viewMode === 'scroll' ? "Switch to grid view" : "Switch to scroll view"}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                      {viewMode === 'scroll' ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                      )}
                     </svg>
                   </button>
-                </div>
+                )}
 
-                {/* Size Toggle - Hide on mobile and when grid view is active */}
+                {/* Compact Toggle */}
                 {!isMobile && viewMode !== 'grid' && (
                   <button
                     onClick={() => setIsCompact(!isCompact)}
-                    className="p-2 rounded-lg bg-background-primary text-text-disabled hover:text-text-primary transition-colors"
+                    className={`${variants.header.button.base} ${
+                      isCompact
+                        ? variants.header.button.active
+                        : variants.header.button.inactive
+                    }`}
                     aria-label={isCompact ? "Switch to expanded view" : "Switch to compact view"}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -420,47 +350,7 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Expandable Filter Banner */}
-            <div className={isFiltersOpen ? "pt-3 pb-2" : ""}>
-              {isFiltersOpen && (
-                <div className="bg-black/75 rounded-xl border border-white/10 p-4">
-                  <FilterBar 
-                    yearRange={yearRange}
-                    onYearRangeChange={setYearRange}
-                    ratingRange={ratingRange}
-                    onRatingRangeChange={setRatingRange}
-                    popularityRange={popularityRange}
-                    onPopularityRangeChange={setPopularityRange}
-                    selectedGenres={selectedGenres}
-                    onGenresChange={setSelectedGenres}
-                    genres={genres}
-                    isLoadingGenres={isLoadingGenres}
-                    watchProviders={watchProviders}
-                    onWatchProvidersChange={setWatchProviders}
-                    watchRegion={watchRegion}
-                    onWatchRegionChange={setWatchRegion}
-                    voteCountRange={voteCountRange}
-                    onVoteCountRangeChange={setVoteCountRange}
-                    runtimeRange={runtimeRange}
-                    onRuntimeRangeChange={setRuntimeRange}
-                    originalLanguage={originalLanguage}
-                    onOriginalLanguageChange={setOriginalLanguage}
-                    spokenLanguages={spokenLanguages}
-                    onSpokenLanguagesChange={setSpokenLanguages}
-                    releaseTypes={releaseTypes}
-                    onReleaseTypesChange={setReleaseTypes}
-                    includeKeywords={includeKeywords}
-                    onIncludeKeywordsChange={setIncludeKeywords}
-                    excludeKeywords={excludeKeywords}
-                    onExcludeKeywordsChange={setExcludeKeywords}
-                    sortBy={sortBy}
-                    onSortByChange={setSortBy}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Expandable Search Bar */}
+            {/* Search Bar */}
             {isSearchOpen && (
               <div className="pt-3 pb-2">
                 <form onSubmit={handleSearch} className="relative flex items-center w-full">
@@ -508,13 +398,82 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Filter Panel - Slide from right */}
+      <AnimatePresence>
+        {isFiltersOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setIsFiltersOpen(false)}
+            />
+            
+            {/* Filter Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }}
+              className={variants.filter.container}
+            >
+              <div className={variants.filter.header}>
+                <h2 className="text-lg font-semibold text-black">Filter & Sort</h2>
+                <button
+                  onClick={() => setIsFiltersOpen(false)}
+                  className={`${variants.filter.button.base} !w-auto rounded-lg`}
+                  aria-label="Close filter panel"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className={variants.filter.section}>
+                <FilterBar 
+                  yearRange={yearRange}
+                  onYearRangeChange={setYearRange}
+                  ratingRange={ratingRange}
+                  onRatingRangeChange={setRatingRange}
+                  popularityRange={popularityRange}
+                  onPopularityRangeChange={setPopularityRange}
+                  selectedGenres={selectedGenres}
+                  onGenresChange={setSelectedGenres}
+                  genres={genres}
+                  isLoadingGenres={isLoadingGenres}
+                  watchProviders={watchProviders}
+                  onWatchProvidersChange={setWatchProviders}
+                  watchRegion={watchRegion}
+                  onWatchRegionChange={setWatchRegion}
+                  voteCountRange={voteCountRange}
+                  onVoteCountRangeChange={setVoteCountRange}
+                  runtimeRange={runtimeRange}
+                  onRuntimeRangeChange={setRuntimeRange}
+                  originalLanguage={originalLanguage}
+                  onOriginalLanguageChange={setOriginalLanguage}
+                  spokenLanguages={spokenLanguages}
+                  onSpokenLanguagesChange={setSpokenLanguages}
+                  releaseTypes={releaseTypes}
+                  onReleaseTypesChange={setReleaseTypes}
+                  includeKeywords={includeKeywords}
+                  onIncludeKeywordsChange={setIncludeKeywords}
+                  excludeKeywords={excludeKeywords}
+                  onExcludeKeywordsChange={setExcludeKeywords}
+                  sortBy={sortBy}
+                  onSortByChange={setSortBy}
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Movie Lists - Add padding to account for fixed header height */}
-      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 transition-[padding] duration-300 ease-in-out ${
-        isSearchOpen && isFiltersOpen ? 'pt-72' : // Both open
-        isFiltersOpen ? 'pt-52' : // Only filters open
-        isSearchOpen ? 'pt-40' : // Only search open
-        'pt-24' // None open
-      }`}>
+      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 pt-24`}>
         <AnimatePresence mode="wait">
           {searchResults !== null ? (
             <motion.div
