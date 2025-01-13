@@ -70,9 +70,13 @@ const HomePage = () => {
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const isDefaultYearRange = yearRange?.[0] === 1900 && yearRange?.[1] === currentYear;
+    const isDefaultRatingRange = ratingRange?.[0] === 0 && ratingRange?.[1] === 10;
+
     return !!(
-      yearRange || 
-      ratingRange || 
+      (!isDefaultYearRange) || 
+      (!isDefaultRatingRange) || 
       popularityRange || 
       (selectedGenres && selectedGenres.length > 0) ||
       (watchProviders && watchProviders.length > 0) ||
