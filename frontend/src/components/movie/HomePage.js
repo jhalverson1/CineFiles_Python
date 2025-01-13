@@ -248,6 +248,13 @@ const HomePage = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Add this effect near the other useEffect hooks
+  useEffect(() => {
+    if (isMobile) {
+      setIsCompact(true);
+    }
+  }, [isMobile]);
+
   return (
     <div>
       {/* Fixed Header Container */}
@@ -259,7 +266,7 @@ const HomePage = () => {
         <div className={variants.header.content}>
           <div className={variants.header.toolbar}>
             {/* Action Toolbar */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               {/* Left side - Filter and Search */}
               <div className="flex items-center gap-3">
                 <button
@@ -304,30 +311,67 @@ const HomePage = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
+
+                  {/* Exclude Lists Dropdown */}
+                  <AnimatePresence>
+                    {excludeOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-background-secondary border border-border-primary z-50"
+                      >
+                        <div className="p-4">
+                          <h3 className="text-sm font-medium text-text-primary mb-2">Exclude From Results</h3>
+                          <div className="space-y-2">
+                            {lists.map((list) => (
+                              <label key={list.id} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={excludedLists.includes(list.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setExcludedLists([...excludedLists, list.id]);
+                                    } else {
+                                      setExcludedLists(excludedLists.filter(id => id !== list.id));
+                                    }
+                                  }}
+                                  className="form-checkbox h-4 w-4 text-primary rounded border-border-primary focus:ring-primary"
+                                />
+                                <span className="text-sm text-text-primary">{list.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
+              </div>
 
+              {/* Right side - View Mode and Compact Toggles */}
+              <div className="flex items-center gap-3">
                 {/* View Mode Toggle */}
-                {!isMobile && (
-                  <button
-                    onClick={() => setViewMode(viewMode === 'scroll' ? 'grid' : 'scroll')}
-                    className={`${variants.header.button.base} ${
-                      viewMode === 'grid'
-                        ? variants.header.button.active
-                        : variants.header.button.inactive
-                    }`}
-                    aria-label={viewMode === 'scroll' ? "Switch to grid view" : "Switch to scroll view"}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {viewMode === 'scroll' ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                      )}
-                    </svg>
-                  </button>
-                )}
+                <button
+                  onClick={() => setViewMode(viewMode === 'scroll' ? 'grid' : 'scroll')}
+                  className={`${variants.header.button.base} ${
+                    viewMode === 'grid'
+                      ? variants.header.button.active
+                      : variants.header.button.inactive
+                  }`}
+                  aria-label={viewMode === 'scroll' ? "Switch to grid view" : "Switch to scroll view"}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {viewMode === 'scroll' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                    )}
+                  </svg>
+                </button>
 
-                {/* Compact Toggle */}
+                {/* Compact Toggle - Only visible on non-mobile when in scroll view */}
                 {!isMobile && viewMode !== 'grid' && (
                   <button
                     onClick={() => setIsCompact(!isCompact)}
