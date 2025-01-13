@@ -268,9 +268,19 @@ export const authApi = {
   signup: (userData) => api.post('/api/auth/signup', userData),
   getCurrentUser: () => api.get('/api/auth/me'),
   logout: () => {
+    console.log('[API] Logout called - Clearing tokens');
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    console.log('[API] Current tokens:', { hasToken: !!token, hasRefreshToken: !!refreshToken });
+    
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('username');
+    
+    // Reset axios default authorization header
+    api.defaults.headers.common['Authorization'] = '';
+    
+    console.log('[API] Tokens cleared');
     return Promise.resolve();
   },
   testAuth: async () => {
@@ -515,6 +525,7 @@ export const movieApi = {
   getMovieDetails: (id) => api.get(`/api/movies/${id}`),
   getMovieCredits: (id) => api.get(`/api/movies/${id}/credits`),
   getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
+  getSimilarMovies: (id) => api.get(`/api/movies/${id}/similar`),
   getPersonDetails: (id) => api.get(`/api/person/${id}`),
   getMovieWatchProviders: (id) => api.get(`/api/movies/${id}/watch-providers`),
 };
@@ -545,7 +556,10 @@ export const deleteList = async (listId) => {
 };
 
 export const addMovieToList = async (listId, movieId, notes = '') => {
-  return await api.post(`/api/lists/${listId}/items`, { movie_id: movieId, notes });
+  return await api.post(`/api/lists/${listId}/items`, { 
+    movie_id: movieId.toString(), 
+    notes 
+  });
 };
 
 export const removeMovieFromList = async (listId, movieId) => {

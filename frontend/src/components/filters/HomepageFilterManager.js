@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DEFAULT_MOVIE_LISTS } from '../../constants/movieLists';
 import { filterSettingsApi } from '../../utils/api';
+import { variants } from '../../utils/theme';
 
 const HomepageFilterManager = ({ onClose, loadHomepageLists }) => {
   const [userFilters, setUserFilters] = useState([]);
@@ -17,10 +18,14 @@ const HomepageFilterManager = ({ onClose, loadHomepageLists }) => {
         
         // Load user filters from API
         const filters = await filterSettingsApi.getFilterSettings();
+        console.log('Loaded user filters:', filters);
         setUserFilters(filters || []);
         
         // Load enabled default lists from localStorage
         const savedDefaultLists = JSON.parse(localStorage.getItem('enabledDefaultLists') || '[]');
+        console.log('Loaded saved default lists:', savedDefaultLists);
+        console.log('DEFAULT_MOVIE_LISTS:', DEFAULT_MOVIE_LISTS);
+        
         const defaultListsWithState = DEFAULT_MOVIE_LISTS.map(list => ({
           ...list,
           isEnabled: savedDefaultLists.includes(list.id),
@@ -31,6 +36,7 @@ const HomepageFilterManager = ({ onClose, loadHomepageLists }) => {
           }
           return b.isEnabled - a.isEnabled;
         });
+        console.log('Processed default lists:', defaultListsWithState);
         setDefaultLists(defaultListsWithState);
       } catch (err) {
         console.error('Error loading filters:', err);
@@ -116,112 +122,140 @@ const HomepageFilterManager = ({ onClose, loadHomepageLists }) => {
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
       .map(l => ({ ...l, itemType: 'default' }))
   ];
+  
+  console.log('Enabled Items:', enabledItems);
+  console.log('Available Default Lists:', defaultLists.filter(list => !list.isEnabled));
+  console.log('Available User Filters:', userFilters.filter(filter => !filter.is_homepage_enabled));
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold mb-6">Manage Homepage Lists</h2>
-      
-      {error && (
-        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
-          {error}
-        </div>
-      )}
+    <div className={variants.modal.backdrop}>
+      <div className={variants.modal.container.base}>
+        <div className={variants.modal.content.base}>
+          {/* Header */}
+          <div className={variants.modal.header.base}>
+            <h2 className={variants.modal.header.title}>Manage Homepage Lists</h2>
+            <button
+              onClick={handleClose}
+              className={variants.modal.header.close}
+              aria-label="Close modal"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-      <div className="space-y-6">
-        {/* Enabled Lists */}
-        <div className="bg-background-secondary/50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-text-primary mb-3">Enabled Lists</h3>
-          <div className="space-y-2">
-            {enabledItems.length === 0 ? (
-              <p className="text-sm text-text-secondary">No lists enabled</p>
-            ) : (
-              enabledItems.map((item, index) => (
-                <div
-                  key={`${item.itemType}-${item.id}`}
-                  className="flex items-center gap-3 p-3 bg-background-tertiary rounded-lg"
-                >
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-text-primary">{item.name}</h4>
-                    {item.itemType === 'default' && (
-                      <p className="text-xs text-text-secondary">{item.description}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => item.itemType === 'filter' 
-                      ? handleToggleFilter(item)
-                      : handleToggleDefaultList(item)
-                    }
-                    className="p-1.5 text-text-disabled hover:text-text-primary rounded-lg hover:bg-background-active transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))
+          {/* Content */}
+          <div className={`${variants.modal.body.base} ${variants.modal.body.scroll} p-6`}>
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
+                {error}
+              </div>
             )}
+
+            <div className="space-y-6">
+              {/* Enabled Lists */}
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Enabled Lists ({enabledItems.length})
+                </h3>
+                <ul className="space-y-2">
+                  {enabledItems.length === 0 ? (
+                    <li className="text-sm text-gray-500">No lists enabled</li>
+                  ) : (
+                    enabledItems.map((item, index) => (
+                      <li 
+                        key={`${item.itemType}-${item.id}`} 
+                        className="grid grid-cols-[1fr,auto] gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {item.name}
+                          </div>
+                          {item.itemType === 'default' && (
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {item.description}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => 
+                            item.itemType === 'filter' 
+                              ? handleToggleFilter(item)
+                              : handleToggleDefaultList(item)
+                          }
+                          className={`${variants.filter.button.base}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+
+              {/* Available Lists */}
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Available Lists ({defaultLists.filter(list => !list.isEnabled).length + userFilters.filter(filter => !filter.is_homepage_enabled).length})
+                </h3>
+                <ul className="space-y-2">
+                  {/* Default Lists */}
+                  {defaultLists
+                    .filter(list => !list.isEnabled)
+                    .map(list => (
+                      <li 
+                        key={list.id} 
+                        className="grid grid-cols-[1fr,auto] gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {list.name}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {list.description}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleToggleDefaultList(list)}
+                          className={`${variants.filter.button.base}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                      </li>
+                    ))}
+
+                  {/* User Filters */}
+                  {userFilters
+                    .filter(filter => !filter.is_homepage_enabled)
+                    .map(filter => (
+                      <li 
+                        key={filter.id} 
+                        className="grid grid-cols-[1fr,auto] gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {filter.name}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleToggleFilter(filter)}
+                          className={`${variants.filter.button.base}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Available Lists */}
-        <div className="bg-background-secondary/50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-text-primary mb-3">Available Lists</h3>
-          <div className="space-y-2">
-            {/* Default Lists */}
-            {defaultLists
-              .filter(list => !list.isEnabled)
-              .map(list => (
-                <div
-                  key={list.id}
-                  className="flex items-center gap-3 p-3 bg-background-tertiary rounded-lg"
-                >
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-text-primary">{list.name}</h4>
-                    <p className="text-xs text-text-secondary">{list.description}</p>
-                  </div>
-                  <button
-                    onClick={() => handleToggleDefaultList(list)}
-                    className="p-1.5 text-text-disabled hover:text-text-primary rounded-lg hover:bg-background-active transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-
-            {/* User Filters */}
-            {userFilters
-              .filter(filter => !filter.is_homepage_enabled)
-              .map(filter => (
-                <div
-                  key={filter.id}
-                  className="flex items-center gap-3 p-3 bg-background-tertiary rounded-lg"
-                >
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-text-primary">{filter.name}</h4>
-                  </div>
-                  <button
-                    onClick={() => handleToggleFilter(filter)}
-                    className="p-1.5 text-text-disabled hover:text-text-primary rounded-lg hover:bg-background-active transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Close Button */}
-        <div className="flex justify-end">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 bg-background-tertiary hover:bg-background-active text-text-primary rounded-lg transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>

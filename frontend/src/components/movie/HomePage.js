@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import MovieList from './MovieList';
 import FilterBar from '../filters/FilterBar';
 import HomepageFilterManager from '../filters/HomepageFilterManager';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { colorVariants } from '../../utils/theme';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { movieApi, filterSettingsApi } from '../../utils/api';
+import { listsApi } from '../../utils/listsApi';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLists } from '../../contexts/ListsContext';
 import { DEFAULT_MOVIE_LISTS } from '../../constants/movieLists';
+import { variants } from '../../utils/theme';
+import MovieDetailsModal from './MovieDetailsModal';
+import { toast } from 'react-hot-toast';
 
 // Custom hook for responsive design
 const useResponsiveDefaults = () => {
@@ -34,11 +37,12 @@ const useResponsiveDefaults = () => {
 const HomePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
   const isMobile = useResponsiveDefaults();
-  const { lists } = useLists();
+  const { lists, updateListStatus, addToList } = useLists();
   const [excludedLists, setExcludedLists] = useState([]);
-  const [yearRange, setYearRange] = useState(null);
-  const [ratingRange, setRatingRange] = useState(null);
+  const [yearRange, setYearRange] = useState([1900, new Date().getFullYear()]);
+  const [ratingRange, setRatingRange] = useState([0, 10]);
   const [popularityRange, setPopularityRange] = useState(null);
   const [viewMode, setViewMode] = useState('scroll');
   const [isCompact, setIsCompact] = useState(isMobile);
@@ -67,12 +71,19 @@ const HomePage = () => {
   const [excludeKeywords, setExcludeKeywords] = useState([]);
   const [sortBy, setSortBy] = useState(null);
   const excludeRef = useRef(null);
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [movieDetails, setMovieDetails] = useState(null);
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const isDefaultYearRange = yearRange?.[0] === 1900 && yearRange?.[1] === currentYear;
+    const isDefaultRatingRange = ratingRange?.[0] === 0 && ratingRange?.[1] === 10;
+
     return !!(
-      yearRange || 
-      ratingRange || 
+      (!isDefaultYearRange) || 
+      (!isDefaultRatingRange) || 
       popularityRange || 
       (selectedGenres && selectedGenres.length > 0) ||
       (watchProviders && watchProviders.length > 0) ||
@@ -159,29 +170,32 @@ const HomePage = () => {
     fetchGenres();
   }, []);
 
-  // Reset state when navigating to home from home
+  // Reset state when navigating to home from a different route
   useEffect(() => {
-    setExcludedLists([]);
-    setYearRange(null);
-    setRatingRange(null);
-    setPopularityRange(null);
-    setViewMode('scroll');
-    setIsCompact(isMobile);
-    setKey(prev => prev + 1);
-    setSearchResults(null);
-    setSearchQuery('');
-    setIsSearchOpen(false);
-    setWatchProviders([]);
-    setWatchRegion('US');
-    setVoteCountRange(null);
-    setRuntimeRange(null);
-    setOriginalLanguage(null);
-    setSpokenLanguages([]);
-    setReleaseTypes([]);
-    setIncludeKeywords([]);
-    setExcludeKeywords([]);
-    setSortBy(null);
-  }, [location.key, isMobile]);
+    const isNavigatingFromDifferentRoute = !location.pathname.includes('/movie/');
+    if (isNavigatingFromDifferentRoute) {
+      setExcludedLists([]);
+      setYearRange([1900, new Date().getFullYear()]);
+      setRatingRange([0, 10]);
+      setPopularityRange(null);
+      setViewMode('scroll');
+      setIsCompact(isMobile);
+      setKey(prev => prev + 1);
+      setSearchResults(null);
+      setSearchQuery('');
+      setIsSearchOpen(false);
+      setWatchProviders([]);
+      setWatchRegion('US');
+      setVoteCountRange(null);
+      setRuntimeRange(null);
+      setOriginalLanguage(null);
+      setSpokenLanguages([]);
+      setReleaseTypes([]);
+      setIncludeKeywords([]);
+      setExcludeKeywords([]);
+      setSortBy(null);
+    }
+  }, [location.pathname, isMobile]);
 
   // Handle search toggle
   const handleSearchToggle = () => {
@@ -248,40 +262,167 @@ const HomePage = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Add this effect near the other useEffect hooks
+  useEffect(() => {
+    if (isMobile) {
+      setIsCompact(true);
+    }
+  }, [isMobile]);
+
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await loadHomepageLists();
+      
+      const movieId = location.pathname.match(/\/movie\/(\d+)/)?.[1];
+      if (movieId) {
+        setIsLoadingModal(true);
+        try {
+          const [details, credits, videos, watchProviders] = await Promise.all([
+            movieApi.getMovieDetails(movieId),
+            movieApi.getMovieCredits(movieId),
+            movieApi.getMovieVideos(movieId),
+            movieApi.getMovieWatchProviders(movieId)
+          ]);
+
+          setMovieDetails({
+            ...details,
+            credits,
+            videos: videos.results || [],
+            similar: [], // Temporarily disabled until backend is ready
+            watchProviders: watchProviders.results?.US?.flatrate || []
+          });
+          setSelectedMovie(details);
+        } catch (error) {
+          console.error('Error loading movie details:', error);
+          toast.error('Failed to load movie details');
+          // Don't navigate away, just clear the modal state
+          setSelectedMovie(null);
+          setMovieDetails(null);
+        } finally {
+          setIsLoadingModal(false);
+        }
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
+  // Handle closing modal
+  const handleCloseModal = useCallback(() => {
+    const baseUrl = '/';
+    navigate(baseUrl, { 
+      replace: true
+    });
+  }, [navigate]);
+
+  // Handle toggling movies in Watched list
+  const onWatchedToggle = useCallback(async (movie) => {
+    try {
+      if (!movie || !movie.id) {
+        throw new Error('Invalid movie object');
+      }
+
+      const movieId = movie.id.toString();
+      const previousStatus = {
+        isWatched: lists?.find(list => list.name === 'Watched')?.items.some(item => item.movie_id === movieId),
+        isInWatchlist: lists?.find(list => list.name === 'Watchlist')?.items.some(item => item.movie_id === movieId)
+      };
+
+      // Optimistically update UI
+      updateListStatus(movieId, {
+        is_watched: !previousStatus.isWatched,
+        in_watchlist: previousStatus.isWatched ? previousStatus.isInWatchlist : false
+      });
+
+      try {
+        const response = await listsApi.toggleWatched(movieId);
+        // Update with actual server response
+        updateListStatus(movieId, response);
+      } catch (error) {
+        // Revert to previous state on error
+        updateListStatus(movieId, {
+          is_watched: previousStatus.isWatched,
+          in_watchlist: previousStatus.isInWatchlist
+        });
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error toggling watched status:', error);
+      toast.error('Failed to update watched status');
+    }
+  }, [lists, updateListStatus]);
+
+  // Handle toggling movies in Watchlist
+  const onWatchlistToggle = useCallback(async (movie) => {
+    try {
+      if (!movie || !movie.id) {
+        throw new Error('Invalid movie object');
+      }
+
+      const movieId = movie.id.toString();
+      const previousStatus = {
+        isWatched: lists?.find(list => list.name === 'Watched')?.items.some(item => item.movie_id === movieId),
+        isInWatchlist: lists?.find(list => list.name === 'Watchlist')?.items.some(item => item.movie_id === movieId)
+      };
+
+      // Optimistically update UI
+      updateListStatus(movieId, {
+        is_watched: previousStatus.isWatched,
+        in_watchlist: !previousStatus.isInWatchlist
+      });
+
+      try {
+        const response = await listsApi.toggleWatchlist(movieId);
+        // Update with actual server response
+        updateListStatus(movieId, response);
+      } catch (error) {
+        // Revert to previous state on error
+        updateListStatus(movieId, {
+          is_watched: previousStatus.isWatched,
+          in_watchlist: previousStatus.isInWatchlist
+        });
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error toggling watchlist status:', error);
+      toast.error('Failed to update watchlist');
+    }
+  }, [lists, updateListStatus]);
+
   return (
     <div>
       {/* Fixed Header Container */}
-      <div className="fixed top-14 left-0 right-0 z-40 bg-background-secondary border-b border-border shadow-lg">
+      <div className={variants.header.container}>
         {/* Solid colored backdrop */}
-        <div className="absolute inset-0 bg-background-secondary" />
+        <div className={variants.header.backdrop} />
         
         {/* Content */}
-        <div className="relative container mx-auto px-4 md:px-8 lg:px-12">
-          <div className="py-4">
+        <div className={variants.header.content}>
+          <div className={variants.header.toolbar}>
             {/* Action Toolbar */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               {/* Left side - Filter and Search */}
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleFilterToggle}
-                  className={`p-2 rounded-lg transition-colors ${
+                  className={`inline-flex items-center px-4 py-2 border rounded-md transition-colors ${
                     isFiltersOpen 
-                      ? 'bg-background-tertiary text-text-primary' 
-                      : 'bg-background-primary text-text-disabled hover:text-text-primary'
+                      ? variants.filter.button.active
+                      : variants.filter.button.inactive
                   }`}
                   aria-label="Toggle filters"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                  </svg>
+                  <span className="text-sm font-medium mr-2">FILTER & SORT</span>
+                  <span className="text-lg leading-none">≡</span>
                 </button>
                 {/* Search Button */}
                 <button
                   onClick={handleSearchToggle}
-                  className={`p-2 rounded-lg transition-colors ${
+                  className={`${variants.header.button.base} ${
                     isSearchOpen 
-                      ? 'bg-background-tertiary text-text-primary' 
-                      : 'bg-background-primary text-text-disabled hover:text-text-primary'
+                      ? variants.header.button.active
+                      : variants.header.button.inactive
                   }`}
                   aria-label="Toggle search"
                 >
@@ -294,119 +435,101 @@ const HomePage = () => {
                 <div className="relative" ref={excludeRef}>
                   <button
                     onClick={() => setExcludeOpen(!excludeOpen)}
-                    className={`p-2 rounded-lg transition-colors ${
+                    className={`${variants.header.button.base} ${
                       excludeOpen 
-                        ? 'bg-background-tertiary text-text-primary' 
-                        : 'bg-background-primary text-text-disabled hover:text-text-primary'
+                        ? variants.header.button.active 
+                        : variants.header.button.inactive
                     }`}
                     aria-label="Toggle exclude lists"
                   >
-                    <div className="relative">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        <circle cx="12" cy="12" r="10" strokeWidth={2} className="opacity-50" />
-                      </svg>
-                      {excludedLists.length > 0 && (
-                        <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center">
-                          <div className="absolute inline-flex h-full w-full animate-ping rounded-full bg-text-secondary/20 opacity-75"></div>
-                          <div className="relative inline-flex h-3 w-3 rounded-full bg-text-secondary/40"></div>
-                        </div>
-                      )}
-                    </div>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
-                  {excludeOpen && (
-                    <div className="absolute z-[100] mt-2 w-64 bg-background-secondary/95 backdrop-blur-md border border-border/50 rounded-xl shadow-lg overflow-hidden">
-                      <div className="p-3 border-b border-border/10">
-                        <h3 className="font-medium text-sm text-text-primary mb-1">Exclude movies from lists</h3>
-                        <p className="text-xs text-text-secondary">Movies from selected lists will be hidden from results</p>
-                      </div>
-                      <div className="max-h-60 overflow-y-auto scrollbar-hide py-1">
-                        {lists.map((list) => (
-                          <button
-                            key={list.id}
-                            className="w-full flex items-center px-4 py-3 md:py-2 hover:bg-background-active/50 cursor-pointer transition-colors duration-200 group text-left"
-                            onClick={() => setExcludedLists(
-                              excludedLists.includes(list.id)
-                                ? excludedLists.filter(id => id !== list.id)
-                                : [...excludedLists, list.id]
-                            )}
-                          >
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors mr-3 ${
-                              excludedLists.includes(list.id)
-                                ? 'bg-primary border-primary/80'
-                                : 'border-text-disabled/30 group-hover:border-text-disabled/50'
-                            }`}>
-                              {excludedLists.includes(list.id) && (
-                                <svg className="w-3 h-3 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                            </div>
-                            <span className="text-sm text-text-primary group-hover:text-text-primary/90">
-                              {list.name}
-                              <span className="ml-2 text-xs text-text-secondary px-2 py-0.5 rounded-full bg-background-tertiary/30">
-                                {list.items?.length || 0}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+
+                  {/* Exclude Lists Dropdown */}
+                  <AnimatePresence>
+                    {excludeOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg bg-background-secondary border border-border-primary z-50"
+                      >
+                        <div className="p-4">
+                          <h3 className="text-sm font-medium text-text-primary mb-2">Exclude From Results</h3>
+                          <div className="space-y-2">
+                            {lists.map((list) => (
+                              <label key={list.id} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={excludedLists.includes(list.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setExcludedLists([...excludedLists, list.id]);
+                                    } else {
+                                      setExcludedLists(excludedLists.filter(id => id !== list.id));
+                                    }
+                                  }}
+                                  className="form-checkbox h-4 w-4 text-primary rounded border-border-primary focus:ring-primary"
+                                />
+                                <span className="text-sm text-text-primary">{list.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                {/* Homepage Manager Button */}
+                {/* Homepage List Manager Toggle */}
                 <button
                   onClick={() => setIsHomepageManagerOpen(true)}
-                  className="p-2 rounded-lg bg-background-primary text-text-disabled hover:text-text-primary transition-colors"
+                  className={`${variants.header.button.base} ${
+                    isHomepageManagerOpen 
+                      ? variants.header.button.active
+                      : variants.header.button.inactive
+                  }`}
                   aria-label="Manage homepage lists"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </button>
               </div>
 
-              {/* Right side - Action Buttons */}
+              {/* Right side - View Mode and Compact Toggles */}
               <div className="flex items-center gap-3">
                 {/* View Mode Toggle */}
-                <div className="flex items-center bg-background-primary rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('scroll')}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      viewMode === 'scroll'
-                        ? 'bg-background-tertiary text-text-primary'
-                        : 'text-text-disabled hover:text-text-primary'
-                    }`}
-                    aria-label="Switch to scroll view"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setViewMode('grid');
-                      setIsCompact(true); // Force compact mode when switching to grid
-                    }}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      viewMode === 'grid'
-                        ? 'bg-background-tertiary text-text-primary'
-                        : 'text-text-disabled hover:text-text-primary'
-                    }`}
-                    aria-label="Switch to grid view"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                  </button>
-                </div>
+                <button
+                  onClick={() => setViewMode(viewMode === 'scroll' ? 'grid' : 'scroll')}
+                  className={`${variants.header.button.base} ${
+                    viewMode === 'grid'
+                      ? variants.header.button.active
+                      : variants.header.button.inactive
+                  }`}
+                  aria-label={viewMode === 'scroll' ? "Switch to grid view" : "Switch to scroll view"}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {viewMode === 'scroll' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                    )}
+                  </svg>
+                </button>
 
-                {/* Size Toggle - Hide on mobile and when grid view is active */}
+                {/* Compact Toggle - Only visible on non-mobile when in scroll view */}
                 {!isMobile && viewMode !== 'grid' && (
                   <button
                     onClick={() => setIsCompact(!isCompact)}
-                    className="p-2 rounded-lg bg-background-primary text-text-disabled hover:text-text-primary transition-colors"
+                    className={`${variants.header.button.base} ${
+                      isCompact
+                        ? variants.header.button.active
+                        : variants.header.button.inactive
+                    }`}
                     aria-label={isCompact ? "Switch to expanded view" : "Switch to compact view"}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -421,47 +544,7 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Expandable Filter Banner */}
-            <div className={isFiltersOpen ? "pt-3 pb-2" : ""}>
-              {isFiltersOpen && (
-                <div className="bg-black/75 rounded-xl border border-white/10 p-4">
-                  <FilterBar 
-                    yearRange={yearRange}
-                    onYearRangeChange={setYearRange}
-                    ratingRange={ratingRange}
-                    onRatingRangeChange={setRatingRange}
-                    popularityRange={popularityRange}
-                    onPopularityRangeChange={setPopularityRange}
-                    selectedGenres={selectedGenres}
-                    onGenresChange={setSelectedGenres}
-                    genres={genres}
-                    isLoadingGenres={isLoadingGenres}
-                    watchProviders={watchProviders}
-                    onWatchProvidersChange={setWatchProviders}
-                    watchRegion={watchRegion}
-                    onWatchRegionChange={setWatchRegion}
-                    voteCountRange={voteCountRange}
-                    onVoteCountRangeChange={setVoteCountRange}
-                    runtimeRange={runtimeRange}
-                    onRuntimeRangeChange={setRuntimeRange}
-                    originalLanguage={originalLanguage}
-                    onOriginalLanguageChange={setOriginalLanguage}
-                    spokenLanguages={spokenLanguages}
-                    onSpokenLanguagesChange={setSpokenLanguages}
-                    releaseTypes={releaseTypes}
-                    onReleaseTypesChange={setReleaseTypes}
-                    includeKeywords={includeKeywords}
-                    onIncludeKeywordsChange={setIncludeKeywords}
-                    excludeKeywords={excludeKeywords}
-                    onExcludeKeywordsChange={setExcludeKeywords}
-                    sortBy={sortBy}
-                    onSortByChange={setSortBy}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Expandable Search Bar */}
+            {/* Search Bar */}
             {isSearchOpen && (
               <div className="pt-3 pb-2">
                 <form onSubmit={handleSearch} className="relative flex items-center w-full">
@@ -509,12 +592,84 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Filter Panel - Slide from right */}
+      <AnimatePresence>
+        {isFiltersOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setIsFiltersOpen(false)}
+            />
+            
+            {/* Filter Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }}
+              className={variants.filter.container}
+            >
+              <div className={variants.filter.header}>
+                <h2 className="text-lg font-semibold text-black">Filter & Sort</h2>
+                <button
+                  onClick={() => setIsFiltersOpen(false)}
+                  className={`${variants.filter.button.base} !w-auto rounded-lg`}
+                  aria-label="Close filter panel"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className={variants.filter.section}>
+                <FilterBar 
+                  yearRange={yearRange}
+                  onYearRangeChange={setYearRange}
+                  ratingRange={ratingRange}
+                  onRatingRangeChange={setRatingRange}
+                  popularityRange={popularityRange}
+                  onPopularityRangeChange={setPopularityRange}
+                  selectedGenres={selectedGenres}
+                  onGenresChange={setSelectedGenres}
+                  genres={genres}
+                  isLoadingGenres={isLoadingGenres}
+                  watchProviders={watchProviders}
+                  onWatchProvidersChange={setWatchProviders}
+                  watchRegion={watchRegion}
+                  onWatchRegionChange={setWatchRegion}
+                  voteCountRange={voteCountRange}
+                  onVoteCountRangeChange={setVoteCountRange}
+                  runtimeRange={runtimeRange}
+                  onRuntimeRangeChange={setRuntimeRange}
+                  originalLanguage={originalLanguage}
+                  onOriginalLanguageChange={setOriginalLanguage}
+                  spokenLanguages={spokenLanguages}
+                  onSpokenLanguagesChange={setSpokenLanguages}
+                  releaseTypes={releaseTypes}
+                  onReleaseTypesChange={setReleaseTypes}
+                  includeKeywords={includeKeywords}
+                  onIncludeKeywordsChange={setIncludeKeywords}
+                  excludeKeywords={excludeKeywords}
+                  onExcludeKeywordsChange={setExcludeKeywords}
+                  sortBy={sortBy}
+                  onSortByChange={setSortBy}
+                  onClose={() => setIsFiltersOpen(false)}
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Movie Lists - Add padding to account for fixed header height */}
-      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 transition-[padding] duration-300 ease-in-out ${
-        isSearchOpen && isFiltersOpen ? 'pt-72' : // Both open
-        isFiltersOpen ? 'pt-52' : // Only filters open
-        isSearchOpen ? 'pt-40' : // Only search open
-        'pt-24' // None open
+      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 ${
+        isSearchOpen ? 'pt-36' : 'pt-24'
       }`}>
         <AnimatePresence mode="wait">
           {searchResults !== null ? (
@@ -527,10 +682,10 @@ const HomePage = () => {
             >
               <section>
                 <div className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                  <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
                     Search Results for "{searchQuery}"
                   </h2>
-                  <p className="text-text-secondary pl-2">
+                  <p className={variants.header.title.description}>
                     Found {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
                   </p>
                 </div>
@@ -561,10 +716,10 @@ const HomePage = () => {
               {hasActiveFilters ? (
                 <section>
                   <div className="mb-8">
-                    <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                    <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
                       Filtered Results
                     </h2>
-                    <p className="text-text-secondary pl-2">
+                    <p className={variants.header.title.description}>
                       Movies matching your selected filters
                     </p>
                   </div>
@@ -607,10 +762,10 @@ const HomePage = () => {
                       {homepageLists.map((list) => (
                         <section key={`${list.type}-${list.id}`}>
                           <div className="mb-8">
-                            <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                            <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
                               {list.name}
                             </h2>
-                            <p className="text-text-secondary pl-2">
+                            <p className={variants.header.title.description}>
                               {list.description}
                             </p>
                           </div>
@@ -648,16 +803,52 @@ const HomePage = () => {
       </div>
 
       {/* Homepage Filter Manager Modal */}
-      {isHomepageManagerOpen && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50">
-          <div className="bg-background-secondary rounded-lg shadow-xl mt-20 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <HomepageFilterManager 
-              onClose={() => setIsHomepageManagerOpen(false)}
-              loadHomepageLists={loadHomepageLists}
-            />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {isHomepageManagerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={variants.modal.backdrop}
+          >
+            <div className={variants.modal.container.base}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className={`${variants.modal.content.base} max-w-2xl w-full`}
+              >
+                <HomepageFilterManager 
+                  onClose={() => setIsHomepageManagerOpen(false)}
+                  loadHomepageLists={loadHomepageLists}
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Movie Details Modal */}
+      <AnimatePresence>
+        {(selectedMovie || isLoadingModal) && (
+          <MovieDetailsModal
+            isOpen={true}
+            onClose={handleCloseModal}
+            movie={movieDetails || selectedMovie}
+            cast={movieDetails?.credits?.cast}
+            crew={movieDetails?.credits?.crew}
+            similar={movieDetails?.similar}
+            watchProviders={movieDetails?.watchProviders}
+            videos={movieDetails?.videos}
+            onWatchedToggle={onWatchedToggle}
+            onWatchlistToggle={onWatchlistToggle}
+            isWatched={lists?.find(list => list.name === 'Watched')?.items.some(item => item.movie_id === selectedMovie?.id.toString())}
+            isInWatchlist={lists?.find(list => list.name === 'Watchlist')?.items.some(item => item.movie_id === selectedMovie?.id.toString())}
+            isLoading={isLoadingModal}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
