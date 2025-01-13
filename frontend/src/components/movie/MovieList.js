@@ -590,13 +590,40 @@ const MovieList = ({
             <div
               key={`skeleton-${index}`}
               className={`${
-                viewMode === 'scroll' ? 'flex-none' : 'w-full'
-              } ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'} bg-background-secondary rounded-lg overflow-hidden animate-pulse`}
+                viewMode === 'scroll' 
+                  ? `flex-none ${effectiveIsCompact ? 'w-[120px]' : 'w-[180px]'}`
+                  : 'w-full'
+              } ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'}`}
             >
-              <div className="aspect-[2/3] bg-background-active" />
-              <div className="p-2">
-                <div className="h-3 bg-background-active rounded w-3/4 mb-1" />
-                <div className="h-3 bg-background-active rounded w-1/2" />
+              <div className="relative w-full group">
+                <div className="block bg-background-secondary rounded-lg overflow-hidden relative z-10 h-full">
+                  <div className="aspect-[2/3] relative">
+                    {/* Action Buttons Skeleton */}
+                    <div className="absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 md:p-2 md:gap-2">
+                      <div className="flex-1">
+                        <div className="w-8 h-8 rounded-full bg-background-active animate-pulse" />
+                      </div>
+                      <div className="flex flex-1 justify-end gap-1 md:gap-2">
+                        <div className="flex-1 flex justify-center">
+                          <div className="w-8 h-8 rounded-full bg-background-active animate-pulse" />
+                        </div>
+                        <div className="flex-1 flex justify-center">
+                          <div className="w-8 h-8 rounded-full bg-background-active animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Poster Skeleton */}
+                    <div className="w-full h-full bg-background-active animate-pulse" />
+                  </div>
+                  {/* Title and Info Skeleton */}
+                  <div className="p-2">
+                    <div className="h-4 bg-background-active rounded animate-pulse mb-2" />
+                    <div className="flex justify-between items-center">
+                      <div className="h-3 w-10 bg-background-active rounded animate-pulse" />
+                      <div className="h-3 w-12 bg-background-active rounded animate-pulse" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
