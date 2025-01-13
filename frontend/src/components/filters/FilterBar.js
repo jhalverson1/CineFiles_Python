@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { movieApi, filterSettingsApi } from '../../utils/api';
 import { getImageUrl } from '../../utils/image';
+import { variants, classes } from '../../utils/theme';
 
 const FilterBar = ({
   yearRange,
@@ -383,24 +384,24 @@ const FilterBar = ({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={classes.filterContainer}>
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-500">
+        <div className={classes.errorAlert}>
           {error}
         </div>
       )}
 
       {/* Active Filter Name */}
       {activeFilterName && (
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-text-secondary">Active Filter:</span>
-          <span className="font-medium text-primary">{activeFilterName}</span>
+        <div className={classes.activeFilter}>
+          <span className={classes.label}>Active Filter:</span>
+          <span className={classes.value}>{activeFilterName}</span>
           <button
             onClick={() => setActiveFilterName(null)}
-            className="p-1 text-text-disabled hover:text-text-primary rounded-lg hover:bg-background-active transition-colors"
+            className={`${variants.button.icon.base} ${variants.button.icon.hover}`}
             aria-label="Clear active filter"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className={classes.icon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -408,23 +409,23 @@ const FilterBar = ({
       )}
 
       {/* Main Filters Section */}
-      <div className="flex flex-wrap gap-2 p-4 bg-background-secondary/50 rounded-lg border border-border/10">
+      <div className={classes.filterSection}>
         {/* Year Range Filter */}
-        <div className="relative"ref={yearRef}>
+        <div className="relative" ref={yearRef}>
           <button
             onClick={() => setYearOpen(!yearOpen)}
-            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            className={`${variants.filterButton.base} ${variants.filterButton.hover}`}
           >
             <span>Year</span>
             {localYearRange !== null && (
-              <span className="text-primary">
+              <span className={classes.activeFilterValue}>
                 {localYearRange[0] || 'Any'} - {localYearRange[1] || 'Any'}
               </span>
             )}
           </button>
           {yearOpen && (
-            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
-              <div className="flex items-center gap-3">
+            <div className={classes.filterDropdown}>
+              <div className={classes.filterInputGroup}>
                 <input
                   type="number"
                   min="1900"
@@ -435,16 +436,10 @@ const FilterBar = ({
                     const newValue = value === '' ? null : Number(value);
                     setLocalYearRange(prev => [newValue, prev?.[1] ?? null]);
                   }}
-                  onBlur={(e) => {
-                    const value = e.target.value;
-                    if (value && (Number(value) < 1900 || Number(value) > new Date().getFullYear())) {
-                      setLocalYearRange(prev => [null, prev?.[1] ?? null]);
-                    }
-                  }}
-                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={`${variants.input.base} ${variants.input.focus}`}
                   placeholder="From"
                 />
-                <span className="text-sm text-text-secondary font-medium">to</span>
+                <span className={classes.inputLabel}>to</span>
                 <input
                   type="number"
                   min="1900"
@@ -455,13 +450,7 @@ const FilterBar = ({
                     const newValue = value === '' ? null : Number(value);
                     setLocalYearRange(prev => [prev?.[0] ?? null, newValue]);
                   }}
-                  onBlur={(e) => {
-                    const value = e.target.value;
-                    if (value && (Number(value) < 1900 || Number(value) > new Date().getFullYear())) {
-                      setLocalYearRange(prev => [prev?.[0] ?? null, null]);
-                    }
-                  }}
-                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={`${variants.input.base} ${variants.input.focus}`}
                   placeholder="To"
                 />
               </div>
@@ -470,21 +459,21 @@ const FilterBar = ({
         </div>
 
         {/* Rating Range Filter */}
-        <div className="relative"ref={ratingRef}>
+        <div className="relative" ref={ratingRef}>
           <button
             onClick={() => setRatingOpen(!ratingOpen)}
-            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            className={`${variants.filterButton.base} ${variants.filterButton.hover}`}
           >
             <span>Rating</span>
             {localRatingRange?.[0] && localRatingRange?.[1] && (
-              <span className="text-primary">
+              <span className={classes.activeFilterValue}>
                 {localRatingRange[0]} - {localRatingRange[1]}
               </span>
             )}
           </button>
           {ratingOpen && (
-            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
-              <div className="flex items-center gap-3">
+            <div className={classes.filterDropdown}>
+              <div className={classes.filterInputGroup}>
                 <input
                   type="number"
                   min="0"
@@ -492,10 +481,10 @@ const FilterBar = ({
                   step="0.1"
                   value={localRatingRange?.[0] || ''}
                   onChange={(e) => setLocalRatingRange([parseFloat(e.target.value), localRatingRange?.[1]])}
-                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={`${variants.input.base} ${variants.input.focus}`}
                   placeholder="From"
                 />
-                <span className="text-sm text-text-secondary font-medium">to</span>
+                <span className={classes.inputLabel}>to</span>
                 <input
                   type="number"
                   min="0"
@@ -503,7 +492,7 @@ const FilterBar = ({
                   step="0.1"
                   value={localRatingRange?.[1] || ''}
                   onChange={(e) => setLocalRatingRange([localRatingRange?.[0], parseFloat(e.target.value)])}
-                  className="w-24 h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={`${variants.input.base} ${variants.input.focus}`}
                   placeholder="To"
                 />
               </div>
@@ -512,7 +501,7 @@ const FilterBar = ({
         </div>
 
         {/* Vote Count Range Filter */}
-        <div className="relative"ref={voteCountRef}>
+        <div className="relative" ref={voteCountRef}>
           <button
             onClick={() => setVoteCountOpen(!voteCountOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -550,7 +539,7 @@ const FilterBar = ({
         </div>
 
         {/* Runtime Range Filter */}
-        <div className="relative"ref={runtimeRef}>
+        <div className="relative" ref={runtimeRef}>
           <button
             onClick={() => setRuntimeOpen(!runtimeOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -590,21 +579,21 @@ const FilterBar = ({
         </div>
 
         {/* Genres Filter */}
-        <div className="relative"ref={genreRef}>
+        <div className="relative" ref={genreRef}>
           <button
             onClick={() => setGenreOpen(!genreOpen)}
-            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            className={`${variants.filterButton.base} ${variants.filterButton.hover}`}
           >
             <span>Genres</span>
             {localSelectedGenres?.length > 0 && (
-              <span className="text-primary">{localSelectedGenres.length}</span>
+              <span className={classes.activeFilterValue}>{localSelectedGenres.length}</span>
             )}
           </button>
           {genreOpen && (
-            <div className="absolute top-full left-0 mt-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[320px] z-50">
-              <div className="grid grid-cols-2 gap-2">
+            <div className={classes.filterDropdown}>
+              <div className={classes.genreGrid}>
                 {isLoadingGenres ? (
-                  <div className="col-span-2 flex items-center justify-center p-4">
+                  <div className={classes.loadingSpinner}>
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                   </div>
                 ) : (
@@ -619,10 +608,10 @@ const FilterBar = ({
                             : [...(localSelectedGenres || []), genre.id]
                         );
                       }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`${
                         localSelectedGenres?.includes(genre.id)
-                          ? 'bg-primary text-white'
-                          : 'bg-background-tertiary/30 hover:bg-background-active'
+                          ? variants.genreButton.active
+                          : variants.genreButton.inactive
                       }`}
                     >
                       {genre.name}
@@ -635,7 +624,7 @@ const FilterBar = ({
         </div>
 
         {/* Original Language Filter */}
-        <div className="relative"ref={languageRef}>
+        <div className="relative" ref={languageRef}>
           <button
             onClick={() => setLanguageOpen(!languageOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -677,7 +666,7 @@ const FilterBar = ({
         </div>
 
         {/* Release Types Filter */}
-        <div className="relative"ref={releaseTypeRef}>
+        <div className="relative" ref={releaseTypeRef}>
           <button
             onClick={() => setReleaseTypeOpen(!releaseTypeOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -777,7 +766,7 @@ const FilterBar = ({
         </div>
 
         {/* Sort By Filter */}
-        <div className="relative"ref={sortRef}>
+        <div className="relative" ref={sortRef}>
           <button
             onClick={() => setSortOpen(!sortOpen)}
             className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
@@ -819,122 +808,37 @@ const FilterBar = ({
       </div>
 
       {/* Actions Bar */}
-      <div className="flex justify-between gap-2">
+      <div className={classes.actionsBar}>
         {/* Left-aligned buttons */}
-        <div className="flex gap-2">
-          {/* Load Filter Button */}
-          <div className="relative" ref={loadFilterRef}>
-            <button
-              onClick={() => setLoadFilterOpen(!loadFilterOpen)}
-              className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              <span>Load</span>
-            </button>
-            {loadFilterOpen && (
-              <div className="absolute bottom-full left-0 mb-2 p-2 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
-                {isLoadingFilters ? (
-                  <div className="flex items-center justify-center p-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                  </div>
-                ) : savedFilters.length === 0 ? (
-                  <p className="text-sm text-text-secondary p-3">No saved filters</p>
-                ) : (
-                  savedFilters.map((filter) => (
-                    <button
-                      key={filter.id}
-                      onClick={() => handleLoadFilter(filter)}
-                      className="w-full px-4 py-2 text-left text-sm font-medium rounded-lg hover:bg-background-active transition-colors"
-                    >
-                      {filter.name}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+        <div className={classes.actionGroup}>
+          <button
+            onClick={() => setLoadFilterOpen(!loadFilterOpen)}
+            className={`${variants.button.secondary.base} ${variants.button.secondary.hover}`}
+          >
+            <svg className={classes.buttonIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <span>Load</span>
+          </button>
 
-          {/* Save Filter Button */}
-          <div className="relative" ref={saveFilterRef}>
-            <button
-              onClick={() => setSaveFilterOpen(!saveFilterOpen)}
-              className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-              <span>Save</span>
-            </button>
-            {saveFilterOpen && (
-              <div className="absolute bottom-full left-0 mb-2 p-4 bg-background-secondary rounded-lg shadow-lg border border-border/10 min-w-[240px] z-50">
-                {activeFilterName ? (
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => handleSaveFilter('update')}
-                      className="w-full h-9 bg-background-tertiary hover:bg-background-active text-sm font-medium rounded-lg transition-colors"
-                    >
-                      Update "{activeFilterName}"
-                    </button>
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-border/10"></div>
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="px-2 text-text-secondary bg-background-secondary">or</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={filterName}
-                        onChange={(e) => setFilterName(e.target.value)}
-                        placeholder="Enter new filter name"
-                        className="w-full h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                      <button
-                        onClick={() => handleSaveFilter('new')}
-                        className="w-full h-9 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors"
-                      >
-                        Save as New
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      value={filterName}
-                      onChange={(e) => setFilterName(e.target.value)}
-                      placeholder="Enter filter name"
-                      className="w-full h-9 px-3 text-sm bg-background-tertiary/30 rounded-lg border border-border/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                    <button
-                      onClick={() => handleSaveFilter('new')}
-                      className="w-full h-9 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Save
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => setSaveFilterOpen(!saveFilterOpen)}
+            className={`${variants.button.secondary.base} ${variants.button.secondary.hover}`}
+          >
+            <svg className={classes.buttonIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+            <span>Save</span>
+          </button>
         </div>
 
         {/* Right-aligned buttons */}
-        <div className="flex gap-2">
+        <div className={classes.actionGroup}>
           <button
             onClick={handleReset}
-            className="h-9 px-4 bg-background-secondary hover:bg-background-active rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            className={`${variants.button.secondary.base} ${variants.button.secondary.hover}`}
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className={classes.buttonIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             <span>Reset</span>
@@ -942,14 +846,9 @@ const FilterBar = ({
 
           <button
             onClick={handleSubmit}
-            className="h-9 px-4 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+            className={`${variants.button.primary.base} ${variants.button.primary.hover}`}
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className={classes.buttonIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             <span>Apply Filters</span>

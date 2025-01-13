@@ -1,77 +1,168 @@
-// Dark elegant theme with subtle green tints
+// Core design system inspired by adidas.com
 export const theme = {
   colors: {
-    // Main brand colors
-    emerald: {
-      DEFAULT: '#1A3B31', // Muted emerald
-      light: '#234A3E',   // Slightly lighter emerald
-      dark: '#0A1613',    // Very dark emerald, almost black
-      muted: '#1A3B3180'  // Transparent version for overlays
+    // Brand colors
+    brand: {
+      primary: '#000000',    // Core black
+      secondary: '#FFFFFF',   // Core white
+      accent: '#0071AE',     // Adidas blue
+      accent2: '#FF6B00',    // Vibrant orange for CTAs
     },
-    gold: {
-      DEFAULT: '#C4A052', // Warm gold
-      light: '#D4B76B',   // Lighter gold for hover
-      dark: '#A68939',    // Darker gold for active states
-      muted: '#C4A05240'  // Transparent version for subtle elements
-    },
-    cream: '#F5F0E5',     // Warm cream for contrast
-    // UI states
+    // UI colors
     text: {
-      primary: '#F5F0E5',    // Cream for primary text
-      secondary: '#F5F0E580', // Semi-transparent cream
-      disabled: '#F5F0E540',  // More transparent cream
-      inverse: '#1A3B31'      // Green for light backgrounds
+      primary: '#000000',
+      secondary: '#767677',
+      tertiary: '#C4C4C4',
+      inverse: '#FFFFFF',
     },
     background: {
-      primary: '#0A0D0C',    // Darker almost black with slight green tint
-      secondary: '#0E1210',  // Slightly lighter dark background
-      tertiary: '#0F1512',   // Dark background for navbar and highlights
-      accent: '#C4A05210'    // Very subtle gold tint
+      primary: '#FFFFFF',
+      secondary: '#F5F5F5',
+      tertiary: '#ECEFF1',
+      inverse: '#000000',
     },
     border: {
-      DEFAULT: '#C4A05220',  // Subtle gold border
-      hover: '#C4A05240',    // More visible on hover
-      active: '#C4A05260'    // Most visible for active states
+      light: '#ECEFF1',
+      default: '#C4C4C4',
+      dark: '#767677',
+    },
+    status: {
+      error: '#FF4B4B',
+      success: '#00A862',
+      warning: '#FFB700',
+      info: '#0071AE',
+    }
+  },
+  
+  // Typography system
+  typography: {
+    fonts: {
+      body: 'Inter, system-ui, -apple-system, sans-serif',
+      display: 'Oswald, system-ui, -apple-system, sans-serif',
+    },
+    weights: {
+      regular: 400,
+      medium: 500,
+      bold: 700,
+    },
+    sizes: {
+      xs: '0.75rem',     // 12px
+      sm: '0.875rem',    // 14px
+      base: '1rem',      // 16px
+      lg: '1.125rem',    // 18px
+      xl: '1.25rem',     // 20px
+      '2xl': '1.5rem',   // 24px
+      '3xl': '1.875rem', // 30px
+      '4xl': '2.25rem',  // 36px
+    },
+    lineHeights: {
+      tight: 1.2,
+      base: 1.5,
+      relaxed: 1.75,
+    }
+  },
+
+  // Spacing system
+  spacing: {
+    px: '1px',
+    0: '0',
+    1: '0.25rem',    // 4px
+    2: '0.5rem',     // 8px
+    3: '0.75rem',    // 12px
+    4: '1rem',       // 16px
+    5: '1.25rem',    // 20px
+    6: '1.5rem',     // 24px
+    8: '2rem',       // 32px
+    10: '2.5rem',    // 40px
+    12: '3rem',      // 48px
+    16: '4rem',      // 64px
+    20: '5rem',      // 80px
+    24: '6rem',      // 96px
+  },
+
+  // Breakpoints
+  breakpoints: {
+    sm: '640px',
+    md: '768px',
+    lg: '1024px',
+    xl: '1280px',
+    '2xl': '1536px',
+  },
+
+  // Animation
+  animation: {
+    durations: {
+      fast: '150ms',
+      base: '300ms',
+      slow: '500ms',
+    },
+    easings: {
+      ease: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      linear: 'linear',
+      in: 'cubic-bezier(0.4, 0, 1, 1)',
+      out: 'cubic-bezier(0, 0, 0.2, 1)',
+      inOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
     }
   }
 };
 
-// Utility function to get nested color values
-export const getColor = (path) => {
-  return path.split('.').reduce((obj, key) => obj?.[key], theme.colors) || path;
-};
-
-// Common color combinations for reuse
-export const colorVariants = {
+// Component variants based on the theme
+export const variants = {
   button: {
     primary: {
-      base: 'bg-[#C4A052] text-[#0C1311]',
-      hover: 'hover:bg-[#D4B76B]',
-      active: 'active:bg-[#A68939]',
+      base: 'bg-black text-white font-bold py-4 px-6 transition-all duration-300',
+      hover: 'hover:bg-[#1a1a1a]',
+      active: 'active:bg-[#333333]',
     },
     secondary: {
-      base: 'bg-transparent border border-[#C4A05240] text-[#C4A052]',
-      hover: 'hover:border-[#C4A05260] hover:bg-[#C4A05210]',
-      active: 'active:bg-[#C4A05220]',
+      base: 'bg-white text-black border-2 border-black font-bold py-4 px-6 transition-all duration-300',
+      hover: 'hover:bg-black hover:text-white',
+      active: 'active:bg-[#333333]',
     },
+    text: {
+      base: 'bg-transparent text-black font-bold py-2 px-4 transition-all duration-300 underline-offset-4',
+      hover: 'hover:underline',
+      active: 'active:text-[#333333]',
+    }
   },
   input: {
-    base: 'bg-[#111916] text-[#F5F0E5] placeholder-[#F5F0E580]',
-    focus: 'focus:ring-1 focus:ring-[#C4A052] focus:outline-none',
+    base: 'bg-white border border-[#C4C4C4] text-black placeholder-[#767677] py-3 px-4 w-full transition-all duration-300',
+    focus: 'focus:border-black focus:ring-1 focus:ring-black focus:outline-none',
+    error: 'border-[#FF4B4B] focus:border-[#FF4B4B] focus:ring-[#FF4B4B]',
   },
-  dropdown: {
-    base: 'bg-[#111916] border border-[#C4A05220]',
-    hover: 'hover:bg-[#1A3B31]',
-  },
-  feltTexture: {
-    base: 'felt-texture',
-  },
-  dotTexture: {
-    base: 'dot-texture',
+  card: {
+    base: 'bg-white rounded-none border border-[#ECEFF1] transition-all duration-300',
+    hover: 'hover:shadow-lg',
+    interactive: 'cursor-pointer hover:shadow-lg active:shadow-md',
   },
   layout: {
-    page: 'min-h-screen bg-[#0C1311] dot-texture text-[#F5F0E5]',
-    section: 'bg-[#111916] rounded-lg p-6',
-    card: 'bg-[#111916] rounded-lg p-4 border border-[#C4A05220]'
+    container: 'max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8',
+    grid: 'grid grid-cols-4 gap-4 sm:grid-cols-8 lg:grid-cols-12 lg:gap-6',
+    section: 'py-8 sm:py-12 lg:py-16',
   }
+};
+
+// Utility function to get nested theme values
+export const getThemeValue = (path) => {
+  return path.split('.').reduce((obj, key) => obj?.[key], theme) || path;
+};
+
+// Common class combinations for reuse
+export const classes = {
+  // Typography
+  h1: 'font-display text-4xl font-bold leading-tight',
+  h2: 'font-display text-3xl font-bold leading-tight',
+  h3: 'font-display text-2xl font-bold leading-tight',
+  h4: 'font-display text-xl font-bold leading-tight',
+  body: 'font-body text-base leading-relaxed',
+  caption: 'font-body text-sm leading-relaxed text-[#767677]',
+  
+  // Layout
+  pageContainer: 'min-h-screen bg-white',
+  contentSection: 'py-8 sm:py-12 lg:py-16',
+  gridContainer: 'grid grid-cols-4 gap-4 sm:grid-cols-8 lg:grid-cols-12 lg:gap-6',
+  
+  // Interactive
+  link: 'text-black hover:underline underline-offset-4 transition-all duration-300',
+  focusRing: 'focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2',
 }; 

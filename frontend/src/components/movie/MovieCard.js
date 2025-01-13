@@ -5,6 +5,7 @@ import WatchedToggle from './WatchedToggle';
 import WatchlistToggle from './WatchlistToggle';
 import AddToListButton from './AddToListButton';
 import { useLists } from '../../contexts/ListsContext';
+import { variants, classes } from '../../utils/theme';
 
 const StarIcon = () => (
   <svg 
@@ -27,8 +28,6 @@ const MovieCard = ({
 }) => {
   const navigate = useNavigate();
   const { lists } = useLists();
-
-  // Check if this is a default list
   const currentList = lists?.find(list => list.id === listId);
   const isDefaultList = currentList?.is_default;
 
@@ -36,13 +35,13 @@ const MovieCard = ({
     <div className="relative w-full group">
       <Link 
         to={`/movies/${movie.id}`}
-        className="block bg-background-secondary rounded-lg overflow-hidden relative z-10 h-full"
+        className={`${variants.card.base} block relative z-10 h-full transition-all duration-300 group-hover:shadow-lg`}
       >
         <div className="aspect-[2/3] relative">
-          {/* Action Buttons Container with Animation */}
-          <div className={`absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 md:p-2 md:gap-2 ${!isCompact ? 'transition-all duration-300 ease-in-out group-hover:scale-125 sm:group-hover:scale-100' : ''}`}>
-            {/* Left Button - Show Delete button for non-default lists only, otherwise show Add to List */}
-            <div className={`flex-1 ${!isCompact ? 'transition-transform duration-300 group-hover:-translate-x-2 sm:group-hover:translate-x-0' : ''}`}>
+          {/* Action Buttons Container */}
+          <div className={`absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 md:p-2 md:gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
+            {/* Left Button */}
+            <div className="flex-1">
               {onRemove && !isDefaultList ? (
                 <button
                   onClick={(e) => {
@@ -50,7 +49,7 @@ const MovieCard = ({
                     e.stopPropagation();
                     onRemove(movie.id);
                   }}
-                  className="p-1.5 rounded-full bg-black/75 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+                  className={`${variants.button.text.base} !bg-black/75 !text-red-500 hover:!bg-red-500 hover:!text-white`}
                   aria-label="Remove from list"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,14 +62,14 @@ const MovieCard = ({
             </div>
             {/* Right Buttons */}
             <div className="flex flex-1 justify-end gap-1 md:gap-2">
-              <div className={`flex-1 flex justify-center ${!isCompact ? 'transition-transform duration-300 group-hover:-translate-x-3 sm:group-hover:translate-x-0' : ''}`}>
+              <div className="flex-1 flex justify-center">
                 <WatchedToggle 
                   movieId={movie.id} 
                   isCompact={isCompact}
                   onToggle={onWatchedToggle}
                 />
               </div>
-              <div className={`flex-1 flex justify-center ${!isCompact ? 'transition-transform duration-300 group-hover:translate-x-2 sm:group-hover:translate-x-0' : ''}`}>
+              <div className="flex-1 flex justify-center">
                 <WatchlistToggle 
                   movieId={movie.id} 
                   isCompact={isCompact}
@@ -90,22 +89,22 @@ const MovieCard = ({
         </div>
 
         {/* Movie Title and Info */}
-        <div className="p-2">
-          <h3 className="text-sm font-medium text-white truncate">
+        <div className="p-4">
+          <h3 className={`${classes.body} font-bold truncate text-black`}>
             {movie.title}
           </h3>
-          <div className="flex justify-between items-center mt-1">
+          <div className="flex justify-between items-center mt-2">
             {movie.release_date ? (
-              <span className="text-xs text-text-secondary">
+              <span className={classes.caption}>
                 {new Date(movie.release_date).getFullYear()}
               </span>
             ) : (
-              <span className="text-xs text-text-secondary">—</span>
+              <span className={classes.caption}>—</span>
             )}
             {movie.vote_average > 0 && (
-              <div className="flex items-center space-x-1 text-yellow-400">
+              <div className="flex items-center space-x-1 text-brand-accent">
                 <StarIcon />
-                <span className="text-xs">{movie.vote_average.toFixed(1)}</span>
+                <span className={classes.caption}>{movie.vote_average.toFixed(1)}</span>
               </div>
             )}
           </div>

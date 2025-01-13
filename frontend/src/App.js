@@ -12,18 +12,27 @@ import { AuthProvider } from './contexts/AuthContext';
 import AppRoutes from './AppRoutes';
 import Navbar from './components/common/Navbar';
 import { Toaster } from 'react-hot-toast';
-import { colorVariants } from './utils/theme';
+import { classes } from './utils/theme';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen bg-background-primary">
+        <div className={classes.pageContainer}>
           <Navbar />
-          <div className="min-h-screen bg-background-primary dot-texture text-text-primary">
+          <main className={classes.pageContainer}>
             <AppRoutes />
-          </div>
-          <Toaster position="bottom-right" />
+          </main>
+          <Toaster 
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: '#000',
+                color: '#fff',
+                border: '1px solid #333'
+              }
+            }}
+          />
         </div>
       </AuthProvider>
     </Router>

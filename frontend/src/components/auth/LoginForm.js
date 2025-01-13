@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { authApi } from '../../utils/api';
-import { colorVariants } from '../../utils/theme';
+import { variants, classes } from '../../utils/theme';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -42,10 +42,10 @@ const LoginForm = () => {
   };
 
   return (
-    <div className={`min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background-primary py-12 px-4 sm:px-6 lg:px-8 ${colorVariants.feltTexture.base}`}>
+    <div className={classes.pageContainer}>
       <div className="max-w-md w-full space-y-8 relative z-10">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-primary">
+          <h2 className={classes.h2}>
             Sign in to your account
           </h2>
         </div>
@@ -65,7 +65,7 @@ const LoginForm = () => {
                 required
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 
                          rounded-t-md border border-border
-                         ${colorVariants.input.base} ${colorVariants.input.focus}`}
+                         ${variants.input.base} ${variants.input.focus}`}
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleChange}
@@ -80,7 +80,7 @@ const LoginForm = () => {
                 required
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 
                          rounded-b-md border border-border
-                         ${colorVariants.input.base} ${colorVariants.input.focus}`}
+                         ${variants.input.base} ${variants.input.focus}`}
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
@@ -88,26 +88,16 @@ const LoginForm = () => {
             </div>
           </div>
 
-          <div className="flex flex-col space-y-4">
+          <div>
             <button
               type="submit"
-              className={`group relative w-full flex justify-center py-2 px-4 
-                       rounded-md text-sm font-medium transition-colors
-                       ${colorVariants.button.primary.base}
-                       ${colorVariants.button.primary.hover}
-                       ${colorVariants.button.primary.active}`}
+              className={`group relative w-full flex justify-center
+                       ${variants.button.primary.base}
+                       ${variants.button.primary.hover}
+                       ${variants.button.primary.active}`}
             >
               Sign in
             </button>
-            
-            <div className="text-center">
-              <Link 
-                to="/signup" 
-                className="text-sm text-text-primary hover:text-text-secondary transition-colors"
-              >
-                Don't have an account? Sign up!
-              </Link>
-            </div>
           </div>
         </form>
       </div>

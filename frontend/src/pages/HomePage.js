@@ -5,6 +5,7 @@ import FilterBar from '../components/filters/FilterBar';
 import MovieList from '../components/movie/MovieList';
 import { useLists } from '../contexts/ListsContext';
 import { DEFAULT_MOVIE_LISTS } from '../constants/movieLists';
+import { classes } from '../utils/theme';
 
 const HomePage = () => {
   const [selectedTab, setSelectedTab] = useState('top-rated');
@@ -126,122 +127,124 @@ const HomePage = () => {
   }, []);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <FilterBar
-        yearRange={yearRange}
-        onYearRangeChange={setYearRange}
-        ratingRange={ratingRange}
-        onRatingRangeChange={setRatingRange}
-        popularityRange={popularityRange}
-        onPopularityRangeChange={setPopularityRange}
-        selectedGenres={selectedGenres}
-        onGenresChange={setSelectedGenres}
-        excludedLists={excludedLists}
-        onExcludeListsChange={setExcludedLists}
-        lists={lists}
-        genres={genres}
-        isLoadingGenres={isLoadingGenres}
-        watchProviders={watchProviders}
-        onWatchProvidersChange={setWatchProviders}
-        watchRegion={watchRegion}
-        onWatchRegionChange={setWatchRegion}
-        voteCountRange={voteCountRange}
-        onVoteCountRangeChange={setVoteCountRange}
-        runtimeRange={runtimeRange}
-        onRuntimeRangeChange={setRuntimeRange}
-        originalLanguage={originalLanguage}
-        onOriginalLanguageChange={setOriginalLanguage}
-        spokenLanguages={spokenLanguages}
-        onSpokenLanguagesChange={setSpokenLanguages}
-        releaseTypes={releaseTypes}
-        onReleaseTypesChange={setReleaseTypes}
-        includeKeywords={includeKeywords}
-        onIncludeKeywordsChange={setIncludeKeywords}
-        excludeKeywords={excludeKeywords}
-        onExcludeKeywordsChange={setExcludeKeywords}
-        sortBy={sortBy}
-        onSortByChange={setSortBy}
-      />
+    <div className={classes.pageContainer}>
+      <div className={classes.layout.container}>
+        <FilterBar
+          yearRange={yearRange}
+          onYearRangeChange={setYearRange}
+          ratingRange={ratingRange}
+          onRatingRangeChange={setRatingRange}
+          popularityRange={popularityRange}
+          onPopularityRangeChange={setPopularityRange}
+          selectedGenres={selectedGenres}
+          onGenresChange={setSelectedGenres}
+          excludedLists={excludedLists}
+          onExcludeListsChange={setExcludedLists}
+          lists={lists}
+          genres={genres}
+          isLoadingGenres={isLoadingGenres}
+          watchProviders={watchProviders}
+          onWatchProvidersChange={setWatchProviders}
+          watchRegion={watchRegion}
+          onWatchRegionChange={setWatchRegion}
+          voteCountRange={voteCountRange}
+          onVoteCountRangeChange={setVoteCountRange}
+          runtimeRange={runtimeRange}
+          onRuntimeRangeChange={setRuntimeRange}
+          originalLanguage={originalLanguage}
+          onOriginalLanguageChange={setOriginalLanguage}
+          spokenLanguages={spokenLanguages}
+          onSpokenLanguagesChange={setSpokenLanguages}
+          releaseTypes={releaseTypes}
+          onReleaseTypesChange={setReleaseTypes}
+          includeKeywords={includeKeywords}
+          onIncludeKeywordsChange={setIncludeKeywords}
+          excludeKeywords={excludeKeywords}
+          onExcludeKeywordsChange={setExcludeKeywords}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+        />
 
-      <div className="mt-8">
-        {hasActiveFilters ? (
-          <section>
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
-                Filtered Results
-              </h2>
-              <p className="text-text-secondary pl-2">
-                Movies matching your selected filters
-              </p>
-            </div>
-            <MovieList
-              type="filtered"
-              yearRange={yearRange}
-              ratingRange={ratingRange}
-              popularityRange={popularityRange}
-              selectedGenres={selectedGenres}
-              excludedLists={excludedLists}
-              watchProviders={watchProviders}
-              watchRegion={watchRegion}
-              voteCountRange={voteCountRange}
-              runtimeRange={runtimeRange}
-              originalLanguage={originalLanguage}
-              spokenLanguages={spokenLanguages}
-              releaseTypes={releaseTypes}
-              includeKeywords={includeKeywords}
-              excludeKeywords={excludeKeywords}
-              sortBy={sortBy}
-            />
-          </section>
-        ) : (
-          <>
-            {isLoadingLists ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className={classes.contentSection}>
+          {hasActiveFilters ? (
+            <section>
+              <div className="mb-8">
+                <h2 className={`${classes.h2} pl-2 border-l-[6px] border-brand-accent`}>
+                  Filtered Results
+                </h2>
+                <p className={classes.caption}>
+                  Movies matching your selected filters
+                </p>
               </div>
-            ) : homepageLists.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-text-secondary">No movie lists enabled. Click the list manager button to add some!</p>
-              </div>
-            ) : (
-              <div className="space-y-12">
-                {homepageLists.map((list) => (
-                  <section key={`${list.type}-${list.id}`}>
-                    <div className="mb-8">
-                      <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
-                        {list.name}
-                      </h2>
-                      {list.description && (
-                        <p className="text-text-secondary pl-2">
-                          {list.description}
-                        </p>
-                      )}
-                    </div>
-                    <MovieList
-                      type={list.type === 'tmdb' ? list.id : list.type}
-                      listId={list.type === 'tmdb' ? null : list.id}
-                      yearRange={yearRange}
-                      ratingRange={ratingRange}
-                      popularityRange={popularityRange}
-                      selectedGenres={selectedGenres}
-                      excludedLists={excludedLists}
-                      watchProviders={watchProviders}
-                      watchRegion={watchRegion}
-                      voteCountRange={voteCountRange}
-                      runtimeRange={runtimeRange}
-                      originalLanguage={originalLanguage}
-                      spokenLanguages={spokenLanguages}
-                      releaseTypes={releaseTypes}
-                      includeKeywords={includeKeywords}
-                      excludeKeywords={excludeKeywords}
-                      sortBy={sortBy}
-                    />
-                  </section>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+              <MovieList
+                type="filtered"
+                yearRange={yearRange}
+                ratingRange={ratingRange}
+                popularityRange={popularityRange}
+                selectedGenres={selectedGenres}
+                excludedLists={excludedLists}
+                watchProviders={watchProviders}
+                watchRegion={watchRegion}
+                voteCountRange={voteCountRange}
+                runtimeRange={runtimeRange}
+                originalLanguage={originalLanguage}
+                spokenLanguages={spokenLanguages}
+                releaseTypes={releaseTypes}
+                includeKeywords={includeKeywords}
+                excludeKeywords={excludeKeywords}
+                sortBy={sortBy}
+              />
+            </section>
+          ) : (
+            <>
+              {isLoadingLists ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent"></div>
+                </div>
+              ) : homepageLists.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className={classes.body}>No movie lists enabled. Click the list manager button to add some!</p>
+                </div>
+              ) : (
+                <div className="space-y-12">
+                  {homepageLists.map((list) => (
+                    <section key={`${list.type}-${list.id}`}>
+                      <div className="mb-8">
+                        <h2 className={`${classes.h2} pl-2 border-l-[6px] border-brand-accent`}>
+                          {list.name}
+                        </h2>
+                        {list.description && (
+                          <p className={classes.caption}>
+                            {list.description}
+                          </p>
+                        )}
+                      </div>
+                      <MovieList
+                        type={list.type === 'tmdb' ? list.id : list.type}
+                        listId={list.type === 'tmdb' ? null : list.id}
+                        yearRange={yearRange}
+                        ratingRange={ratingRange}
+                        popularityRange={popularityRange}
+                        selectedGenres={selectedGenres}
+                        excludedLists={excludedLists}
+                        watchProviders={watchProviders}
+                        watchRegion={watchRegion}
+                        voteCountRange={voteCountRange}
+                        runtimeRange={runtimeRange}
+                        originalLanguage={originalLanguage}
+                        spokenLanguages={spokenLanguages}
+                        releaseTypes={releaseTypes}
+                        includeKeywords={includeKeywords}
+                        excludeKeywords={excludeKeywords}
+                        sortBy={sortBy}
+                      />
+                    </section>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

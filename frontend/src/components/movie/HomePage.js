@@ -3,7 +3,6 @@ import MovieList from './MovieList';
 import FilterBar from '../filters/FilterBar';
 import HomepageFilterManager from '../filters/HomepageFilterManager';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { colorVariants } from '../../utils/theme';
 import { movieApi, filterSettingsApi } from '../../utils/api';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLists } from '../../contexts/ListsContext';
