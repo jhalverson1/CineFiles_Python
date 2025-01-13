@@ -15,6 +15,8 @@ export const AuthProvider = ({ children }) => {
     const refreshToken = localStorage.getItem('refresh_token');
     const storedUsername = localStorage.getItem('username');
     
+    console.log('[AuthContext] Checking tokens:', { hasToken: !!token, hasRefreshToken: !!refreshToken });
+    
     if (token && refreshToken) {
       setIsLoggedIn(true);
       setUsername(storedUsername || '');
@@ -43,16 +45,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    console.log('[AuthContext] Logout called - Current state:', { isLoggedIn, username });
     try {
+      console.log('[AuthContext] Calling authApi.logout()');
       await authApi.logout();
+      console.log('[AuthContext] API logout successful, updating state');
       setIsLoggedIn(false);
       setUsername('');
+      console.log('[AuthContext] State updated, redirecting to login');
       window.location.href = '/login';
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('[AuthContext] Logout error:', error);
       toast.error('Logout failed');
     }
   };
+
+  console.log('[AuthContext] Render - Auth state:', { isLoggedIn, username, isLoading });
 
   const value = {
     isLoggedIn,

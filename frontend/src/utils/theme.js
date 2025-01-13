@@ -213,6 +213,10 @@ export const classes = {
   contentSection: 'py-8 sm:py-12 lg:py-16',
   gridContainer: 'grid grid-cols-4 gap-4 sm:grid-cols-8 lg:grid-cols-12 lg:gap-6',
   
+  // Auth
+  authContainer: 'min-h-screen bg-white flex items-center justify-center',
+  authForm: 'max-w-md w-full space-y-8 relative z-10',
+  
   // Interactive
   link: 'text-black hover:underline underline-offset-4 transition-all duration-300',
   focusRing: 'focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2',

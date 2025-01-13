@@ -268,9 +268,19 @@ export const authApi = {
   signup: (userData) => api.post('/api/auth/signup', userData),
   getCurrentUser: () => api.get('/api/auth/me'),
   logout: () => {
+    console.log('[API] Logout called - Clearing tokens');
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    console.log('[API] Current tokens:', { hasToken: !!token, hasRefreshToken: !!refreshToken });
+    
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('username');
+    
+    // Reset axios default authorization header
+    api.defaults.headers.common['Authorization'] = '';
+    
+    console.log('[API] Tokens cleared');
     return Promise.resolve();
   },
   testAuth: async () => {

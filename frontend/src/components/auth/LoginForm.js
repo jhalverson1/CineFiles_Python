@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { authApi } from '../../utils/api';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { variants, classes } from '../../utils/theme';
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -28,13 +29,8 @@ const LoginForm = () => {
       formDataObj.append('username', formData.email);
       formDataObj.append('password', formData.password);
 
-      const response = await authApi.login(formDataObj);
-      localStorage.setItem('token', response.access_token);
-      
-      const userInfo = await authApi.getCurrentUser();
-      localStorage.setItem('username', userInfo.username);
-      
-      window.location.href = '/';
+      await login(formDataObj);
+      navigate('/');
     } catch (err) {
       console.error('Login error:', err);
       setError(err.response?.data?.detail || 'Failed to login');
@@ -42,8 +38,8 @@ const LoginForm = () => {
   };
 
   return (
-    <div className={classes.pageContainer}>
-      <div className="max-w-md w-full space-y-8 relative z-10">
+    <div className={classes.authContainer}>
+      <div className={classes.authForm}>
         <div>
           <h2 className={classes.h2}>
             Sign in to your account
@@ -98,6 +94,12 @@ const LoginForm = () => {
             >
               Sign in
             </button>
+          </div>
+          <div className="text-center mt-4">
+            <span className="text-gray-600">Don't have an account? </span>
+            <Link to="/signup" className={classes.link}>
+              Sign up now!
+            </Link>
           </div>
         </form>
       </div>

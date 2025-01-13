@@ -49,8 +49,8 @@ const SignupForm = () => {
   };
 
   return (
-    <div className={classes.pageContainer}>
-      <div className="max-w-md w-full space-y-8 relative z-10">
+    <div className={classes.authContainer}>
+      <div className={classes.authForm}>
         <div>
           <h2 className={classes.h2}>
             Create your account
@@ -135,6 +135,12 @@ const SignupForm = () => {
             >
               Sign up
             </button>
+          </div>
+          <div className="text-center mt-4">
+            <span className="text-gray-600">Already have an account? </span>
+            <Link to="/login" className={classes.link}>
+              Sign in
+            </Link>
           </div>
         </form>
       </div>

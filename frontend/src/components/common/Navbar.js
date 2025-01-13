@@ -26,23 +26,46 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        console.log('[Navbar] Click outside detected, closing dropdown');
         setIsDropdownOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
 
-  const handleLogout = () => {
-    logout();
-    setIsDropdownOpen(false);
-    navigate('/');
+  const handleLogout = async () => {
+    console.log('[Navbar] Logout clicked - Current auth state:', { isLoggedIn, username });
+    try {
+      console.log('[Navbar] Calling logout function...');
+      await logout();
+      console.log('[Navbar] Logout successful, closing dropdown');
+      setIsDropdownOpen(false);
+    } catch (error) {
+      console.error('[Navbar] Logout failed:', error);
+    }
   };
+
+  const handleDropdownToggle = (e) => {
+    e.stopPropagation();
+    console.log('[Navbar] Toggle dropdown clicked, current state:', !isDropdownOpen);
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  console.log('[Navbar] Render - Auth state:', { isLoggedIn, username, isDropdownOpen });
 
   return (
     <>
@@ -53,9 +76,10 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
-              <div className="relative" ref={dropdownRef}>
+              <div className="relative">
                 <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  ref={buttonRef}
+                  onClick={handleDropdownToggle}
                   className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-md hover:bg-gray-100 transition-colors"
                   aria-label="Toggle user menu"
                   aria-expanded={isDropdownOpen}
@@ -66,24 +90,37 @@ const Navbar = () => {
 
                 {/* Desktop Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+                  <div 
+                    ref={dropdownRef}
+                    className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5"
+                  >
                     <div className="py-1">
                       <Link
                         to="/my-lists"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                        onClick={() => setIsDropdownOpen(false)}
+                        onClick={() => {
+                          console.log('[Navbar] My Lists clicked');
+                          setIsDropdownOpen(false);
+                        }}
                       >
                         My Lists
                       </Link>
                       <Link
                         to="/my-filters"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                        onClick={() => setIsDropdownOpen(false)}
+                        onClick={() => {
+                          console.log('[Navbar] My Filters clicked');
+                          setIsDropdownOpen(false);
+                        }}
                       >
                         My Filters
                       </Link>
                       <button
-                        onClick={handleLogout}
+                        type="button"
+                        onClick={() => {
+                          console.log('[Navbar] Logout button clicked');
+                          handleLogout();
+                        }}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                       >
                         Logout
