@@ -65,7 +65,7 @@ const MovieCard = ({
       >
         <div className="aspect-[2/3] relative">
           {/* Action Buttons Container */}
-          <div className={`absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 md:p-2 md:gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
+          <div className={`absolute top-0 left-0 right-0 z-20 flex items-start justify-between p-2 gap-1 md:p-2 md:gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300`}>
             {/* Left Button */}
             <div className="flex-1">
               {onRemove && !isDefaultList ? (

@@ -4,18 +4,24 @@ import { movieApi } from '../../utils/api';
 import { listsApi } from '../../utils/listsApi';
 import MovieList from './MovieList';
 import MovieDetailsModal from './MovieDetailsModal';
+import CreateListModal from './CreateListModal';
+import EditListModal from './EditListModal';
 import { useLists } from '../../contexts/ListsContext';
 import { toast } from 'react-hot-toast';
+import { PlusIcon, ChevronDownIcon, ChevronUpIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { variants } from '../../utils/theme';
 
 const MyLists = () => {
   const [expandedListId, setExpandedListId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedList, setSelectedList] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [movieDetails, setMovieDetails] = useState({});
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movieModalDetails, setMovieModalDetails] = useState(null);
   const [isLoadingModal, setIsLoadingModal] = useState(false);
-  const { lists, updateListStatus } = useLists();
+  const { lists, updateListStatus, refreshLists } = useLists();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -134,11 +140,144 @@ const MyLists = () => {
     }
   }, [lists, updateListStatus]);
 
-  // ... rest of existing code ...
+  const handleCreateList = async (listData) => {
+    try {
+      await listsApi.createList(listData);
+      await refreshLists();
+    } catch (error) {
+      console.error('Error creating list:', error);
+      throw error;
+    }
+  };
+
+  const handleUpdateList = async (listId, listData) => {
+    console.log('handleUpdateList called with:', { listId, listData });
+    try {
+      await listsApi.updateList(listId, listData);
+      await refreshLists();
+    } catch (error) {
+      console.error('Error updating list:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteList = async (list) => {
+    if (list.is_default) {
+      toast.error('Cannot delete default lists');
+      return;
+    }
+
+    if (window.confirm('Are you sure you want to delete this list? This action cannot be undone.')) {
+      try {
+        await listsApi.deleteList(list.id);
+        await refreshLists();
+        toast.success('List deleted successfully');
+      } catch (error) {
+        console.error('Error deleting list:', error);
+        toast.error('Failed to delete list');
+      }
+    }
+  };
+
+  const handleEditClick = (e, list) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Edit clicked for list:', list);
+    setSelectedList(list);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteClick = (e, list) => {
+    e.stopPropagation();
+    handleDeleteList(list);
+  };
+
+  const handleListClick = (listId) => {
+    setExpandedListId(expandedListId === listId ? null : listId);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 text-primary">
-      {/* ... existing JSX ... */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">My Lists</h1>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className={`flex items-center gap-2 ${variants.button.primary.base} ${variants.button.primary.hover}`}
+        >
+          <PlusIcon className="h-5 w-5" />
+          <span>Create</span>
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {lists?.map((list) => (
+          <div key={list.id} className={variants.card.base}>
+            <div
+              onClick={() => handleListClick(list.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleListClick(list.id);
+                }
+              }}
+              className={`w-full px-6 py-4 flex justify-between items-center ${variants.card.interactive}`}
+            >
+              <div className="flex flex-col items-start">
+                <h3 className="text-lg font-semibold">{list.name}</h3>
+                {list.description && (
+                  <p className="text-sm text-gray-500">{list.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-500">
+                  {list.items?.length || 0} movies
+                </span>
+                {!list.is_default && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => handleEditClick(e, list)}
+                      className={`p-2 rounded-full ${variants.button.text.base} ${variants.button.text.hover}`}
+                      aria-label="Edit list"
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteClick(e, list)}
+                      className={`p-2 rounded-full ${variants.button.text.base} ${variants.button.text.hover}`}
+                      aria-label="Delete list"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                {expandedListId === list.id ? (
+                  <ChevronUpIcon className="h-5 w-5" />
+                ) : (
+                  <ChevronDownIcon className="h-5 w-5" />
+                )}
+              </div>
+            </div>
+            
+            {expandedListId === list.id && list.items && list.items.length > 0 && (
+              <div className="px-6 pb-4">
+                <MovieList
+                  movies={list.items.map(item => ({
+                    id: item.movie_id,
+                    title: item.movie_title,
+                    poster_path: item.movie_poster_path,
+                    release_date: item.movie_release_date,
+                    vote_average: item.movie_vote_average
+                  }))}
+                  onMovieClick={(movie) => {
+                    navigate(`/my-lists/movie/${movie.id}`);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
       {/* Movie Details Modal */}
       {(selectedMovie || isLoadingModal) && (
@@ -158,6 +297,24 @@ const MyLists = () => {
           isLoading={isLoadingModal}
         />
       )}
+
+      {/* Create List Modal */}
+      <CreateListModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreateList={handleCreateList}
+      />
+
+      {/* Edit List Modal */}
+      <EditListModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedList(null);
+        }}
+        onUpdateList={handleUpdateList}
+        list={selectedList}
+      />
     </div>
   );
 };

@@ -62,7 +62,7 @@ class List(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Use string reference to avoid circular import
-    items: Mapped[PyList["ListItem"]] = relationship("ListItem", back_populates="list", lazy="selectin")
+    items: Mapped[PyList["ListItem"]] = relationship("ListItem", back_populates="list", lazy="selectin", cascade="all, delete-orphan")
     user: Mapped["User"] = relationship("User", back_populates="lists", lazy="selectin")
 
 class ListItem(Base):

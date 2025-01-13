@@ -448,16 +448,20 @@ async def delete_list(db: AsyncSession, list_id: UUID) -> bool:
     Notes:
         - List ownership should be verified before calling
         - Cannot delete default lists
-        - Cascades deletion to list items
+        - Items are automatically deleted via database CASCADE
         - Commits transaction immediately
     """
-    list_obj = await get_list_by_id(db, list_id)
-    if not list_obj or list_obj.is_default:
-        return False
-        
-    await db.delete(list_obj)
-    await db.commit()
-    return True 
+    try:
+        list_obj = await get_list_by_id(db, list_id)
+        if not list_obj or list_obj.is_default:
+            return False
+            
+        await db.delete(list_obj)
+        await db.commit()
+        return True
+    except Exception:
+        await db.rollback()
+        raise
 
 async def get_user_lists(db: AsyncSession, user_id: UUID) -> TypeList[List]:
     """

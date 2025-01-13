@@ -27,6 +27,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -34,7 +35,9 @@ const Navbar = () => {
         dropdownRef.current && 
         !dropdownRef.current.contains(event.target) &&
         buttonRef.current &&
-        !buttonRef.current.contains(event.target)
+        !buttonRef.current.contains(event.target) &&
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target)
       ) {
         console.log('[Navbar] Click outside detected, closing dropdown');
         setIsDropdownOpen(false);
@@ -166,24 +169,33 @@ const Navbar = () => {
 
         {/* Mobile User Dropdown */}
         {isDropdownOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white">
+          <div ref={mobileMenuRef} className="md:hidden border-t border-gray-200 bg-white">
             <div className="py-1">
               <Link
                 to="/my-lists"
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                onClick={() => setIsDropdownOpen(false)}
+                onClick={() => {
+                  console.log('[Navbar] Mobile: My Lists clicked');
+                  setIsDropdownOpen(false);
+                }}
               >
                 My Lists
               </Link>
               <Link
                 to="/my-filters"
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                onClick={() => setIsDropdownOpen(false)}
+                onClick={() => {
+                  console.log('[Navbar] Mobile: My Filters clicked');
+                  setIsDropdownOpen(false);
+                }}
               >
                 My Filters
               </Link>
               <button
-                onClick={handleLogout}
+                onClick={() => {
+                  console.log('[Navbar] Mobile: Logout clicked');
+                  handleLogout();
+                }}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
               >
                 Logout

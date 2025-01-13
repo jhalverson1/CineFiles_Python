@@ -17,7 +17,8 @@ from ..schemas.list_schemas import (
     List as ListSchema,
     ListItemCreate,
     ListItem as ListItemSchema,
-    ListStatusResponse
+    ListStatusResponse,
+    ListUpdate
 )
 from ..core.security import get_current_user
 from ..services import list_service
@@ -115,6 +116,84 @@ async def remove_movie_from_list(
     )
     await db.execute(query)
     await db.commit()
+    return {"status": "success"}
+
+@router.put("/{list_id}", response_model=ListSchema)
+async def update_list(
+    list_id: UUID,
+    list_data: ListUpdate,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """Update an existing list's name and/or description."""
+    # Verify list ownership
+    db_list = await list_service.get_list_by_id(db, list_id)
+    if not db_list or db_list.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="List not found"
+        )
+    
+    # Don't allow updating default lists
+    if db_list.is_default:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot modify default lists"
+        )
+    
+    # Validate new name if provided
+    if list_data.name and list_data.name != db_list.name:
+        name_available = await list_service.validate_list_name(
+            db, 
+            current_user.id, 
+            list_data.name,
+            exclude_list_id=list_id
+        )
+        if not name_available:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="List name already exists"
+            )
+    
+    # Update the list
+    updated_list = await list_service.update_list(
+        db,
+        list_id,
+        name=list_data.name,
+        description=list_data.description
+    )
+    return updated_list
+
+@router.delete("/{list_id}")
+async def delete_list(
+    list_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a list and all its items."""
+    # Verify list ownership
+    db_list = await list_service.get_list_by_id(db, list_id)
+    if not db_list or db_list.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="List not found"
+        )
+    
+    # Don't allow deleting default lists
+    if db_list.is_default:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete default lists"
+        )
+    
+    # Delete the list and its items
+    success = await list_service.delete_list(db, list_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to delete list"
+        )
+    
     return {"status": "success"}
 
 # ... rest of the file unchanged ... 

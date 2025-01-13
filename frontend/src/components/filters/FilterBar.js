@@ -66,6 +66,7 @@ const FilterBar = ({
   onIncludeKeywordsChange,
   excludeKeywords,
   onExcludeKeywordsChange,
+  onClose,
 }) => {
   // State for staged changes
   const [stagedChanges, setStagedChanges] = useState({
@@ -132,6 +133,7 @@ const FilterBar = ({
     onReleaseTypesChange(stagedChanges.releaseTypes);
     onIncludeKeywordsChange(stagedChanges.includeKeywords);
     onExcludeKeywordsChange(stagedChanges.excludeKeywords);
+    onClose?.();
   };
 
   // Handler for resetting all filters

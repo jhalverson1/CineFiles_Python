@@ -659,6 +659,7 @@ const HomePage = () => {
                   onExcludeKeywordsChange={setExcludeKeywords}
                   sortBy={sortBy}
                   onSortByChange={setSortBy}
+                  onClose={() => setIsFiltersOpen(false)}
                 />
               </div>
             </motion.div>
@@ -667,7 +668,9 @@ const HomePage = () => {
       </AnimatePresence>
 
       {/* Movie Lists - Add padding to account for fixed header height */}
-      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 pt-24`}>
+      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 ${
+        isSearchOpen ? 'pt-36' : 'pt-24'
+      }`}>
         <AnimatePresence mode="wait">
           {searchResults !== null ? (
             <motion.div
@@ -800,16 +803,31 @@ const HomePage = () => {
       </div>
 
       {/* Homepage Filter Manager Modal */}
-      {isHomepageManagerOpen && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50">
-          <div className="bg-background-secondary rounded-lg shadow-xl mt-20 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <HomepageFilterManager 
-              onClose={() => setIsHomepageManagerOpen(false)}
-              loadHomepageLists={loadHomepageLists}
-            />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {isHomepageManagerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={variants.modal.backdrop}
+          >
+            <div className={variants.modal.container.base}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className={`${variants.modal.content.base} max-w-2xl w-full`}
+              >
+                <HomepageFilterManager 
+                  onClose={() => setIsHomepageManagerOpen(false)}
+                  loadHomepageLists={loadHomepageLists}
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Movie Details Modal */}
       <AnimatePresence>
