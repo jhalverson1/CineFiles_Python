@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import MovieList from './MovieList';
 import FilterBar from '../filters/FilterBar';
 import HomepageFilterManager from '../filters/HomepageFilterManager';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { movieApi, filterSettingsApi } from '../../utils/api';
+import { listsApi } from '../../utils/listsApi';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLists } from '../../contexts/ListsContext';
 import { DEFAULT_MOVIE_LISTS } from '../../constants/movieLists';
 import { variants } from '../../utils/theme';
+import MovieDetailsModal from './MovieDetailsModal';
+import { toast } from 'react-hot-toast';
 
 // Custom hook for responsive design
 const useResponsiveDefaults = () => {
@@ -34,8 +37,9 @@ const useResponsiveDefaults = () => {
 const HomePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const params = useParams();
   const isMobile = useResponsiveDefaults();
-  const { lists } = useLists();
+  const { lists, updateListStatus, addToList } = useLists();
   const [excludedLists, setExcludedLists] = useState([]);
   const [yearRange, setYearRange] = useState([1900, new Date().getFullYear()]);
   const [ratingRange, setRatingRange] = useState([0, 10]);
@@ -67,6 +71,9 @@ const HomePage = () => {
   const [excludeKeywords, setExcludeKeywords] = useState([]);
   const [sortBy, setSortBy] = useState(null);
   const excludeRef = useRef(null);
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [movieDetails, setMovieDetails] = useState(null);
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -163,29 +170,32 @@ const HomePage = () => {
     fetchGenres();
   }, []);
 
-  // Reset state when navigating to home from home
+  // Reset state when navigating to home from a different route
   useEffect(() => {
-    setExcludedLists([]);
-    setYearRange([1900, new Date().getFullYear()]);
-    setRatingRange([0, 10]);
-    setPopularityRange(null);
-    setViewMode('scroll');
-    setIsCompact(isMobile);
-    setKey(prev => prev + 1);
-    setSearchResults(null);
-    setSearchQuery('');
-    setIsSearchOpen(false);
-    setWatchProviders([]);
-    setWatchRegion('US');
-    setVoteCountRange(null);
-    setRuntimeRange(null);
-    setOriginalLanguage(null);
-    setSpokenLanguages([]);
-    setReleaseTypes([]);
-    setIncludeKeywords([]);
-    setExcludeKeywords([]);
-    setSortBy(null);
-  }, [location.key, isMobile]);
+    const isNavigatingFromDifferentRoute = !location.pathname.includes('/movie/');
+    if (isNavigatingFromDifferentRoute) {
+      setExcludedLists([]);
+      setYearRange([1900, new Date().getFullYear()]);
+      setRatingRange([0, 10]);
+      setPopularityRange(null);
+      setViewMode('scroll');
+      setIsCompact(isMobile);
+      setKey(prev => prev + 1);
+      setSearchResults(null);
+      setSearchQuery('');
+      setIsSearchOpen(false);
+      setWatchProviders([]);
+      setWatchRegion('US');
+      setVoteCountRange(null);
+      setRuntimeRange(null);
+      setOriginalLanguage(null);
+      setSpokenLanguages([]);
+      setReleaseTypes([]);
+      setIncludeKeywords([]);
+      setExcludeKeywords([]);
+      setSortBy(null);
+    }
+  }, [location.pathname, isMobile]);
 
   // Handle search toggle
   const handleSearchToggle = () => {
@@ -258,6 +268,127 @@ const HomePage = () => {
       setIsCompact(true);
     }
   }, [isMobile]);
+
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await loadHomepageLists();
+      
+      const movieId = location.pathname.match(/\/movie\/(\d+)/)?.[1];
+      if (movieId) {
+        setIsLoadingModal(true);
+        try {
+          const [details, credits, videos, watchProviders] = await Promise.all([
+            movieApi.getMovieDetails(movieId),
+            movieApi.getMovieCredits(movieId),
+            movieApi.getMovieVideos(movieId),
+            movieApi.getMovieWatchProviders(movieId)
+          ]);
+
+          setMovieDetails({
+            ...details,
+            credits,
+            videos: videos.results || [],
+            similar: [], // Temporarily disabled until backend is ready
+            watchProviders: watchProviders.results?.US?.flatrate || []
+          });
+          setSelectedMovie(details);
+        } catch (error) {
+          console.error('Error loading movie details:', error);
+          toast.error('Failed to load movie details');
+          // Don't navigate away, just clear the modal state
+          setSelectedMovie(null);
+          setMovieDetails(null);
+        } finally {
+          setIsLoadingModal(false);
+        }
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
+  // Handle closing modal
+  const handleCloseModal = useCallback(() => {
+    const baseUrl = '/';
+    navigate(baseUrl, { 
+      replace: true
+    });
+  }, [navigate]);
+
+  // Handle toggling movies in Watched list
+  const onWatchedToggle = useCallback(async (movie) => {
+    try {
+      if (!movie || !movie.id) {
+        throw new Error('Invalid movie object');
+      }
+
+      const movieId = movie.id.toString();
+      const previousStatus = {
+        isWatched: lists?.find(list => list.name === 'Watched')?.items.some(item => item.movie_id === movieId),
+        isInWatchlist: lists?.find(list => list.name === 'Watchlist')?.items.some(item => item.movie_id === movieId)
+      };
+
+      // Optimistically update UI
+      updateListStatus(movieId, {
+        is_watched: !previousStatus.isWatched,
+        in_watchlist: previousStatus.isWatched ? previousStatus.isInWatchlist : false
+      });
+
+      try {
+        const response = await listsApi.toggleWatched(movieId);
+        // Update with actual server response
+        updateListStatus(movieId, response);
+      } catch (error) {
+        // Revert to previous state on error
+        updateListStatus(movieId, {
+          is_watched: previousStatus.isWatched,
+          in_watchlist: previousStatus.isInWatchlist
+        });
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error toggling watched status:', error);
+      toast.error('Failed to update watched status');
+    }
+  }, [lists, updateListStatus]);
+
+  // Handle toggling movies in Watchlist
+  const onWatchlistToggle = useCallback(async (movie) => {
+    try {
+      if (!movie || !movie.id) {
+        throw new Error('Invalid movie object');
+      }
+
+      const movieId = movie.id.toString();
+      const previousStatus = {
+        isWatched: lists?.find(list => list.name === 'Watched')?.items.some(item => item.movie_id === movieId),
+        isInWatchlist: lists?.find(list => list.name === 'Watchlist')?.items.some(item => item.movie_id === movieId)
+      };
+
+      // Optimistically update UI
+      updateListStatus(movieId, {
+        is_watched: previousStatus.isWatched,
+        in_watchlist: !previousStatus.isInWatchlist
+      });
+
+      try {
+        const response = await listsApi.toggleWatchlist(movieId);
+        // Update with actual server response
+        updateListStatus(movieId, response);
+      } catch (error) {
+        // Revert to previous state on error
+        updateListStatus(movieId, {
+          is_watched: previousStatus.isWatched,
+          in_watchlist: previousStatus.isInWatchlist
+        });
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error toggling watchlist status:', error);
+      toast.error('Failed to update watchlist');
+    }
+  }, [lists, updateListStatus]);
 
   return (
     <div>
@@ -679,6 +810,27 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
+      {/* Movie Details Modal */}
+      <AnimatePresence>
+        {(selectedMovie || isLoadingModal) && (
+          <MovieDetailsModal
+            isOpen={true}
+            onClose={handleCloseModal}
+            movie={movieDetails || selectedMovie}
+            cast={movieDetails?.credits?.cast}
+            crew={movieDetails?.credits?.crew}
+            similar={movieDetails?.similar}
+            watchProviders={movieDetails?.watchProviders}
+            videos={movieDetails?.videos}
+            onWatchedToggle={onWatchedToggle}
+            onWatchlistToggle={onWatchlistToggle}
+            isWatched={lists?.find(list => list.name === 'Watched')?.items.some(item => item.movie_id === selectedMovie?.id.toString())}
+            isInWatchlist={lists?.find(list => list.name === 'Watchlist')?.items.some(item => item.movie_id === selectedMovie?.id.toString())}
+            isLoading={isLoadingModal}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

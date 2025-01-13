@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../../utils/image';
 import WatchedToggle from './WatchedToggle';
 import WatchlistToggle from './WatchlistToggle';
@@ -27,15 +27,41 @@ const MovieCard = ({
   onWatchlistToggle = null
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { lists } = useLists();
   const currentList = lists?.find(list => list.id === listId);
   const isDefaultList = currentList?.is_default;
 
+  const handleMovieClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Get the base path from the current location
+    const basePath = location.pathname.split('/')[1];
+    const modalPath = basePath ? `/${basePath}/movie/${movie.id}` : `/movie/${movie.id}`;
+    
+    // Preserve the current location as the background
+    const currentLocation = {
+      pathname: location.pathname,
+      search: location.search,
+      hash: location.hash,
+      state: location.state
+    };
+    
+    navigate(modalPath, {
+      state: { 
+        backgroundLocation: currentLocation,
+        query: location.state?.query,
+        results: location.state?.results
+      }
+    });
+  };
+
   return (
     <div className="relative w-full group">
-      <Link 
-        to={`/movies/${movie.id}`}
-        className={`${variants.card.base} block relative z-10 h-full transition-all duration-300 group-hover:shadow-lg`}
+      <div 
+        onClick={handleMovieClick}
+        className={`${variants.card.base} block relative z-10 h-full transition-all duration-300 group-hover:shadow-lg cursor-pointer`}
       >
         <div className="aspect-[2/3] relative">
           {/* Action Buttons Container */}
@@ -57,7 +83,12 @@ const MovieCard = ({
                   </svg>
                 </button>
               ) : (
-                <AddToListButton movieId={movie.id} isCompact={isCompact} dropdownPosition="top-right" />
+                <AddToListButton 
+                  movieId={movie.id} 
+                  isCompact={isCompact} 
+                  dropdownPosition="top-right"
+                  onClick={(e) => e.stopPropagation()}
+                />
               )}
             </div>
             {/* Right Buttons */}
@@ -67,6 +98,7 @@ const MovieCard = ({
                   movieId={movie.id} 
                   isCompact={isCompact}
                   onToggle={onWatchedToggle}
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
               <div className="flex-1 flex justify-center">
@@ -74,6 +106,7 @@ const MovieCard = ({
                   movieId={movie.id} 
                   isCompact={isCompact}
                   onToggle={onWatchlistToggle}
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             </div>
@@ -109,7 +142,7 @@ const MovieCard = ({
             )}
           </div>
         </div>
-      </Link>
+      </div>
     </div>
   );
 };

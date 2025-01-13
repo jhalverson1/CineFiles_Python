@@ -525,6 +525,7 @@ export const movieApi = {
   getMovieDetails: (id) => api.get(`/api/movies/${id}`),
   getMovieCredits: (id) => api.get(`/api/movies/${id}/credits`),
   getMovieVideos: (id) => api.get(`/api/movies/${id}/videos`),
+  getSimilarMovies: (id) => api.get(`/api/movies/${id}/similar`),
   getPersonDetails: (id) => api.get(`/api/person/${id}`),
   getMovieWatchProviders: (id) => api.get(`/api/movies/${id}/watch-providers`),
 };
@@ -555,7 +556,10 @@ export const deleteList = async (listId) => {
 };
 
 export const addMovieToList = async (listId, movieId, notes = '') => {
-  return await api.post(`/api/lists/${listId}/items`, { movie_id: movieId, notes });
+  return await api.post(`/api/lists/${listId}/items`, { 
+    movie_id: movieId.toString(), 
+    notes 
+  });
 };
 
 export const removeMovieFromList = async (listId, movieId) => {

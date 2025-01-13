@@ -190,6 +190,45 @@ export const variants = {
       accent: 'border-l-[6px] border-[#996515]',
       description: 'text-base font-medium text-[#4A4A4A] pl-2'
     }
+  },
+  modal: {
+    backdrop: 'fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto',
+    container: {
+      base: 'relative min-h-screen flex items-center justify-center p-4',
+      animation: 'animate-in fade-in duration-300 ease-out'
+    },
+    content: {
+      base: 'relative w-full max-w-4xl bg-white shadow-xl rounded-lg overflow-hidden',
+      animation: 'animate-in slide-in-from-bottom-4 duration-500 ease-out',
+      mobile: 'sm:max-h-[calc(100vh-2rem)] sm:my-4'
+    },
+    header: {
+      base: 'sticky top-0 z-10 flex items-center justify-between p-4 bg-white border-b border-gray-200',
+      title: 'text-xl font-bold text-black',
+      close: 'p-2 hover:bg-gray-100 rounded-full transition-colors'
+    },
+    body: {
+      base: 'relative',
+      scroll: 'overflow-y-auto overscroll-contain',
+      maxHeight: 'max-h-[calc(100vh-10rem)]'
+    },
+    movieDetails: {
+      backdrop: {
+        base: 'absolute inset-0 bg-gradient-to-t from-black to-transparent',
+        overlay: 'absolute inset-0 bg-black/75'
+      },
+      container: 'relative z-10 text-white',
+      header: {
+        base: 'flex flex-col md:flex-row gap-6 md:gap-8 p-6 md:p-8',
+        poster: 'w-full max-w-[300px] mx-auto md:mx-0',
+        info: 'flex-1 flex flex-col items-center md:items-start'
+      },
+      content: {
+        base: 'px-6 md:px-8 pb-6 md:pb-8',
+        section: 'mb-8',
+        title: 'text-2xl font-bold mb-4'
+      }
+    }
   }
 };
 
