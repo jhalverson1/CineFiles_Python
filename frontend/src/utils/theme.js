@@ -7,6 +7,7 @@ export const theme = {
       secondary: '#FFFFFF',   // Core white
       accent: '#0071AE',     // Adidas blue
       accent2: '#FF6B00',    // Vibrant orange for CTAs
+      gold: '#996515',       // Rich gold for headers and accents
     },
     // UI colors
     text: {
@@ -183,6 +184,11 @@ export const variants = {
       base: 'p-2 rounded-lg transition-colors',
       active: 'bg-black text-white hover:bg-gray-900',
       inactive: 'text-black hover:bg-black hover:text-white'
+    },
+    title: {
+      base: 'text-2xl font-bold mb-2 text-[#000000] pl-2',
+      accent: 'border-l-[6px] border-[#996515]',
+      description: 'text-base font-medium text-[#4A4A4A] pl-2'
     }
   }
 };

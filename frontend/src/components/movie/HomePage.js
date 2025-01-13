@@ -348,6 +348,21 @@ const HomePage = () => {
                     )}
                   </AnimatePresence>
                 </div>
+
+                {/* Homepage List Manager Toggle */}
+                <button
+                  onClick={() => setIsHomepageManagerOpen(true)}
+                  className={`${variants.header.button.base} ${
+                    isHomepageManagerOpen 
+                      ? variants.header.button.active
+                      : variants.header.button.inactive
+                  }`}
+                  aria-label="Manage homepage lists"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </button>
               </div>
 
               {/* Right side - View Mode and Compact Toggles */}
@@ -529,10 +544,10 @@ const HomePage = () => {
             >
               <section>
                 <div className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                  <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
                     Search Results for "{searchQuery}"
                   </h2>
-                  <p className="text-text-secondary pl-2">
+                  <p className={variants.header.title.description}>
                     Found {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
                   </p>
                 </div>
@@ -563,10 +578,10 @@ const HomePage = () => {
               {hasActiveFilters ? (
                 <section>
                   <div className="mb-8">
-                    <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                    <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
                       Filtered Results
                     </h2>
-                    <p className="text-text-secondary pl-2">
+                    <p className={variants.header.title.description}>
                       Movies matching your selected filters
                     </p>
                   </div>
@@ -609,10 +624,10 @@ const HomePage = () => {
                       {homepageLists.map((list) => (
                         <section key={`${list.type}-${list.id}`}>
                           <div className="mb-8">
-                            <h2 className="text-2xl font-semibold mb-2 text-text-primary pl-2 border-l-[6px] border-gold">
+                            <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
                               {list.name}
                             </h2>
-                            <p className="text-text-secondary pl-2">
+                            <p className={variants.header.title.description}>
                               {list.description}
                             </p>
                           </div>
