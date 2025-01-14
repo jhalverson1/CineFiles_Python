@@ -500,7 +500,7 @@ const MovieList = ({
         initial="hidden"
         animate="show"
         className={viewMode === 'grid' 
-          ? `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-2 px-1`
+          ? `grid grid-cols-2 gap-2 px-1 max-sm:[grid-template-columns:repeat(auto-fill,minmax(140px,1fr))] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10`
           : "flex gap-4 p-4"
         }
       >
@@ -512,7 +512,7 @@ const MovieList = ({
               viewMode === 'scroll' 
                 ? `flex-none ${effectiveIsCompact ? 'w-[120px]' : 'w-[180px]'}`
                 : 'w-full'
-            } ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'}`}
+            } ${viewMode === 'grid' && 'sm:w-auto max-sm:w-full'}`}
           >
             <div className="relative w-full group">
               <div className="block bg-background-secondary rounded-lg overflow-hidden relative z-10 h-full">
@@ -653,7 +653,7 @@ const MovieList = ({
           animate="show"
           className={`grid ${
             viewMode === 'grid'
-              ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-2 px-1' 
+              ? 'grid-cols-2 gap-2 px-1 max-sm:[grid-template-columns:repeat(auto-fill,minmax(140px,1fr))] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10' 
               : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 px-2'
           }`}
         >
@@ -662,7 +662,7 @@ const MovieList = ({
               <motion.div
                 key={movie.id}
                 variants={itemVariants}
-                className={`w-full ${viewMode === 'grid' && 'sm:w-auto max-sm:[width:calc((100vw-0.5rem-(2*0.5rem)-(2*0.5rem))/3)]'}`}
+                className={`w-full ${viewMode === 'grid' && 'sm:w-auto max-sm:w-full'}`}
                 layout
               >
                 {renderMovieCard(movie)}

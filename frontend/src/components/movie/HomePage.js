@@ -44,8 +44,8 @@ const HomePage = () => {
   const [yearRange, setYearRange] = useState([1900, new Date().getFullYear()]);
   const [ratingRange, setRatingRange] = useState([0, 10]);
   const [popularityRange, setPopularityRange] = useState(null);
-  const [viewMode, setViewMode] = useState('scroll');
-  const [isCompact, setIsCompact] = useState(isMobile);
+  const [viewMode, setViewMode] = useState('grid');
+  const [isCompact, setIsCompact] = useState(true);
   const [key, setKey] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -74,6 +74,19 @@ const HomePage = () => {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movieDetails, setMovieDetails] = useState(null);
   const [isLoadingModal, setIsLoadingModal] = useState(false);
+  const [openSections, setOpenSections] = useState(new Set());
+
+  const toggleSection = (sectionId) => {
+    setOpenSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+  };
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -178,8 +191,6 @@ const HomePage = () => {
       setYearRange([1900, new Date().getFullYear()]);
       setRatingRange([0, 10]);
       setPopularityRange(null);
-      setViewMode('scroll');
-      setIsCompact(isMobile);
       setKey(prev => prev + 1);
       setSearchResults(null);
       setSearchQuery('');
@@ -195,7 +206,7 @@ const HomePage = () => {
       setExcludeKeywords([]);
       setSortBy(null);
     }
-  }, [location.pathname, isMobile]);
+  }, [location.pathname]);
 
   // Handle search toggle
   const handleSearchToggle = () => {
@@ -502,7 +513,8 @@ const HomePage = () => {
 
               {/* Right side - View Mode and Compact Toggles */}
               <div className="flex items-center gap-3">
-                {/* View Mode Toggle */}
+                {/* View mode and compact toggles removed but preserved in comments for future use */}
+                {/* 
                 <button
                   onClick={() => setViewMode(viewMode === 'scroll' ? 'grid' : 'scroll')}
                   className={`${variants.header.button.base} ${
@@ -521,7 +533,6 @@ const HomePage = () => {
                   </svg>
                 </button>
 
-                {/* Compact Toggle - Only visible on non-mobile when in scroll view */}
                 {!isMobile && viewMode !== 'grid' && (
                   <button
                     onClick={() => setIsCompact(!isCompact)}
@@ -540,7 +551,7 @@ const HomePage = () => {
                       )}
                     </svg>
                   </button>
-                )}
+                )} */}
               </div>
             </div>
 
@@ -668,7 +679,7 @@ const HomePage = () => {
       </AnimatePresence>
 
       {/* Movie Lists - Add padding to account for fixed header height */}
-      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 ${
+      <div className={`w-full ${
         isSearchOpen ? 'pt-36' : 'pt-24'
       }`}>
         <AnimatePresence mode="wait">
@@ -679,30 +690,65 @@ const HomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full"
             >
-              <section>
-                <div className="mb-8">
-                  <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
-                    Search Results for "{searchQuery}"
-                  </h2>
-                  <p className={variants.header.title.description}>
-                    Found {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
-                  </p>
-                </div>
-                {searchResults.length > 0 ? (
-                  <MovieList 
-                    key={`search-results-${searchQuery}`}
-                    movies={searchResults}
-                    excludedLists={excludedLists}
-                    viewMode={viewMode}
-                    isCompact={isCompact}
-                  />
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-text-secondary">No results found for "{searchQuery}"</p>
+              <motion.div
+                className="w-full bg-white border-y border-[#ECEFF1]"
+                initial={false}
+              >
+                <button
+                  onClick={() => toggleSection('search-results')}
+                  className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
+                >
+                  <div>
+                    <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
+                      <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
+                      <span>Search Results for "{searchQuery}"</span>
+                    </h2>
+                    <p className="pl-4 text-base font-medium text-[#4A4A4A]">
+                      Found {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
+                    </p>
                   </div>
-                )}
-              </section>
+                  <svg
+                    className={`w-6 h-6 transform transition-transform duration-300 ${
+                      openSections.has('search-results') ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <AnimatePresence initial={false}>
+                  {openSections.has('search-results') && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: "auto" }}
+                      exit={{ height: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden bg-gray-50"
+                    >
+                      <div className="p-8">
+                        {searchResults.length > 0 ? (
+                          <MovieList 
+                            key={`search-results-${searchQuery}`}
+                            movies={searchResults}
+                            excludedLists={excludedLists}
+                            viewMode={viewMode}
+                            isCompact={isCompact}
+                            isMobile={isMobile}
+                          />
+                        ) : (
+                          <div className="text-center py-12">
+                            <p className="text-text-secondary">No results found for "{searchQuery}"</p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </motion.div>
           ) : (
             <motion.div
@@ -711,40 +757,75 @@ const HomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full"
             >
               {/* Show filtered results section when filters are active */}
               {hasActiveFilters ? (
-                <section>
-                  <div className="mb-8">
-                    <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
-                      Filtered Results
-                    </h2>
-                    <p className={variants.header.title.description}>
-                      Movies matching your selected filters
-                    </p>
-                  </div>
-                  <MovieList
-                    key={`filtered-results-${key}`}
-                    type="filtered"
-                    yearRange={yearRange}
-                    ratingRange={ratingRange}
-                    popularityRange={popularityRange}
-                    selectedGenres={selectedGenres}
-                    excludedLists={excludedLists}
-                    viewMode={viewMode}
-                    isCompact={isCompact}
-                    watchProviders={watchProviders}
-                    watchRegion={watchRegion}
-                    voteCountRange={voteCountRange}
-                    runtimeRange={runtimeRange}
-                    originalLanguage={originalLanguage}
-                    spokenLanguages={spokenLanguages}
-                    releaseTypes={releaseTypes}
-                    includeKeywords={includeKeywords}
-                    excludeKeywords={excludeKeywords}
-                    sortBy={sortBy}
-                  />
-                </section>
+                <motion.div
+                  className="w-full bg-white border-y border-[#ECEFF1]"
+                  initial={false}
+                >
+                  <button
+                    onClick={() => toggleSection('filtered-results')}
+                    className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
+                  >
+                    <div>
+                      <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
+                        <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
+                        <span>Filtered Results</span>
+                      </h2>
+                      <p className="pl-4 text-base font-medium text-[#4A4A4A]">
+                        Movies matching your selected filters
+                      </p>
+                    </div>
+                    <svg
+                      className={`w-6 h-6 transform transition-transform duration-300 ${
+                        openSections.has('filtered-results') ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {openSections.has('filtered-results') && (
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: "auto" }}
+                        exit={{ height: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="overflow-hidden bg-gray-50"
+                      >
+                        <div className="p-8">
+                          <MovieList
+                            key={`filtered-results-${key}`}
+                            type="filtered"
+                            yearRange={yearRange}
+                            ratingRange={ratingRange}
+                            popularityRange={popularityRange}
+                            selectedGenres={selectedGenres}
+                            excludedLists={excludedLists}
+                            viewMode={viewMode}
+                            isCompact={isCompact}
+                            isMobile={isMobile}
+                            watchProviders={watchProviders}
+                            watchRegion={watchRegion}
+                            voteCountRange={voteCountRange}
+                            runtimeRange={runtimeRange}
+                            originalLanguage={originalLanguage}
+                            spokenLanguages={spokenLanguages}
+                            releaseTypes={releaseTypes}
+                            includeKeywords={includeKeywords}
+                            excludeKeywords={excludeKeywords}
+                            sortBy={sortBy}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               ) : (
                 /* Only show default lists when no filters are active */
                 <>
@@ -758,40 +839,75 @@ const HomePage = () => {
                       <p className="text-text-secondary">No movie lists enabled. Click the list manager button to add some!</p>
                     </div>
                   ) : (
-                    <div className="space-y-12">
+                    <div className="divide-y divide-[#ECEFF1]">
                       {homepageLists.map((list) => (
-                        <section key={`${list.type}-${list.id}`}>
-                          <div className="mb-8">
-                            <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
-                              {list.name}
-                            </h2>
-                            <p className={variants.header.title.description}>
-                              {list.description}
-                            </p>
-                          </div>
-                          <MovieList
-                            key={`${list.type}-${list.id}-${key}`}
-                            type={list.type}
-                            listId={list.id}
-                            yearRange={yearRange}
-                            ratingRange={ratingRange}
-                            popularityRange={popularityRange}
-                            selectedGenres={selectedGenres}
-                            excludedLists={excludedLists}
-                            viewMode={viewMode}
-                            isCompact={isCompact}
-                            watchProviders={watchProviders}
-                            watchRegion={watchRegion}
-                            voteCountRange={voteCountRange}
-                            runtimeRange={runtimeRange}
-                            originalLanguage={originalLanguage}
-                            spokenLanguages={spokenLanguages}
-                            releaseTypes={releaseTypes}
-                            includeKeywords={includeKeywords}
-                            excludeKeywords={excludeKeywords}
-                            sortBy={sortBy}
-                          />
-                        </section>
+                        <motion.div
+                          key={`${list.type}-${list.id}`}
+                          className="w-full bg-white"
+                          initial={false}
+                        >
+                          <button
+                            onClick={() => toggleSection(`${list.type}-${list.id}`)}
+                            className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
+                          >
+                            <div>
+                              <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
+                                <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
+                                <span>{list.name}</span>
+                              </h2>
+                              <p className="pl-4 text-base font-medium text-[#4A4A4A]">
+                                {list.description}
+                              </p>
+                            </div>
+                            <svg
+                              className={`w-6 h-6 transform transition-transform duration-300 ${
+                                openSections.has(`${list.type}-${list.id}`) ? 'rotate-180' : ''
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          <AnimatePresence initial={false}>
+                            {openSections.has(`${list.type}-${list.id}`) && (
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: "auto" }}
+                                exit={{ height: 0 }}
+                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                className="overflow-hidden bg-gray-50"
+                              >
+                                <div className="p-8">
+                                  <MovieList
+                                    key={`${list.type}-${list.id}-${key}`}
+                                    type={list.type}
+                                    listId={list.id}
+                                    yearRange={yearRange}
+                                    ratingRange={ratingRange}
+                                    popularityRange={popularityRange}
+                                    selectedGenres={selectedGenres}
+                                    excludedLists={excludedLists}
+                                    viewMode={viewMode}
+                                    isCompact={isCompact}
+                                    isMobile={isMobile}
+                                    watchProviders={watchProviders}
+                                    watchRegion={watchRegion}
+                                    voteCountRange={voteCountRange}
+                                    runtimeRange={runtimeRange}
+                                    originalLanguage={originalLanguage}
+                                    spokenLanguages={spokenLanguages}
+                                    releaseTypes={releaseTypes}
+                                    includeKeywords={includeKeywords}
+                                    excludeKeywords={excludeKeywords}
+                                    sortBy={sortBy}
+                                  />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
                       ))}
                     </div>
                   )}

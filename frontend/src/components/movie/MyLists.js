@@ -26,6 +26,25 @@ const MyLists = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Add useResponsiveDefaults hook from HomePage
+  const useResponsiveDefaults = () => {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+      const checkIsMobile = () => {
+        setIsMobile(window.innerWidth < 768);
+      };
+
+      checkIsMobile();
+      window.addEventListener('resize', checkIsMobile);
+      return () => window.removeEventListener('resize', checkIsMobile);
+    }, []);
+
+    return isMobile;
+  };
+
+  const isMobile = useResponsiveDefaults();
+
   // Load initial data
   useEffect(() => {
     const loadInitialData = async () => {
@@ -296,7 +315,7 @@ const MyLists = () => {
             </div>
             
             {expandedListId === list.id && list.items && list.items.length > 0 && (
-              <div className="px-6 pb-4">
+              <div className="p-8 bg-gray-50">
                 <MovieList
                   movies={list.items
                     .map(item => listMovieDetails[item.movie_id])
@@ -304,6 +323,9 @@ const MyLists = () => {
                   onMovieClick={(movie) => {
                     navigate(`/my-lists/movie/${movie.id}`);
                   }}
+                  viewMode="grid"
+                  isCompact={false}
+                  isMobile={isMobile}
                 />
               </div>
             )}

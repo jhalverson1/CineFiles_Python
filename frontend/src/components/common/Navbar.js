@@ -30,6 +30,8 @@ const Navbar = () => {
   const mobileMenuRef = useRef(null);
 
   useEffect(() => {
+    if (!dropdownRef.current) return;
+    
     const handleClickOutside = (event) => {
       if (
         dropdownRef.current && 
@@ -39,36 +41,26 @@ const Navbar = () => {
         mobileMenuRef.current &&
         !mobileMenuRef.current.contains(event.target)
       ) {
-        console.log('[Navbar] Click outside detected, closing dropdown');
         setIsDropdownOpen(false);
       }
     };
 
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isDropdownOpen]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [dropdownRef, buttonRef, mobileMenuRef]);
 
   const handleLogout = async () => {
-    console.log('[Navbar] Logout clicked - Current auth state:', { isLoggedIn, username });
     try {
-      console.log('[Navbar] Calling logout function...');
       await logout();
-      console.log('[Navbar] Logout successful, closing dropdown');
       setIsDropdownOpen(false);
     } catch (error) {
-      console.error('[Navbar] Logout failed:', error);
+      // Handle error silently
     }
   };
 
-  const handleDropdownToggle = (e) => {
-    e.stopPropagation();
-    console.log('[Navbar] Toggle dropdown clicked, current state:', !isDropdownOpen);
+  const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
-
-  console.log('[Navbar] Render - Auth state:', { isLoggedIn, username, isDropdownOpen });
 
   return (
     <>
@@ -82,7 +74,7 @@ const Navbar = () => {
               <div className="relative">
                 <button
                   ref={buttonRef}
-                  onClick={handleDropdownToggle}
+                  onClick={toggleDropdown}
                   className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-md hover:bg-gray-100 transition-colors"
                   aria-label="Toggle user menu"
                   aria-expanded={isDropdownOpen}
@@ -102,7 +94,6 @@ const Navbar = () => {
                         to="/my-lists"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                         onClick={() => {
-                          console.log('[Navbar] My Lists clicked');
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -112,7 +103,6 @@ const Navbar = () => {
                         to="/my-filters"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                         onClick={() => {
-                          console.log('[Navbar] My Filters clicked');
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -121,7 +111,6 @@ const Navbar = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          console.log('[Navbar] Logout button clicked');
                           handleLogout();
                         }}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
@@ -175,7 +164,6 @@ const Navbar = () => {
                 to="/my-lists"
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 onClick={() => {
-                  console.log('[Navbar] Mobile: My Lists clicked');
                   setIsDropdownOpen(false);
                 }}
               >
@@ -185,7 +173,6 @@ const Navbar = () => {
                 to="/my-filters"
                 className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                 onClick={() => {
-                  console.log('[Navbar] Mobile: My Filters clicked');
                   setIsDropdownOpen(false);
                 }}
               >
@@ -193,7 +180,6 @@ const Navbar = () => {
               </Link>
               <button
                 onClick={() => {
-                  console.log('[Navbar] Mobile: Logout clicked');
                   handleLogout();
                 }}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
