@@ -340,7 +340,36 @@ const HomePage = () => {
     setOpenSections(prev => {
       const newSet = new Set(prev);
       if (newSet.has(sectionId)) {
+        // Section is being closed
         newSet.delete(sectionId);
+        
+        // Clear movies for this section
+        setListMovies(prev => {
+          const newState = { ...prev };
+          delete newState[sectionId];
+          return newState;
+        });
+        
+        // Reset pagination state
+        setPaginationState(prev => {
+          const newState = { ...prev };
+          delete newState[sectionId];
+          return newState;
+        });
+        
+        // Reset hasMore state
+        setHasMore(prev => {
+          const newState = { ...prev };
+          delete newState[sectionId];
+          return newState;
+        });
+        
+        // Reset loadingMore state
+        setLoadingMore(prev => {
+          const newState = { ...prev };
+          delete newState[sectionId];
+          return newState;
+        });
       } else {
         newSet.add(sectionId);
         // Load initial movies when section is opened
