@@ -21,9 +21,29 @@ const MyLists = () => {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movieModalDetails, setMovieModalDetails] = useState(null);
   const [isLoadingModal, setIsLoadingModal] = useState(false);
+  const [listMovieDetails, setListMovieDetails] = useState({});
   const { lists, updateListStatus, refreshLists } = useLists();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Add useResponsiveDefaults hook from HomePage
+  const useResponsiveDefaults = () => {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+      const checkIsMobile = () => {
+        setIsMobile(window.innerWidth < 768);
+      };
+
+      checkIsMobile();
+      window.addEventListener('resize', checkIsMobile);
+      return () => window.removeEventListener('resize', checkIsMobile);
+    }, []);
+
+    return isMobile;
+  };
+
+  const isMobile = useResponsiveDefaults();
 
   // Load initial data
   useEffect(() => {
@@ -62,8 +82,9 @@ const MyLists = () => {
   }, []);
 
   const handleCloseModal = () => {
-    const baseUrl = '/my-lists';
-    navigate(baseUrl, { replace: true });
+    setSelectedMovie(null);
+    setMovieModalDetails(null);
+    navigate('/my-lists');
   };
 
   // Handle toggling movies in Watched list
@@ -179,10 +200,7 @@ const MyLists = () => {
     }
   };
 
-  const handleEditClick = (e, list) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Edit clicked for list:', list);
+  const handleEditClick = (list) => {
     setSelectedList(list);
     setShowEditModal(true);
   };
@@ -192,8 +210,45 @@ const MyLists = () => {
     handleDeleteList(list);
   };
 
-  const handleListClick = (listId) => {
-    setExpandedListId(expandedListId === listId ? null : listId);
+  // Add this new function to fetch movie details
+  const fetchMovieDetails = async (movieId) => {
+    try {
+      const details = await movieApi.getMovieDetails(movieId);
+      return details;
+    } catch (error) {
+      console.error(`Error fetching details for movie ${movieId}:`, error);
+      return null;
+    }
+  };
+
+  // Update the handleListExpand function
+  const handleListExpand = async (listId) => {
+    if (expandedListId === listId) {
+      setExpandedListId(null);
+      return;
+    }
+
+    setExpandedListId(listId);
+    const list = lists.find(l => l.id === listId);
+    
+    if (list && list.items.length > 0) {
+      // Fetch details for all movies in the list that haven't been fetched yet
+      const newDetails = { ...listMovieDetails };
+      const unfetchedMovies = list.items.filter(item => !newDetails[item.movie_id]);
+      
+      if (unfetchedMovies.length > 0) {
+        const detailsPromises = unfetchedMovies.map(item => fetchMovieDetails(item.movie_id));
+        const results = await Promise.all(detailsPromises);
+        
+        results.forEach((details, index) => {
+          if (details) {
+            newDetails[unfetchedMovies[index].movie_id] = details;
+          }
+        });
+        
+        setListMovieDetails(newDetails);
+      }
+    }
   };
 
   return (
@@ -213,12 +268,12 @@ const MyLists = () => {
         {lists?.map((list) => (
           <div key={list.id} className={variants.card.base}>
             <div
-              onClick={() => handleListClick(list.id)}
+              onClick={() => handleListExpand(list.id)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  handleListClick(list.id);
+                  handleListExpand(list.id);
                 }
               }}
               className={`w-full px-6 py-4 flex justify-between items-center ${variants.card.interactive}`}
@@ -236,7 +291,7 @@ const MyLists = () => {
                 {!list.is_default && (
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={(e) => handleEditClick(e, list)}
+                      onClick={(e) => handleEditClick(list)}
                       className={`p-2 rounded-full ${variants.button.text.base} ${variants.button.text.hover}`}
                       aria-label="Edit list"
                     >
@@ -260,18 +315,17 @@ const MyLists = () => {
             </div>
             
             {expandedListId === list.id && list.items && list.items.length > 0 && (
-              <div className="px-6 pb-4">
+              <div className="p-8 bg-gray-50">
                 <MovieList
-                  movies={list.items.map(item => ({
-                    id: item.movie_id,
-                    title: item.movie_title,
-                    poster_path: item.movie_poster_path,
-                    release_date: item.movie_release_date,
-                    vote_average: item.movie_vote_average
-                  }))}
+                  movies={list.items
+                    .map(item => listMovieDetails[item.movie_id])
+                    .filter(Boolean)}
                   onMovieClick={(movie) => {
                     navigate(`/my-lists/movie/${movie.id}`);
                   }}
+                  viewMode="grid"
+                  isCompact={false}
+                  isMobile={isMobile}
                 />
               </div>
             )}

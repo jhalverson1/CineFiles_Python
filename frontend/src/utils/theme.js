@@ -178,7 +178,7 @@ export const variants = {
   header: {
     container: 'fixed top-14 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-lg',
     backdrop: 'absolute inset-0 bg-white',
-    content: 'relative container mx-auto px-4 md:px-8 lg:px-12',
+    content: 'relative container px-4 md:px-8 lg:px-12',
     toolbar: 'py-4',
     button: {
       base: 'p-2 rounded-lg transition-colors',

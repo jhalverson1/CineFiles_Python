@@ -44,8 +44,8 @@ const HomePage = () => {
   const [yearRange, setYearRange] = useState([1900, new Date().getFullYear()]);
   const [ratingRange, setRatingRange] = useState([0, 10]);
   const [popularityRange, setPopularityRange] = useState(null);
-  const [viewMode, setViewMode] = useState('scroll');
-  const [isCompact, setIsCompact] = useState(isMobile);
+  const [viewMode, setViewMode] = useState('grid');
+  const [isCompact, setIsCompact] = useState(true);
   const [key, setKey] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -74,6 +74,312 @@ const HomePage = () => {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movieDetails, setMovieDetails] = useState(null);
   const [isLoadingModal, setIsLoadingModal] = useState(false);
+  const [openSections, setOpenSections] = useState(new Set());
+  const [paginationState, setPaginationState] = useState({});
+  const [loadingMore, setLoadingMore] = useState({});
+  const [hasMore, setHasMore] = useState({});
+  const searchObserverRef = useRef(null);
+  const filteredObserverRef = useRef(null);
+  const listObserverRefs = useRef({});
+  const [listMovies, setListMovies] = useState({});
+
+  // Update MovieList component to handle new movies
+  const handleMoviesUpdate = useCallback((listKey, newMovies, totalPages) => {
+    setListMovies(prev => {
+      const existingMovies = prev[listKey] || [];
+      const existingIds = new Set(existingMovies.map(movie => movie.id));
+      
+      // Filter out any duplicate movies
+      const uniqueNewMovies = newMovies.filter(movie => !existingIds.has(movie.id));
+      
+      return {
+        ...prev,
+        [listKey]: [...existingMovies, ...uniqueNewMovies]
+      };
+    });
+  }, []);
+
+  // Define handleLoadMore before other functions that use it
+  const handleLoadMore = useCallback(async (listKey) => {
+    if (loadingMore[listKey] || hasMore[listKey] === false) return;
+
+    const currentPage = (paginationState[listKey]?.page || 1) + 1;
+    
+    // Don't proceed if we're already loading this page
+    if (loadingMore[listKey]) return;
+    
+    setLoadingMore(prev => ({ ...prev, [listKey]: true }));
+    
+    try {
+      let response;
+
+      if (listKey === 'search-results') {
+        response = await movieApi.searchMovies(searchQuery, currentPage);
+        if (response) {
+          setSearchResults(prev => {
+            const existingIds = new Set((prev || []).map(movie => movie.id));
+            const uniqueNewMovies = response.results.filter(movie => !existingIds.has(movie.id));
+            return [...(prev || []), ...uniqueNewMovies];
+          });
+        }
+      } else if (listKey === 'filtered-results') {
+        response = await movieApi.getFilteredMovies(currentPage, {
+          yearRange,
+          ratingRange,
+          popularityRange,
+          genres: selectedGenres,
+          watchProviders,
+          watchRegion,
+          voteCountRange,
+          runtimeRange,
+          originalLanguage,
+          spokenLanguages,
+          releaseTypes,
+          includeKeywords,
+          excludeKeywords,
+          sortBy
+        });
+      } else {
+        const [type, id] = listKey.split('-');
+        if (type === 'default') {
+          switch (id) {
+            case 'popular':
+              response = await movieApi.getPopularMovies(currentPage);
+              break;
+            case 'top_rated':
+              response = await movieApi.getTopRatedMovies(currentPage);
+              break;
+            case 'upcoming':
+              response = await movieApi.getUpcomingMovies(currentPage);
+              break;
+            case 'now_playing':
+              response = await movieApi.getNowPlayingMovies(currentPage);
+              break;
+            default:
+              throw new Error(`Invalid default list type: ${id}`);
+          }
+        } else if (type === 'filter') {
+          response = await movieApi.getFilterSettingMovies(id, currentPage);
+        } else {
+          response = await movieApi.getListMovies(id, currentPage);
+        }
+      }
+
+      if (response) {
+        if (listKey !== 'search-results') {
+          handleMoviesUpdate(listKey, response.results, response.total_pages);
+        }
+
+        setPaginationState(prev => ({
+          ...prev,
+          [listKey]: {
+            page: currentPage,
+            totalPages: response.total_pages
+          }
+        }));
+
+        const hasMorePages = currentPage < response.total_pages;
+        setHasMore(prev => ({
+          ...prev,
+          [listKey]: hasMorePages
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading more movies:', error);
+      toast.error('Failed to load more movies');
+      setHasMore(prev => ({
+        ...prev,
+        [listKey]: false
+      }));
+    } finally {
+      setLoadingMore(prev => ({ ...prev, [listKey]: false }));
+    }
+  }, [
+    loadingMore,
+    hasMore,
+    paginationState,
+    searchQuery,
+    yearRange,
+    ratingRange,
+    popularityRange,
+    selectedGenres,
+    watchProviders,
+    watchRegion,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords,
+    sortBy,
+    handleMoviesUpdate
+  ]);
+
+  // Define loadInitialMovies before toggleSection
+  const loadInitialMovies = useCallback(async (listKey) => {
+    setLoadingMore(prev => ({ ...prev, [listKey]: true }));
+    
+    try {
+      let firstPageResponse;
+      let secondPageResponse;
+
+      const loadPage = async (page) => {
+        if (listKey === 'search-results') {
+          return await movieApi.searchMovies(searchQuery, page);
+        } else if (listKey === 'filtered-results') {
+          return await movieApi.getFilteredMovies(page, {
+            yearRange,
+            ratingRange,
+            popularityRange,
+            genres: selectedGenres,
+            watchProviders,
+            watchRegion,
+            voteCountRange,
+            runtimeRange,
+            originalLanguage,
+            spokenLanguages,
+            releaseTypes,
+            includeKeywords,
+            excludeKeywords,
+            sortBy
+          });
+        } else {
+          const [type, id] = listKey.split('-');
+          if (type === 'default') {
+            switch (id) {
+              case 'popular':
+                return await movieApi.getPopularMovies(page);
+              case 'top_rated':
+                return await movieApi.getTopRatedMovies(page);
+              case 'upcoming':
+                return await movieApi.getUpcomingMovies(page);
+              case 'now_playing':
+                return await movieApi.getNowPlayingMovies(page);
+              default:
+                throw new Error(`Invalid default list type: ${id}`);
+            }
+          } else if (type === 'filter') {
+            return await movieApi.getFilterSettingMovies(id, page);
+          } else {
+            return await movieApi.getListMovies(id, page);
+          }
+        }
+      };
+
+      // Load first two pages in parallel
+      [firstPageResponse, secondPageResponse] = await Promise.all([
+        loadPage(1),
+        loadPage(2)
+      ]);
+
+      if (firstPageResponse) {
+        // Ensure unique movies across both pages
+        const allMovies = [...firstPageResponse.results];
+        const firstPageIds = new Set(allMovies.map(movie => movie.id));
+        
+        // Only add movies from second page that aren't in first page
+        if (secondPageResponse?.results) {
+          const uniqueSecondPageMovies = secondPageResponse.results.filter(
+            movie => !firstPageIds.has(movie.id)
+          );
+          allMovies.push(...uniqueSecondPageMovies);
+        }
+
+        if (listKey === 'search-results') {
+          setSearchResults(allMovies);
+        } else {
+          handleMoviesUpdate(listKey, allMovies, firstPageResponse.total_pages);
+        }
+
+        setPaginationState(prev => ({
+          ...prev,
+          [listKey]: {
+            page: 2,
+            totalPages: firstPageResponse.total_pages
+          }
+        }));
+
+        const hasMorePages = 2 < firstPageResponse.total_pages;
+        setHasMore(prev => ({
+          ...prev,
+          [listKey]: hasMorePages
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading initial movies:', error);
+      toast.error('Failed to load movies');
+      setHasMore(prev => ({
+        ...prev,
+        [listKey]: false
+      }));
+    } finally {
+      setLoadingMore(prev => ({ ...prev, [listKey]: false }));
+    }
+  }, [
+    searchQuery,
+    yearRange,
+    ratingRange,
+    popularityRange,
+    selectedGenres,
+    watchProviders,
+    watchRegion,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords,
+    sortBy,
+    handleMoviesUpdate
+  ]);
+
+  // Then define toggleSection with loadInitialMovies in its dependencies
+  const toggleSection = useCallback((sectionId) => {
+    setOpenSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        // Section is being closed
+        newSet.delete(sectionId);
+        
+        // Clear movies for this section
+        setListMovies(prev => {
+          const newState = { ...prev };
+          delete newState[sectionId];
+          return newState;
+        });
+        
+        // Reset pagination state
+        setPaginationState(prev => {
+          const newState = { ...prev };
+          delete newState[sectionId];
+          return newState;
+        });
+        
+        // Reset hasMore state
+        setHasMore(prev => {
+          const newState = { ...prev };
+          delete newState[sectionId];
+          return newState;
+        });
+        
+        // Reset loadingMore state
+        setLoadingMore(prev => {
+          const newState = { ...prev };
+          delete newState[sectionId];
+          return newState;
+        });
+      } else {
+        newSet.add(sectionId);
+        // Load initial movies when section is opened
+        if (!listMovies[sectionId]) {
+          loadInitialMovies(sectionId);
+        }
+      }
+      return newSet;
+    });
+  }, [listMovies, loadInitialMovies]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -178,8 +484,6 @@ const HomePage = () => {
       setYearRange([1900, new Date().getFullYear()]);
       setRatingRange([0, 10]);
       setPopularityRange(null);
-      setViewMode('scroll');
-      setIsCompact(isMobile);
       setKey(prev => prev + 1);
       setSearchResults(null);
       setSearchQuery('');
@@ -195,7 +499,7 @@ const HomePage = () => {
       setExcludeKeywords([]);
       setSortBy(null);
     }
-  }, [location.pathname, isMobile]);
+  }, [location.pathname]);
 
   // Handle search toggle
   const handleSearchToggle = () => {
@@ -390,6 +694,118 @@ const HomePage = () => {
     }
   }, [lists, updateListStatus]);
 
+  // Initialize hasMore state when lists are loaded
+  useEffect(() => {
+    const initialHasMore = {};
+    const initialPagination = {};
+    const initialLoadingMore = {};
+    
+    homepageLists.forEach(list => {
+      const listKey = `${list.type}-${list.id}`;
+      initialHasMore[listKey] = true;
+      initialPagination[listKey] = { page: 1 };
+      initialLoadingMore[listKey] = false;
+    });
+
+    // Also initialize for filtered results if filters are active
+    if (hasActiveFilters) {
+      initialHasMore['filtered-results'] = true;
+      initialPagination['filtered-results'] = { page: 1 };
+      initialLoadingMore['filtered-results'] = false;
+    }
+
+    setHasMore(prev => ({ ...prev, ...initialHasMore }));
+    setPaginationState(prev => ({ ...prev, ...initialPagination }));
+    setLoadingMore(prev => ({ ...prev, ...initialLoadingMore }));
+  }, [homepageLists, hasActiveFilters]);
+
+  // Intersection Observer hook
+  const useIntersectionObserver = (ref, callback, enabled = true) => {
+    useEffect(() => {
+      if (!enabled || !ref.current) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            callback();
+          }
+        },
+        { threshold: 0.5 }
+      );
+
+      observer.observe(ref.current);
+      return () => observer.disconnect();
+    }, [callback, enabled, ref]);
+  };
+
+  // Set up observers for each list type
+  useIntersectionObserver(
+    searchObserverRef,
+    () => handleLoadMore('search-results'),
+    hasMore['search-results'] && !loadingMore['search-results']
+  );
+
+  useIntersectionObserver(
+    filteredObserverRef,
+    () => handleLoadMore('filtered-results'),
+    hasMore['filtered-results'] && !loadingMore['filtered-results']
+  );
+
+  // Reset movies when filters change
+  useEffect(() => {
+    setListMovies({});
+  }, [
+    yearRange,
+    ratingRange,
+    popularityRange,
+    selectedGenres,
+    watchProviders,
+    watchRegion,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords,
+    sortBy
+  ]);
+
+  // Set up observers for dynamic lists
+  useEffect(() => {
+    const observers = {};
+    
+    homepageLists.forEach((list) => {
+      const listKey = `${list.type}-${list.id}`;
+      const element = listObserverRefs.current[listKey];
+      
+      if (element && hasMore[listKey] && !loadingMore[listKey]) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            if (entries[0].isIntersecting) {
+              handleLoadMore(listKey);
+            }
+          },
+          { 
+            root: element.parentElement,
+            threshold: 0.1,
+            rootMargin: '100px'
+          }
+        );
+        
+        const sentinel = element.querySelector('.sentinel-element');
+        if (sentinel) {
+          observer.observe(sentinel);
+          observers[listKey] = observer;
+        }
+      }
+    });
+    
+    return () => {
+      Object.values(observers).forEach(observer => observer.disconnect());
+    };
+  }, [homepageLists, hasMore, loadingMore, handleLoadMore]);
+
   return (
     <div>
       {/* Fixed Header Container */}
@@ -502,7 +918,8 @@ const HomePage = () => {
 
               {/* Right side - View Mode and Compact Toggles */}
               <div className="flex items-center gap-3">
-                {/* View Mode Toggle */}
+                {/* View mode and compact toggles removed but preserved in comments for future use */}
+                {/* 
                 <button
                   onClick={() => setViewMode(viewMode === 'scroll' ? 'grid' : 'scroll')}
                   className={`${variants.header.button.base} ${
@@ -521,7 +938,6 @@ const HomePage = () => {
                   </svg>
                 </button>
 
-                {/* Compact Toggle - Only visible on non-mobile when in scroll view */}
                 {!isMobile && viewMode !== 'grid' && (
                   <button
                     onClick={() => setIsCompact(!isCompact)}
@@ -540,7 +956,7 @@ const HomePage = () => {
                       )}
                     </svg>
                   </button>
-                )}
+                )} */}
               </div>
             </div>
 
@@ -668,9 +1084,9 @@ const HomePage = () => {
       </AnimatePresence>
 
       {/* Movie Lists - Add padding to account for fixed header height */}
-      <div className={`space-y-12 container mx-auto px-4 md:px-8 lg:px-12 ${
-        isSearchOpen ? 'pt-36' : 'pt-24'
-      }`}>
+      <div className={`w-full ${
+        isSearchOpen ? 'pt-36 pb-24' : 'pt-24 pb-24'
+      } px-2 md:px-8`}>
         <AnimatePresence mode="wait">
           {searchResults !== null ? (
             <motion.div
@@ -679,30 +1095,83 @@ const HomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full"
             >
-              <section>
-                <div className="mb-8">
-                  <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
-                    Search Results for "{searchQuery}"
-                  </h2>
-                  <p className={variants.header.title.description}>
-                    Found {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
-                  </p>
-                </div>
-                {searchResults.length > 0 ? (
-                  <MovieList 
-                    key={`search-results-${searchQuery}`}
-                    movies={searchResults}
-                    excludedLists={excludedLists}
-                    viewMode={viewMode}
-                    isCompact={isCompact}
-                  />
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-text-secondary">No results found for "{searchQuery}"</p>
+              <motion.div
+                className="w-full bg-white border border-[#ECEFF1] rounded-lg overflow-hidden"
+                initial={false}
+              >
+                <button
+                  onClick={() => toggleSection('search-results')}
+                  className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
+                >
+                  <div>
+                    <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
+                      <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
+                      <span>Search Results for "{searchQuery}"</span>
+                    </h2>
+                    <p className="pl-4 text-base font-medium text-[#4A4A4A]">
+                      Found {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
+                    </p>
                   </div>
-                )}
-              </section>
+                  <svg
+                    className={`w-6 h-6 transform transition-transform duration-300 ${
+                      openSections.has('search-results') ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <AnimatePresence initial={false}>
+                  {openSections.has('search-results') && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: "auto" }}
+                      exit={{ height: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden bg-gray-100"
+                    >
+                      <div className="relative">
+                        {/* Add top shadow overlay */}
+                        <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-gray-300/50 to-transparent z-10" />
+                        
+                        {/* Add bottom shadow overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-gray-300/50 to-transparent z-10" />
+                        
+                        <div className="p-4 md:p-8 max-h-[70vh] overflow-y-auto
+                                            scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent
+                                            hover:scrollbar-thumb-gray-600
+                                            bg-gradient-to-b from-gray-100 to-gray-50
+                                            shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]">
+                          <MovieList
+                            key={`search-results-${searchQuery}`}
+                            movies={searchResults}
+                            excludedLists={excludedLists}
+                            viewMode={viewMode}
+                            isCompact={isCompact}
+                            isMobile={isMobile}
+                          />
+                          {hasMore['search-results'] && (
+                            <div 
+                              ref={searchObserverRef}
+                              className="w-full py-4 flex justify-center"
+                            >
+                              {loadingMore['search-results'] ? (
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                              ) : (
+                                <div className="h-8" /> /* Sentinel element */
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </motion.div>
           ) : (
             <motion.div
@@ -711,40 +1180,103 @@ const HomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full"
             >
               {/* Show filtered results section when filters are active */}
               {hasActiveFilters ? (
-                <section>
-                  <div className="mb-8">
-                    <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
-                      Filtered Results
-                    </h2>
-                    <p className={variants.header.title.description}>
-                      Movies matching your selected filters
-                    </p>
-                  </div>
-                  <MovieList
-                    key={`filtered-results-${key}`}
-                    type="filtered"
-                    yearRange={yearRange}
-                    ratingRange={ratingRange}
-                    popularityRange={popularityRange}
-                    selectedGenres={selectedGenres}
-                    excludedLists={excludedLists}
-                    viewMode={viewMode}
-                    isCompact={isCompact}
-                    watchProviders={watchProviders}
-                    watchRegion={watchRegion}
-                    voteCountRange={voteCountRange}
-                    runtimeRange={runtimeRange}
-                    originalLanguage={originalLanguage}
-                    spokenLanguages={spokenLanguages}
-                    releaseTypes={releaseTypes}
-                    includeKeywords={includeKeywords}
-                    excludeKeywords={excludeKeywords}
-                    sortBy={sortBy}
-                  />
-                </section>
+                <motion.div
+                  className="w-full bg-white border-y border-[#ECEFF1]"
+                  initial={false}
+                >
+                  <button
+                    onClick={() => toggleSection('filtered-results')}
+                    className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
+                  >
+                    <div>
+                      <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
+                        <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
+                        <span>Filtered Results</span>
+                      </h2>
+                      <p className="pl-4 text-base font-medium text-[#4A4A4A]">
+                        Movies matching your selected filters
+                      </p>
+                    </div>
+                    <svg
+                      className={`w-6 h-6 transform transition-transform duration-300 ${
+                        openSections.has('filtered-results') ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {openSections.has('filtered-results') && (
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: "auto" }}
+                        exit={{ height: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="overflow-hidden bg-gray-100"
+                      >
+                        <div className="relative">
+                          {/* Add top shadow overlay */}
+                          <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-gray-300/50 to-transparent z-10" />
+                          
+                          {/* Add bottom shadow overlay */}
+                          <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-gray-300/50 to-transparent z-10" />
+                          
+                          <div className="p-4 md:p-8 max-h-[70vh] overflow-y-auto
+                                              scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent
+                                              hover:scrollbar-thumb-gray-600
+                                              bg-gradient-to-b from-gray-100 to-gray-50
+                                              shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]">
+                            <MovieList
+                              key={`filtered-results-${key}`}
+                              type="filtered"
+                              movies={listMovies['filtered-results']}
+                              yearRange={yearRange}
+                              ratingRange={ratingRange}
+                              popularityRange={popularityRange}
+                              selectedGenres={selectedGenres}
+                              excludedLists={excludedLists}
+                              viewMode={viewMode}
+                              isCompact={isCompact}
+                              isMobile={isMobile}
+                              watchProviders={watchProviders}
+                              watchRegion={watchRegion}
+                              voteCountRange={voteCountRange}
+                              runtimeRange={runtimeRange}
+                              originalLanguage={originalLanguage}
+                              spokenLanguages={spokenLanguages}
+                              releaseTypes={releaseTypes}
+                              includeKeywords={includeKeywords}
+                              excludeKeywords={excludeKeywords}
+                              sortBy={sortBy}
+                              onLoadMore={() => handleLoadMore('filtered-results')}
+                              hasMore={hasMore['filtered-results']}
+                              isLoadingMore={loadingMore['filtered-results']}
+                            />
+                            {hasMore['filtered-results'] && (
+                              <div 
+                                ref={filteredObserverRef}
+                                className="w-full py-4 flex justify-center"
+                              >
+                                {loadingMore['filtered-results'] ? (
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                ) : (
+                                  <div className="sentinel-element h-8" /> /* Sentinel element with class for observer */
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               ) : (
                 /* Only show default lists when no filters are active */
                 <>
@@ -758,40 +1290,103 @@ const HomePage = () => {
                       <p className="text-text-secondary">No movie lists enabled. Click the list manager button to add some!</p>
                     </div>
                   ) : (
-                    <div className="space-y-12">
+                    <div className="divide-y divide-[#ECEFF1]">
                       {homepageLists.map((list) => (
-                        <section key={`${list.type}-${list.id}`}>
-                          <div className="mb-8">
-                            <h2 className={`${variants.header.title.base} ${variants.header.title.accent}`}>
-                              {list.name}
-                            </h2>
-                            <p className={variants.header.title.description}>
-                              {list.description}
-                            </p>
-                          </div>
-                          <MovieList
-                            key={`${list.type}-${list.id}-${key}`}
-                            type={list.type}
-                            listId={list.id}
-                            yearRange={yearRange}
-                            ratingRange={ratingRange}
-                            popularityRange={popularityRange}
-                            selectedGenres={selectedGenres}
-                            excludedLists={excludedLists}
-                            viewMode={viewMode}
-                            isCompact={isCompact}
-                            watchProviders={watchProviders}
-                            watchRegion={watchRegion}
-                            voteCountRange={voteCountRange}
-                            runtimeRange={runtimeRange}
-                            originalLanguage={originalLanguage}
-                            spokenLanguages={spokenLanguages}
-                            releaseTypes={releaseTypes}
-                            includeKeywords={includeKeywords}
-                            excludeKeywords={excludeKeywords}
-                            sortBy={sortBy}
-                          />
-                        </section>
+                        <motion.div
+                          key={`${list.type}-${list.id}`}
+                          className="w-full bg-white first:rounded-t-lg last:rounded-b-lg"
+                          initial={false}
+                        >
+                          <button
+                            onClick={() => toggleSection(`${list.type}-${list.id}`)}
+                            className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
+                          >
+                            <div>
+                              <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
+                                <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
+                                <span>{list.name}</span>
+                              </h2>
+                              <p className="pl-4 text-base font-medium text-[#4A4A4A]">
+                                {list.description}
+                              </p>
+                            </div>
+                            <svg
+                              className={`w-6 h-6 transform transition-transform duration-300 ${
+                                openSections.has(`${list.type}-${list.id}`) ? 'rotate-180' : ''
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          <AnimatePresence initial={false}>
+                            {openSections.has(`${list.type}-${list.id}`) && (
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: "auto" }}
+                                exit={{ height: 0 }}
+                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                className="overflow-hidden bg-gray-100"
+                              >
+                                <div className="relative">
+                                  {/* Add top shadow overlay */}
+                                  <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-gray-300/50 to-transparent z-10" />
+                                  
+                                  {/* Add bottom shadow overlay */}
+                                  <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-gray-300/50 to-transparent z-10" />
+                                  
+                                  <div className="p-4 md:p-8 max-h-[70vh] overflow-y-auto
+                                              scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent
+                                              hover:scrollbar-thumb-gray-600
+                                              bg-gradient-to-b from-gray-100 to-gray-50
+                                              shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]">
+                                    <MovieList
+                                      key={`${list.type}-${list.id}-${key}`}
+                                      type={list.type}
+                                      listId={list.id}
+                                      movies={listMovies[`${list.type}-${list.id}`]}
+                                      yearRange={yearRange}
+                                      ratingRange={ratingRange}
+                                      popularityRange={popularityRange}
+                                      selectedGenres={selectedGenres}
+                                      excludedLists={excludedLists}
+                                      viewMode={viewMode}
+                                      isCompact={isCompact}
+                                      isMobile={isMobile}
+                                      watchProviders={watchProviders}
+                                      watchRegion={watchRegion}
+                                      voteCountRange={voteCountRange}
+                                      runtimeRange={runtimeRange}
+                                      originalLanguage={originalLanguage}
+                                      spokenLanguages={spokenLanguages}
+                                      releaseTypes={releaseTypes}
+                                      includeKeywords={includeKeywords}
+                                      excludeKeywords={excludeKeywords}
+                                      sortBy={sortBy}
+                                      onLoadMore={() => handleLoadMore(`${list.type}-${list.id}`)}
+                                      hasMore={hasMore[`${list.type}-${list.id}`]}
+                                      isLoadingMore={loadingMore[`${list.type}-${list.id}`]}
+                                    />
+                                    {hasMore[`${list.type}-${list.id}`] && (
+                                      <div 
+                                        ref={el => listObserverRefs.current[`${list.type}-${list.id}`] = el}
+                                        className="w-full py-4 flex justify-center"
+                                      >
+                                        {loadingMore[`${list.type}-${list.id}`] ? (
+                                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                        ) : (
+                                          <div className="sentinel-element h-8" /> /* Sentinel element with class for observer */
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
                       ))}
                     </div>
                   )}
