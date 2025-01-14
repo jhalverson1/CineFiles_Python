@@ -74,23 +74,32 @@ const HomePage = () => {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movieDetails, setMovieDetails] = useState(null);
   const [isLoadingModal, setIsLoadingModal] = useState(false);
-  const [openSections, setOpenSections] = useState(new Set());
+  const [openSections, setOpenSections] = useState(null);
   const [paginationState, setPaginationState] = useState({});
   const [loadingMore, setLoadingMore] = useState({});
   const [hasMore, setHasMore] = useState({});
+  const [isLoadingAnySection, setIsLoadingAnySection] = useState(false);
   const searchObserverRef = useRef(null);
   const filteredObserverRef = useRef(null);
   const listObserverRefs = useRef({});
   const [listMovies, setListMovies] = useState({});
+  const [contentMaxHeight, setContentMaxHeight] = useState('auto');
 
   // Update MovieList component to handle new movies
   const handleMoviesUpdate = useCallback((listKey, newMovies, totalPages) => {
+    console.log('handleMoviesUpdate called with:', { listKey, newMoviesCount: newMovies?.length, totalPages });
+    
     setListMovies(prev => {
       const existingMovies = prev[listKey] || [];
       const existingIds = new Set(existingMovies.map(movie => movie.id));
       
       // Filter out any duplicate movies
       const uniqueNewMovies = newMovies.filter(movie => !existingIds.has(movie.id));
+      console.log('Movies after deduplication:', {
+        existingCount: existingMovies.length,
+        newUniqueCount: uniqueNewMovies.length,
+        totalAfterMerge: existingMovies.length + uniqueNewMovies.length
+      });
       
       return {
         ...prev,
@@ -101,14 +110,12 @@ const HomePage = () => {
 
   // Define handleLoadMore before other functions that use it
   const handleLoadMore = useCallback(async (listKey) => {
-    if (loadingMore[listKey] || hasMore[listKey] === false) return;
+    if (loadingMore[listKey] || hasMore[listKey] === false || isLoadingAnySection) return;
 
     const currentPage = (paginationState[listKey]?.page || 1) + 1;
     
-    // Don't proceed if we're already loading this page
-    if (loadingMore[listKey]) return;
-    
     setLoadingMore(prev => ({ ...prev, [listKey]: true }));
+    setIsLoadingAnySection(true);
     
     try {
       let response;
@@ -127,7 +134,7 @@ const HomePage = () => {
           yearRange,
           ratingRange,
           popularityRange,
-          genres: selectedGenres,
+          genres: selectedGenres.map(genre => genre.id),
           watchProviders,
           watchRegion,
           voteCountRange,
@@ -159,7 +166,44 @@ const HomePage = () => {
               throw new Error(`Invalid default list type: ${id}`);
           }
         } else if (type === 'filter') {
-          response = await movieApi.getFilterSettingMovies(id, currentPage);
+          // For custom filtered lists, get the filter settings first
+          console.log('Loading more movies for custom filtered list:', id);
+          try {
+            const filterSettings = await filterSettingsApi.getFilterSettings(id);
+            if (!filterSettings?.[0]) {
+              throw new Error('No filter settings found');
+            }
+            const settings = filterSettings[0];
+            console.log('Using filter settings:', settings);
+            
+            // Format the settings before passing to API
+            const formattedSettings = {
+              yearRange: settings.year_range || [1900, new Date().getFullYear()],
+              ratingRange: settings.rating_range || [0, 10],
+              popularityRange: settings.popularity_range || null,
+              genres: Array.isArray(settings.genres) 
+                ? settings.genres 
+                : typeof settings.genres === 'string'
+                ? JSON.parse(settings.genres)
+                : [],
+              watchProviders: settings.watch_providers || [],
+              watchRegion: settings.watch_region || 'US',
+              voteCountRange: settings.vote_count_range || null,
+              runtimeRange: settings.runtime_range || null,
+              originalLanguage: settings.original_language || null,
+              spokenLanguages: settings.spoken_languages || [],
+              releaseTypes: settings.release_types || [],
+              includeKeywords: settings.include_keywords || [],
+              excludeKeywords: settings.exclude_keywords || [],
+              sortBy: settings.sort_by || null
+            };
+            
+            console.log('Formatted settings for API:', formattedSettings);
+            response = await movieApi.getFilterSettingMovies(id, currentPage, formattedSettings);
+          } catch (error) {
+            console.error('Error loading filter settings:', error);
+            throw error;
+          }
         } else {
           response = await movieApi.getListMovies(id, currentPage);
         }
@@ -193,6 +237,7 @@ const HomePage = () => {
       }));
     } finally {
       setLoadingMore(prev => ({ ...prev, [listKey]: false }));
+      setIsLoadingAnySection(false);
     }
   }, [
     loadingMore,
@@ -213,11 +258,13 @@ const HomePage = () => {
     includeKeywords,
     excludeKeywords,
     sortBy,
-    handleMoviesUpdate
+    handleMoviesUpdate,
+    isLoadingAnySection
   ]);
 
   // Define loadInitialMovies before toggleSection
   const loadInitialMovies = useCallback(async (listKey) => {
+    console.log('loadInitialMovies called for:', listKey);
     setLoadingMore(prev => ({ ...prev, [listKey]: true }));
     
     try {
@@ -232,7 +279,7 @@ const HomePage = () => {
             yearRange,
             ratingRange,
             popularityRange,
-            genres: selectedGenres,
+            genres: selectedGenres.map(genre => genre.id),
             watchProviders,
             watchRegion,
             voteCountRange,
@@ -260,7 +307,44 @@ const HomePage = () => {
                 throw new Error(`Invalid default list type: ${id}`);
             }
           } else if (type === 'filter') {
-            return await movieApi.getFilterSettingMovies(id, page);
+            // For custom filtered lists, get the filter settings first
+            console.log('Loading custom filtered list:', id);
+            try {
+              const filterSettings = await filterSettingsApi.getFilterSettings(id);
+              if (!filterSettings?.[0]) {
+                throw new Error('No filter settings found');
+              }
+              const settings = filterSettings[0];
+              console.log('Using filter settings:', settings);
+              
+              // Format the settings before passing to API
+              const formattedSettings = {
+                yearRange: settings.year_range || [1900, new Date().getFullYear()],
+                ratingRange: settings.rating_range || [0, 10],
+                popularityRange: settings.popularity_range || null,
+                genres: Array.isArray(settings.genres) 
+                  ? settings.genres 
+                  : typeof settings.genres === 'string'
+                  ? JSON.parse(settings.genres)
+                  : [],
+                watchProviders: settings.watch_providers || [],
+                watchRegion: settings.watch_region || 'US',
+                voteCountRange: settings.vote_count_range || null,
+                runtimeRange: settings.runtime_range || null,
+                originalLanguage: settings.original_language || null,
+                spokenLanguages: settings.spoken_languages || [],
+                releaseTypes: settings.release_types || [],
+                includeKeywords: settings.include_keywords || [],
+                excludeKeywords: settings.exclude_keywords || [],
+                sortBy: settings.sort_by || null
+              };
+              
+              console.log('Formatted settings for API:', formattedSettings);
+              return await movieApi.getFilterSettingMovies(id, page, formattedSettings);
+            } catch (error) {
+              console.error('Error loading filter settings:', error);
+              throw error;
+            }
           } else {
             return await movieApi.getListMovies(id, page);
           }
@@ -268,23 +352,42 @@ const HomePage = () => {
       };
 
       // Load first two pages in parallel
+      console.log('Loading initial pages for:', listKey);
       [firstPageResponse, secondPageResponse] = await Promise.all([
         loadPage(1),
         loadPage(2)
       ]);
+
+      console.log('Received responses:', {
+        firstPage: {
+          resultsCount: firstPageResponse?.results?.length,
+          totalPages: firstPageResponse?.total_pages
+        },
+        secondPage: {
+          resultsCount: secondPageResponse?.results?.length
+        }
+      });
 
       if (firstPageResponse) {
         // Ensure unique movies across both pages
         const allMovies = [...firstPageResponse.results];
         const firstPageIds = new Set(allMovies.map(movie => movie.id));
         
+        let uniqueSecondPageMovies = [];
         // Only add movies from second page that aren't in first page
         if (secondPageResponse?.results) {
-          const uniqueSecondPageMovies = secondPageResponse.results.filter(
+          uniqueSecondPageMovies = secondPageResponse.results.filter(
             movie => !firstPageIds.has(movie.id)
           );
           allMovies.push(...uniqueSecondPageMovies);
         }
+
+        console.log('Processing movies for state update:', {
+          listKey,
+          totalMovies: allMovies.length,
+          firstPageCount: firstPageResponse.results.length,
+          secondPageUniqueCount: uniqueSecondPageMovies?.length
+        });
 
         if (listKey === 'search-results') {
           setSearchResults(allMovies);
@@ -308,6 +411,10 @@ const HomePage = () => {
       }
     } catch (error) {
       console.error('Error loading initial movies:', error);
+      console.log('Error details:', {
+        listKey,
+        error: error.response?.data || error.message
+      });
       toast.error('Failed to load movies');
       setHasMore(prev => ({
         ...prev,
@@ -337,12 +444,11 @@ const HomePage = () => {
 
   // Then define toggleSection with loadInitialMovies in its dependencies
   const toggleSection = useCallback((sectionId) => {
+    console.log('toggleSection called for:', sectionId);
     setOpenSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sectionId)) {
-        // Section is being closed
-        newSet.delete(sectionId);
-        
+      // If clicking the same section that's open, close it
+      if (prev === sectionId) {
+        console.log('Closing section:', sectionId);
         // Clear movies for this section
         setListMovies(prev => {
           const newState = { ...prev };
@@ -370,16 +476,77 @@ const HomePage = () => {
           delete newState[sectionId];
           return newState;
         });
-      } else {
-        newSet.add(sectionId);
-        // Load initial movies when section is opened
+        return null;
+      }
+
+      // If opening a new section
+      console.log('Opening section:', sectionId);
+      
+      // Clear data for previously open section if exists
+      if (prev) {
+        setListMovies(prevMovies => {
+          const newState = { ...prevMovies };
+          delete newState[prev];
+          return newState;
+        });
+        
+        setPaginationState(prevPagination => {
+          const newState = { ...prevPagination };
+          delete newState[prev];
+          return newState;
+        });
+        
+        setHasMore(prevHasMore => {
+          const newState = { ...prevHasMore };
+          delete newState[prev];
+          return newState;
+        });
+        
+        setLoadingMore(prevLoadingMore => {
+          const newState = { ...prevLoadingMore };
+          delete newState[prev];
+          return newState;
+        });
+      }
+      
+      // Load filter settings if it's a filter section
+      const [type, id] = sectionId.split('-');
+      if (type === 'filter') {
+        console.log('Loading filter settings for:', id);
+        // Just load the movies directly - no need to set frontend filter states
         if (!listMovies[sectionId]) {
+          console.log('Loading initial movies for custom filtered list:', sectionId);
           loadInitialMovies(sectionId);
         }
+      } else {
+        // Load initial movies when section is opened
+        if (!listMovies[sectionId]) {
+          console.log('No existing movies found, loading initial movies for:', sectionId);
+          loadInitialMovies(sectionId);
+        } else {
+          console.log('Using existing movies for:', sectionId, 'count:', listMovies[sectionId].length);
+        }
       }
-      return newSet;
+      return sectionId;
     });
-  }, [listMovies, loadInitialMovies]);
+  }, [
+    listMovies,
+    loadInitialMovies,
+    setSelectedGenres,
+    setYearRange,
+    setRatingRange,
+    setPopularityRange,
+    setWatchProviders,
+    setWatchRegion,
+    setVoteCountRange,
+    setRuntimeRange,
+    setOriginalLanguage,
+    setSpokenLanguages,
+    setReleaseTypes,
+    setIncludeKeywords,
+    setExcludeKeywords,
+    setSortBy
+  ]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -465,6 +632,11 @@ const HomePage = () => {
       try {
         setIsLoadingGenres(true);
         const response = await movieApi.getMovieGenres();
+        console.log('Fetched Genres:', {
+          response,
+          genres: response.genres,
+          selectedGenres
+        });
         setGenres(response.genres || []);
       } catch (error) {
         console.error('Error fetching genres:', error);
@@ -475,6 +647,14 @@ const HomePage = () => {
 
     fetchGenres();
   }, []);
+
+  // Add logging when selectedGenres changes
+  useEffect(() => {
+    console.log('Selected Genres Updated:', {
+      selectedGenres,
+      ids: selectedGenres.map(genre => genre.id)
+    });
+  }, [selectedGenres]);
 
   // Reset state when navigating to home from a different route
   useEffect(() => {
@@ -806,6 +986,31 @@ const HomePage = () => {
     };
   }, [homepageLists, hasMore, loadingMore, handleLoadMore]);
 
+  useEffect(() => {
+    const calculateMaxHeight = () => {
+      const headerHeight = 88; // Height of each accordion header (padding + content)
+      const searchBarHeight = isSearchOpen ? 36 : 0;
+      const topPadding = isSearchOpen ? 36 : 24;
+      const bottomPadding = 24;
+      const totalHeaders = homepageLists.length + (searchResults ? 1 : 0) + (hasActiveFilters ? 1 : 0);
+      
+      // Calculate total space needed for all headers
+      const totalHeadersHeight = headerHeight * totalHeaders;
+      
+      // Calculate available space
+      const viewportHeight = window.innerHeight;
+      const availableSpace = viewportHeight - totalHeadersHeight - searchBarHeight - topPadding - bottomPadding;
+      
+      // Set a minimum height of 200px and maximum of available space
+      const maxHeight = Math.max(200, Math.min(availableSpace, 600));
+      setContentMaxHeight(`${maxHeight}px`);
+    };
+
+    calculateMaxHeight();
+    window.addEventListener('resize', calculateMaxHeight);
+    return () => window.removeEventListener('resize', calculateMaxHeight);
+  }, [homepageLists.length, searchResults, hasActiveFilters, isSearchOpen]);
+
   return (
     <div>
       {/* Fixed Header Container */}
@@ -933,7 +1138,7 @@ const HomePage = () => {
                     {viewMode === 'scroll' ? (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
                     ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                     )}
                   </svg>
                 </button>
@@ -1106,7 +1311,7 @@ const HomePage = () => {
                   className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
                 >
                   <div>
-                    <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
+                    <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-0 !pl-4`}>
                       <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
                       <span>Search Results for "{searchQuery}"</span>
                     </h2>
@@ -1116,7 +1321,7 @@ const HomePage = () => {
                   </div>
                   <svg
                     className={`w-6 h-6 transform transition-transform duration-300 ${
-                      openSections.has('search-results') ? 'rotate-180' : ''
+                      openSections === 'search-results' ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -1126,7 +1331,7 @@ const HomePage = () => {
                   </svg>
                 </button>
                 <AnimatePresence initial={false}>
-                  {openSections.has('search-results') && (
+                  {openSections === 'search-results' && (
                     <motion.div
                       initial={{ height: 0 }}
                       animate={{ height: "auto" }}
@@ -1141,12 +1346,13 @@ const HomePage = () => {
                         {/* Add bottom shadow overlay */}
                         <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-gray-300/50 to-transparent z-10" />
                         
-                        <div className="p-4 md:p-8 max-h-[70vh] overflow-y-auto
+                        <div className={`p-4 md:p-8 overflow-y-auto
                                             scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent
                                             hover:scrollbar-thumb-gray-600
                                             bg-gradient-to-b from-gray-100 to-gray-50
-                                            shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]">
-                          <MovieList
+                                            shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]`}
+                             style={{ maxHeight: contentMaxHeight }}>
+                          <MovieList 
                             key={`search-results-${searchQuery}`}
                             movies={searchResults}
                             excludedLists={excludedLists}
@@ -1164,8 +1370,8 @@ const HomePage = () => {
                               ) : (
                                 <div className="h-8" /> /* Sentinel element */
                               )}
-                            </div>
-                          )}
+                          </div>
+                        )}
                         </div>
                       </div>
                     </motion.div>
@@ -1193,17 +1399,14 @@ const HomePage = () => {
                     className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
                   >
                     <div>
-                      <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
+                      <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-0 !pl-4`}>
                         <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
                         <span>Filtered Results</span>
                       </h2>
-                      <p className="pl-4 text-base font-medium text-[#4A4A4A]">
-                        Movies matching your selected filters
-                      </p>
                     </div>
                     <svg
                       className={`w-6 h-6 transform transition-transform duration-300 ${
-                        openSections.has('filtered-results') ? 'rotate-180' : ''
+                        openSections === 'filtered-results' ? 'rotate-180' : ''
                       }`}
                       fill="none"
                       viewBox="0 0 24 24"
@@ -1213,7 +1416,7 @@ const HomePage = () => {
                     </svg>
                   </button>
                   <AnimatePresence initial={false}>
-                    {openSections.has('filtered-results') && (
+                    {openSections === 'filtered-results' && (
                       <motion.div
                         initial={{ height: 0 }}
                         animate={{ height: "auto" }}
@@ -1228,36 +1431,19 @@ const HomePage = () => {
                           {/* Add bottom shadow overlay */}
                           <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-gray-300/50 to-transparent z-10" />
                           
-                          <div className="p-4 md:p-8 max-h-[70vh] overflow-y-auto
+                          <div className={`p-4 md:p-8 overflow-y-auto
                                               scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent
                                               hover:scrollbar-thumb-gray-600
                                               bg-gradient-to-b from-gray-100 to-gray-50
-                                              shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]">
-                            <MovieList
-                              key={`filtered-results-${key}`}
-                              type="filtered"
-                              movies={listMovies['filtered-results']}
-                              yearRange={yearRange}
-                              ratingRange={ratingRange}
-                              popularityRange={popularityRange}
-                              selectedGenres={selectedGenres}
+                                              shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]`}
+                               style={{ maxHeight: contentMaxHeight }}>
+                            <MovieList 
+                              key={`filtered-results-${JSON.stringify(filterState)}`}
+                              movies={filteredMovies}
                               excludedLists={excludedLists}
                               viewMode={viewMode}
                               isCompact={isCompact}
                               isMobile={isMobile}
-                              watchProviders={watchProviders}
-                              watchRegion={watchRegion}
-                              voteCountRange={voteCountRange}
-                              runtimeRange={runtimeRange}
-                              originalLanguage={originalLanguage}
-                              spokenLanguages={spokenLanguages}
-                              releaseTypes={releaseTypes}
-                              includeKeywords={includeKeywords}
-                              excludeKeywords={excludeKeywords}
-                              sortBy={sortBy}
-                              onLoadMore={() => handleLoadMore('filtered-results')}
-                              hasMore={hasMore['filtered-results']}
-                              isLoadingMore={loadingMore['filtered-results']}
                             />
                             {hasMore['filtered-results'] && (
                               <div 
@@ -1267,10 +1453,10 @@ const HomePage = () => {
                                 {loadingMore['filtered-results'] ? (
                                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                 ) : (
-                                  <div className="sentinel-element h-8" /> /* Sentinel element with class for observer */
+                                  <div className="h-8" /> /* Sentinel element */
                                 )}
-                              </div>
-                            )}
+                            </div>
+                          )}
                           </div>
                         </div>
                       </motion.div>
@@ -1278,174 +1464,91 @@ const HomePage = () => {
                   </AnimatePresence>
                 </motion.div>
               ) : (
-                /* Only show default lists when no filters are active */
-                <>
-                  {/* Default lists section */}
-                  {isLoadingLists ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                  ) : homepageLists.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-text-secondary">No movie lists enabled. Click the list manager button to add some!</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-[#ECEFF1]">
-                      {homepageLists.map((list) => (
-                        <motion.div
-                          key={`${list.type}-${list.id}`}
-                          className="w-full bg-white first:rounded-t-lg last:rounded-b-lg"
-                          initial={false}
+                <div className="space-y-4">
+                  {homepageLists.map((list) => (
+                    <motion.div
+                      key={`${list.type}-${list.id}`}
+                      className="w-full bg-white border border-[#ECEFF1] rounded-lg overflow-hidden"
+                      initial={false}
+                    >
+                      <button
+                        onClick={() => toggleSection(`${list.type}-${list.id}`)}
+                        className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
+                      >
+                        <div>
+                          <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-0 !pl-4`}>
+                            <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
+                            <span>{list.name}</span>
+                          </h2>
+                        </div>
+                        <svg
+                          className={`w-6 h-6 transform transition-transform duration-300 ${
+                            openSections === `${list.type}-${list.id}` ? 'rotate-180' : ''
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
                         >
-                          <button
-                            onClick={() => toggleSection(`${list.type}-${list.id}`)}
-                            className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors duration-300"
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {openSections === `${list.type}-${list.id}` && (
+                          <motion.div
+                            initial={{ height: 0 }}
+                            animate={{ height: "auto" }}
+                            exit={{ height: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="overflow-hidden bg-gray-100"
                           >
-                            <div>
-                              <h2 className={`${variants.header.title.base} relative flex items-stretch !mb-1 !pl-4`}>
-                                <span className="absolute left-0 top-0 bottom-0 w-[6px] bg-[#996515]"></span>
-                                <span>{list.name}</span>
-                              </h2>
-                              <p className="pl-4 text-base font-medium text-[#4A4A4A]">
-                                {list.description}
-                              </p>
-                            </div>
-                            <svg
-                              className={`w-6 h-6 transform transition-transform duration-300 ${
-                                openSections.has(`${list.type}-${list.id}`) ? 'rotate-180' : ''
-                              }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-                          <AnimatePresence initial={false}>
-                            {openSections.has(`${list.type}-${list.id}`) && (
-                              <motion.div
-                                initial={{ height: 0 }}
-                                animate={{ height: "auto" }}
-                                exit={{ height: 0 }}
-                                transition={{ duration: 0.3, ease: "easeInOut" }}
-                                className="overflow-hidden bg-gray-100"
-                              >
-                                <div className="relative">
-                                  {/* Add top shadow overlay */}
-                                  <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-gray-300/50 to-transparent z-10" />
-                                  
-                                  {/* Add bottom shadow overlay */}
-                                  <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-gray-300/50 to-transparent z-10" />
-                                  
-                                  <div className="p-4 md:p-8 max-h-[70vh] overflow-y-auto
-                                              scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent
-                                              hover:scrollbar-thumb-gray-600
-                                              bg-gradient-to-b from-gray-100 to-gray-50
-                                              shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]">
-                                    <MovieList
-                                      key={`${list.type}-${list.id}-${key}`}
-                                      type={list.type}
-                                      listId={list.id}
-                                      movies={listMovies[`${list.type}-${list.id}`]}
-                                      yearRange={yearRange}
-                                      ratingRange={ratingRange}
-                                      popularityRange={popularityRange}
-                                      selectedGenres={selectedGenres}
-                                      excludedLists={excludedLists}
-                                      viewMode={viewMode}
-                                      isCompact={isCompact}
-                                      isMobile={isMobile}
-                                      watchProviders={watchProviders}
-                                      watchRegion={watchRegion}
-                                      voteCountRange={voteCountRange}
-                                      runtimeRange={runtimeRange}
-                                      originalLanguage={originalLanguage}
-                                      spokenLanguages={spokenLanguages}
-                                      releaseTypes={releaseTypes}
-                                      includeKeywords={includeKeywords}
-                                      excludeKeywords={excludeKeywords}
-                                      sortBy={sortBy}
-                                      onLoadMore={() => handleLoadMore(`${list.type}-${list.id}`)}
-                                      hasMore={hasMore[`${list.type}-${list.id}`]}
-                                      isLoadingMore={loadingMore[`${list.type}-${list.id}`]}
-                                    />
-                                    {hasMore[`${list.type}-${list.id}`] && (
-                                      <div 
-                                        ref={el => listObserverRefs.current[`${list.type}-${list.id}`] = el}
-                                        className="w-full py-4 flex justify-center"
-                                      >
-                                        {loadingMore[`${list.type}-${list.id}`] ? (
-                                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                        ) : (
-                                          <div className="sentinel-element h-8" /> /* Sentinel element with class for observer */
-                                        )}
-                                      </div>
+                            <div className="relative">
+                              {/* Add top shadow overlay */}
+                              <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-gray-300/50 to-transparent z-10" />
+                              
+                              {/* Add bottom shadow overlay */}
+                              <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-gray-300/50 to-transparent z-10" />
+                              
+                              <div className={`p-4 md:p-8 overflow-y-auto
+                                                  scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent
+                                                  hover:scrollbar-thumb-gray-600
+                                                  bg-gradient-to-b from-gray-100 to-gray-50
+                                                  shadow-[inset_0_0_8px_rgba(0,0,0,0.1)]`}
+                                   style={{ maxHeight: contentMaxHeight }}>
+                                <MovieList 
+                                  key={`${list.type}-${list.id}-${JSON.stringify(listMovies[`${list.type}-${list.id}`])}`}
+                                  movies={listMovies[`${list.type}-${list.id}`]}
+                                  excludedLists={excludedLists}
+                                  viewMode={viewMode}
+                                  isCompact={isCompact}
+                                  isMobile={isMobile}
+                                />
+                                {hasMore[`${list.type}-${list.id}`] && (
+                                  <div 
+                                    ref={(node) => (listObserverRefs.current[`${list.type}-${list.id}`] = node)}
+                                    className="w-full py-4 flex justify-center"
+                                  >
+                                    {loadingMore[`${list.type}-${list.id}`] ? (
+                                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                    ) : (
+                                      <div className="h-8 sentinel-element" />
                                     )}
                                   </div>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  ))}
+                </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      {/* Homepage Filter Manager Modal */}
-      <AnimatePresence>
-        {isHomepageManagerOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={variants.modal.backdrop}
-          >
-            <div className={variants.modal.container.base}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className={`${variants.modal.content.base} max-w-2xl w-full`}
-              >
-                <HomepageFilterManager 
-                  onClose={() => setIsHomepageManagerOpen(false)}
-                  loadHomepageLists={loadHomepageLists}
-                />
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Movie Details Modal */}
-      <AnimatePresence>
-        {(selectedMovie || isLoadingModal) && (
-          <MovieDetailsModal
-            isOpen={true}
-            onClose={handleCloseModal}
-            movie={movieDetails || selectedMovie}
-            cast={movieDetails?.credits?.cast}
-            crew={movieDetails?.credits?.crew}
-            similar={movieDetails?.similar}
-            watchProviders={movieDetails?.watchProviders}
-            videos={movieDetails?.videos}
-            onWatchedToggle={onWatchedToggle}
-            onWatchlistToggle={onWatchlistToggle}
-            isWatched={lists?.find(list => list.name === 'Watched')?.items.some(item => item.movie_id === selectedMovie?.id.toString())}
-            isInWatchlist={lists?.find(list => list.name === 'Watchlist')?.items.some(item => item.movie_id === selectedMovie?.id.toString())}
-            isLoading={isLoadingModal}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 };
 
-export default HomePage; 
+export default HomePage;
