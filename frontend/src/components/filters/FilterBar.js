@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { variants, classes } from '../../utils/theme';
+import { filterSettingsApi, movieApi } from '../../utils/api';
 
 const ChevronIcon = ({ className }) => (
   <svg
@@ -68,7 +69,17 @@ const FilterBar = ({
   onExcludeKeywordsChange,
   onClose,
 }) => {
-  // State for staged changes
+  const [savedFilters, setSavedFilters] = useState([]);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(false);
+  const [filterName, setFilterName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [selectedFilterId, setSelectedFilterId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  const [isSaveFormExpanded, setIsSaveFormExpanded] = useState(false);
+  
+  // Add back stagedChanges state
   const [stagedChanges, setStagedChanges] = useState({
     yearRange,
     ratingRange,
@@ -85,7 +96,7 @@ const FilterBar = ({
     excludeKeywords,
   });
 
-  // Update staged changes when props change (in case of external updates)
+  // Update staged changes when props change
   useEffect(() => {
     setStagedChanges({
       yearRange,
@@ -118,25 +129,138 @@ const FilterBar = ({
     excludeKeywords,
   ]);
 
-  // Handler for applying all staged changes
-  const handleApplyChanges = () => {
-    onYearRangeChange(stagedChanges.yearRange);
-    onRatingRangeChange(stagedChanges.ratingRange);
-    onGenresChange(stagedChanges.selectedGenres);
-    onSortByChange(stagedChanges.sortBy);
-    onWatchProvidersChange(stagedChanges.watchProviders);
-    onWatchRegionChange(stagedChanges.watchRegion);
-    onVoteCountRangeChange(stagedChanges.voteCountRange);
-    onRuntimeRangeChange(stagedChanges.runtimeRange);
-    onOriginalLanguageChange(stagedChanges.originalLanguage);
-    onSpokenLanguagesChange(stagedChanges.spokenLanguages);
-    onReleaseTypesChange(stagedChanges.releaseTypes);
-    onIncludeKeywordsChange(stagedChanges.includeKeywords);
-    onExcludeKeywordsChange(stagedChanges.excludeKeywords);
-    onClose?.();
+  useEffect(() => {
+    loadSavedFilters();
+  }, []);
+
+  const loadSavedFilters = async () => {
+    try {
+      setIsLoadingFilters(true);
+      const filters = await filterSettingsApi.getFilterSettings();
+      setSavedFilters(filters || []);
+    } catch (error) {
+      console.error('Failed to load filters:', error);
+    } finally {
+      setIsLoadingFilters(false);
+    }
   };
 
-  // Handler for resetting all filters
+  const handleSaveCurrentFilter = async () => {
+    if (!filterName.trim()) return;
+
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+      
+      const filterData = {
+        name: filterName,
+        year_range: yearRange ? JSON.stringify(yearRange) : null,
+        rating_range: ratingRange ? JSON.stringify(ratingRange) : null,
+        genres: selectedGenres.length > 0 ? JSON.stringify(selectedGenres) : null,
+        watch_providers: watchProviders.length > 0 ? JSON.stringify(watchProviders) : null,
+        watch_region: watchRegion,
+        vote_count_range: voteCountRange ? JSON.stringify(voteCountRange) : null,
+        runtime_range: runtimeRange ? JSON.stringify(runtimeRange) : null,
+        original_language: originalLanguage,
+        spoken_languages: spokenLanguages.length > 0 ? JSON.stringify(spokenLanguages) : null,
+        release_types: releaseTypes.length > 0 ? JSON.stringify(releaseTypes) : null,
+        include_keywords: includeKeywords.length > 0 ? JSON.stringify(includeKeywords) : null,
+        exclude_keywords: excludeKeywords.length > 0 ? JSON.stringify(excludeKeywords) : null,
+        sort_by: sortBy
+      };
+
+      await filterSettingsApi.createFilterSetting(filterData);
+      await loadSavedFilters();
+      setFilterName('');
+      setIsSaveFormExpanded(false);
+    } catch (error) {
+      console.error('Failed to save filter:', error);
+      setSaveError('Failed to save filter. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateFilter = async (filter, e) => {
+    e.stopPropagation(); // Prevent triggering the filter selection
+    
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+      
+      const filterData = {
+        name: filter.name, // Keep the existing name
+        year_range: yearRange ? JSON.stringify(yearRange) : null,
+        rating_range: ratingRange ? JSON.stringify(ratingRange) : null,
+        genres: selectedGenres.length > 0 ? JSON.stringify(selectedGenres) : null,
+        watch_providers: watchProviders.length > 0 ? JSON.stringify(watchProviders) : null,
+        watch_region: watchRegion,
+        vote_count_range: voteCountRange ? JSON.stringify(voteCountRange) : null,
+        runtime_range: runtimeRange ? JSON.stringify(runtimeRange) : null,
+        original_language: originalLanguage,
+        spoken_languages: spokenLanguages.length > 0 ? JSON.stringify(spokenLanguages) : null,
+        release_types: releaseTypes.length > 0 ? JSON.stringify(releaseTypes) : null,
+        include_keywords: includeKeywords.length > 0 ? JSON.stringify(includeKeywords) : null,
+        exclude_keywords: excludeKeywords.length > 0 ? JSON.stringify(excludeKeywords) : null,
+        sort_by: sortBy
+      };
+
+      await filterSettingsApi.updateFilterSetting(filter.id, filterData);
+      await loadSavedFilters();
+    } catch (error) {
+      console.error('Failed to update filter:', error);
+      setSaveError('Failed to update filter. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteFilter = async (id, e) => {
+    e.stopPropagation(); // Prevent triggering the filter selection
+    
+    try {
+      setIsDeleting(true);
+      setDeleteError(null);
+      await filterSettingsApi.deleteFilterSetting(id);
+      await loadSavedFilters();
+      if (selectedFilterId === id) {
+        setSelectedFilterId(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete filter:', error);
+      setDeleteError('Failed to delete filter. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleSelectFilter = (filter) => {
+    if (selectedFilterId === filter.id) {
+      // Deselect if already selected
+      setSelectedFilterId(null);
+      handleReset();
+    } else {
+      setSelectedFilterId(filter.id);
+      handleLoadFilter(filter);
+    }
+  };
+
+  const handleLoadFilter = (filter) => {
+    if (filter.year_range) onYearRangeChange(JSON.parse(filter.year_range));
+    if (filter.rating_range) onRatingRangeChange(JSON.parse(filter.rating_range));
+    if (filter.genres) onGenresChange(JSON.parse(filter.genres));
+    if (filter.watch_providers) onWatchProvidersChange(JSON.parse(filter.watch_providers));
+    if (filter.watch_region) onWatchRegionChange(filter.watch_region);
+    if (filter.vote_count_range) onVoteCountRangeChange(JSON.parse(filter.vote_count_range));
+    if (filter.runtime_range) onRuntimeRangeChange(JSON.parse(filter.runtime_range));
+    if (filter.original_language) onOriginalLanguageChange(filter.original_language);
+    if (filter.spoken_languages) onSpokenLanguagesChange(JSON.parse(filter.spoken_languages));
+    if (filter.release_types) onReleaseTypesChange(JSON.parse(filter.release_types));
+    if (filter.include_keywords) onIncludeKeywordsChange(JSON.parse(filter.include_keywords));
+    if (filter.exclude_keywords) onExcludeKeywordsChange(JSON.parse(filter.exclude_keywords));
+    if (filter.sort_by) onSortByChange(filter.sort_by);
+  };
+
   const handleReset = () => {
     const resetChanges = {
       yearRange: [1900, new Date().getFullYear()],
@@ -154,6 +278,7 @@ const FilterBar = ({
       excludeKeywords: [],
     };
     setStagedChanges(resetChanges);
+    setSelectedFilterId(null); // Clear selected filter
     
     // Also apply the reset changes immediately
     onYearRangeChange(resetChanges.yearRange);
@@ -171,10 +296,148 @@ const FilterBar = ({
     onExcludeKeywordsChange(resetChanges.excludeKeywords);
   };
 
+  // Add handleApplyChanges function
+  const handleApplyChanges = () => {
+    onYearRangeChange(stagedChanges.yearRange);
+    onRatingRangeChange(stagedChanges.ratingRange);
+    onGenresChange(stagedChanges.selectedGenres);
+    onSortByChange(stagedChanges.sortBy);
+    onWatchProvidersChange(stagedChanges.watchProviders);
+    onWatchRegionChange(stagedChanges.watchRegion);
+    onVoteCountRangeChange(stagedChanges.voteCountRange);
+    onRuntimeRangeChange(stagedChanges.runtimeRange);
+    onOriginalLanguageChange(stagedChanges.originalLanguage);
+    onSpokenLanguagesChange(stagedChanges.spokenLanguages);
+    onReleaseTypesChange(stagedChanges.releaseTypes);
+    onIncludeKeywordsChange(stagedChanges.includeKeywords);
+    onExcludeKeywordsChange(stagedChanges.excludeKeywords);
+    onClose?.();
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Main container with filters */}
-      <div className="min-h-0 flex-1 flex flex-col">
+      {/* Saved Filters Section */}
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="p-4">
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Saved Filters</h3>
+          <div className="space-y-4">
+            {/* Saved Filters List */}
+            <div className="max-h-48 overflow-y-auto">
+              {isLoadingFilters ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                </div>
+              ) : savedFilters.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No saved filters yet
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {savedFilters.map((filter) => (
+                    <div
+                      key={filter.id}
+                      onClick={() => handleSelectFilter(filter)}
+                      className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                        selectedFilterId === filter.id
+                          ? 'bg-black text-white'
+                          : 'bg-white hover:bg-gray-100'
+                      }`}
+                    >
+                      <span className="text-sm font-medium truncate flex-1">
+                        {filter.name}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {selectedFilterId === filter.id && (
+                          <button
+                            onClick={(e) => handleUpdateFilter(filter, e)}
+                            disabled={isSaving}
+                            className={`p-1 rounded-md transition-colors ${
+                              selectedFilterId === filter.id
+                                ? 'text-white hover:bg-gray-700'
+                                : 'text-gray-400 hover:text-black'
+                            }`}
+                            aria-label="Save changes to filter"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4zm-3 0v4h-6V3h6zm2 16H8v-6h8v6z" />
+                            </svg>
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => handleDeleteFilter(filter.id, e)}
+                          disabled={isDeleting}
+                          className={`p-1 rounded-md transition-colors ${
+                            selectedFilterId === filter.id
+                              ? 'text-white hover:bg-gray-700'
+                              : 'text-gray-400 hover:text-red-500 group-hover:text-red-500'
+                          }`}
+                          aria-label="Delete filter"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-gray-200">
+              {(saveError || deleteError) && (
+                <div className="mb-4 text-red-500 text-sm">{saveError || deleteError}</div>
+              )}
+
+              {/* Save New Filter */}
+              {!isSaveFormExpanded ? (
+                <button
+                  onClick={() => setIsSaveFormExpanded(true)}
+                  className="text-sm text-gray-600 hover:text-black hover:underline transition-colors flex items-center gap-1"
+                >
+                  <span className="text-black">+</span> new saved filter
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={filterName}
+                      onChange={(e) => setFilterName(e.target.value)}
+                      placeholder="Filter name"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleSaveCurrentFilter}
+                      disabled={!filterName.trim() || isSaving}
+                      className={`px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors ${
+                        (!filterName.trim() || isSaving) ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {isSaving ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsSaveFormExpanded(false);
+                      setFilterName('');
+                      setSaveError(null);
+                    }}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Filters Section */}
+      <div className="flex-1 flex flex-col bg-white">
         {/* Scrollable filter section */}
         <div className="overflow-y-auto flex-1">
           <div className="divide-y divide-gray-200">
@@ -475,7 +738,7 @@ const FilterBar = ({
           </div>
         </div>
 
-        {/* Bottom section with buttons - pushed to bottom with margin */}
+        {/* Bottom section with buttons */}
         <div className="mt-auto border-t border-gray-200 p-4 space-x-4 flex bg-white shadow-lg">
           <button
             onClick={handleReset}
