@@ -43,8 +43,6 @@ const MovieList = ({
   hasMore: propHasMore = null,
   isLoadingMore: propIsLoadingMore = null,
 }) => {
-  console.log('MovieList render', { type, propMovies: !!propMovies });
-  
   // Force compact mode when grid view is selected
   const effectiveIsCompact = viewMode === 'grid' ? true : isCompact;
   
@@ -182,7 +180,6 @@ const MovieList = ({
       let response;
       
       if (currentFilters.listType === 'filter') {
-        console.log('MovieList fetchMovies - Handling filter setting');
         response = await movieApi.getFilterSettingMovies(currentFilters.listId, currentPage, {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
@@ -200,7 +197,6 @@ const MovieList = ({
           sortBy: currentFilters.sortBy
         });
       } else if (currentFilters.listType === 'filtered') {
-        console.log('MovieList fetchMovies - Handling filtered list');
         response = await movieApi.getFilteredMovies(currentPage, {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
@@ -218,10 +214,6 @@ const MovieList = ({
           sortBy: currentFilters.sortBy
         });
       } else if (DEFAULT_MOVIE_LISTS.some(list => list.id === currentFilters.listType)) {
-        console.log('MovieList fetchMovies - Handling TMDB list:', {
-          listType: currentFilters.listType,
-          matchingList: DEFAULT_MOVIE_LISTS.find(list => list.id === currentFilters.listType)
-        });
         const filterParams = {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
@@ -258,7 +250,6 @@ const MovieList = ({
             throw new Error(`Invalid list type: ${currentFilters.listType}`);
         }
       } else if (currentFilters.listId) {
-        console.log('MovieList fetchMovies - Handling custom user list');
         response = await movieApi.getListMovies(currentFilters.listId, currentPage, {
           yearRange: currentFilters.yearRange,
           ratingRange: currentFilters.ratingRange,
@@ -291,12 +282,7 @@ const MovieList = ({
         if (JSON.stringify(prev) === JSON.stringify(newMovies)) {
           return prev;
         }
-        
-        console.log('Updating movies', { 
-          prevLength: prev.length,
-          newLength: newMovies.length,
-          isFirstPage: currentPage === 1
-        });
+
         return newMovies;
       });
       
@@ -305,7 +291,6 @@ const MovieList = ({
       console.error('Error fetching movies:', err);
       
       if (retryCount < MAX_RETRIES && err.response?.status !== 404) {
-        console.log(`Retrying (${retryCount + 1}/${MAX_RETRIES}) in ${RETRY_DELAY}ms...`);
         setRetryCount(prev => prev + 1);
         setTimeout(() => {
           fetchMovies(currentPage, currentFilters);
@@ -717,8 +702,8 @@ const MovieList = ({
             ref={loadMoreRef}
           >
             {effectiveIsLoading ? (
-              <div className="flex items-center bg-black text-white font-bold py-4 px-6 rounded-lg opacity-50">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <div className="flex items-center bg-emerald text-cream font-bold py-4 px-6 rounded-lg opacity-50">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-cream" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
@@ -745,6 +730,21 @@ const MovieList = ({
             transition={{ duration: 0.2 }}
           >
             {renderSkeleton()}
+          </motion.div>
+        ) : !isLoading && displayedMovies.length === 0 ? (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col items-center justify-center py-12 px-4 text-center"
+          >
+            <svg className="w-10 h-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+            </svg>
+            <p className="text-gray-600 font-medium">No movies found</p>
+            <p className="text-gray-400 text-sm mt-1">Try adjusting your filters or check back later.</p>
           </motion.div>
         ) : (
           <motion.div
