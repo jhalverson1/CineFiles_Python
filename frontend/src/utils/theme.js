@@ -147,8 +147,8 @@ export const variants = {
     section: 'px-6 py-4 border-b border-gray-200',
     button: {
       base: 'w-full px-4 py-2 text-sm font-medium text-left rounded-lg transition-colors duration-200',
-      active: 'bg-black text-white hover:bg-gray-900',
-      inactive: 'border border-black text-black hover:bg-black hover:text-white'
+      active: 'bg-emerald text-cream hover:bg-emerald-light',
+      inactive: 'border border-emerald text-emerald hover:bg-emerald hover:text-cream'
     },
     range: `w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer 
             focus:outline-none focus:ring-2 focus:ring-black
@@ -171,7 +171,7 @@ export const variants = {
     },
     tag: {
       base: 'inline-flex items-center px-3 py-1 rounded-full text-sm',
-      active: 'bg-black text-white',
+      active: 'bg-emerald text-cream',
       inactive: 'bg-gray-100 text-black hover:bg-gray-200'
     }
   },
@@ -182,8 +182,8 @@ export const variants = {
     toolbar: 'py-4',
     button: {
       base: 'p-2 rounded-lg transition-colors',
-      active: 'bg-black text-white hover:bg-gray-900',
-      inactive: 'text-black hover:bg-black hover:text-white'
+      active: 'bg-emerald text-cream hover:bg-emerald-light',
+      inactive: 'text-emerald hover:bg-emerald hover:text-cream'
     },
     title: {
       base: 'text-2xl font-bold mb-2 text-[#000000] pl-2',

@@ -339,7 +339,7 @@ const FilterBar = ({
                       onClick={() => handleSelectFilter(filter)}
                       className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
                         selectedFilterId === filter.id
-                          ? 'bg-black text-white'
+                          ? 'bg-emerald text-cream'
                           : 'bg-white hover:bg-gray-100'
                       }`}
                     >
@@ -353,7 +353,7 @@ const FilterBar = ({
                             disabled={isSaving}
                             className={`p-1 rounded-md transition-colors ${
                               selectedFilterId === filter.id
-                                ? 'text-white hover:bg-gray-700'
+                                ? 'text-cream hover:bg-emerald-light'
                                 : 'text-gray-400 hover:text-black'
                             }`}
                             aria-label="Save changes to filter"
@@ -369,7 +369,7 @@ const FilterBar = ({
                           disabled={isDeleting}
                           className={`p-1 rounded-md transition-colors ${
                             selectedFilterId === filter.id
-                              ? 'text-white hover:bg-gray-700'
+                              ? 'text-cream hover:bg-emerald-light'
                               : 'text-gray-400 hover:text-red-500 group-hover:text-red-500'
                           }`}
                           aria-label="Delete filter"
@@ -412,7 +412,7 @@ const FilterBar = ({
                     <button
                       onClick={handleSaveCurrentFilter}
                       disabled={!filterName.trim() || isSaving}
-                      className={`px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors ${
+                      className={`px-4 py-2 bg-emerald text-cream rounded-lg hover:bg-emerald-light transition-colors ${
                         (!filterName.trim() || isSaving) ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
@@ -441,15 +441,15 @@ const FilterBar = ({
         {/* Scrollable filter section */}
         <div className="overflow-y-auto flex-1">
           <div className="divide-y divide-gray-200">
-            <FilterSection title="Genres">
-              <div className="space-y-2">
+            <FilterSection title="Genres" defaultExpanded>
+              <div className="flex flex-wrap gap-2">
                 {genres.map(genre => (
                   <label
                     key={genre.id}
-                    className={`flex items-center p-2 rounded-lg cursor-pointer ${
+                    className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm cursor-pointer transition-colors ${
                       stagedChanges.selectedGenres.includes(genre.id)
-                        ? 'bg-black text-white'
-                        : 'bg-white text-black hover:bg-gray-100'
+                        ? 'bg-emerald text-cream'
+                        : 'bg-gray-100 text-black hover:bg-gray-200'
                     }`}
                   >
                     <input
@@ -463,7 +463,7 @@ const FilterBar = ({
                       }}
                       className="sr-only"
                     />
-                    <span className="text-sm">{genre.name}</span>
+                    <span>{genre.name}</span>
                   </label>
                 ))}
               </div>
@@ -711,7 +711,7 @@ const FilterBar = ({
               </div>
             </FilterSection>
 
-            <FilterSection title="Sort By">
+            <FilterSection title="Sort By" defaultExpanded>
               <div className="space-y-2">
                 {[
                   { value: 'popularity.desc', label: 'Most Popular' },
@@ -748,7 +748,7 @@ const FilterBar = ({
           </button>
           <button
             onClick={handleApplyChanges}
-            className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors"
+            className="flex-1 px-4 py-2 bg-emerald text-cream rounded-lg hover:bg-emerald-light transition-colors"
           >
             Apply
           </button>

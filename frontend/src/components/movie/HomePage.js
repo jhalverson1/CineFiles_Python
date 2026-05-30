@@ -418,6 +418,43 @@ const HomePage = () => {
     sortBy
   ]);
 
+  // Count how many distinct filters are active (for the toolbar badge)
+  const activeFilterCount = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const isDefaultYearRange = yearRange?.[0] === 1900 && yearRange?.[1] === currentYear;
+    const isDefaultRatingRange = ratingRange?.[0] === 0 && ratingRange?.[1] === 10;
+
+    let count = 0;
+    if (!isDefaultYearRange) count++;
+    if (!isDefaultRatingRange) count++;
+    if (popularityRange) count++;
+    if (selectedGenres?.length > 0) count++;
+    if (watchProviders?.length > 0) count++;
+    if (voteCountRange) count++;
+    if (runtimeRange) count++;
+    if (originalLanguage) count++;
+    if (spokenLanguages?.length > 0) count++;
+    if (releaseTypes?.length > 0) count++;
+    if (includeKeywords?.length > 0) count++;
+    if (excludeKeywords?.length > 0) count++;
+    if (sortBy) count++;
+    return count;
+  }, [
+    yearRange,
+    ratingRange,
+    popularityRange,
+    selectedGenres,
+    watchProviders,
+    voteCountRange,
+    runtimeRange,
+    originalLanguage,
+    spokenLanguages,
+    releaseTypes,
+    includeKeywords,
+    excludeKeywords,
+    sortBy
+  ]);
+
   // Load homepage lists
   const loadHomepageLists = useCallback(async () => {
     try {
@@ -426,8 +463,13 @@ const HomePage = () => {
       // Load user's enabled filters
       const filters = await filterSettingsApi.getHomepageFilters();
       
-      // Load enabled default lists from localStorage
-      const savedDefaultLists = JSON.parse(localStorage.getItem('enabledDefaultLists') || '[]');
+      // Load enabled default lists from localStorage.
+      // First-time visitors (key absent) get all default lists enabled so the
+      // homepage isn't empty. An explicit empty array means the user disabled them all.
+      const storedDefaultLists = localStorage.getItem('enabledDefaultLists');
+      const savedDefaultLists = storedDefaultLists === null
+        ? DEFAULT_MOVIE_LISTS.map(list => list.id)
+        : JSON.parse(storedDefaultLists);
       const defaultLists = DEFAULT_MOVIE_LISTS
         .filter(list => savedDefaultLists.includes(list.id))
         .map((list, index) => ({
@@ -458,6 +500,29 @@ const HomePage = () => {
   useEffect(() => {
     loadHomepageLists();
   }, [loadHomepageLists]);
+
+  // Auto-open the first homepage list once it loads, so the page shows
+  // movie posters immediately instead of an all-collapsed wall of headers.
+  const hasAutoOpenedList = useRef(false);
+  useEffect(() => {
+    if (hasAutoOpenedList.current) return;
+    if (hasActiveFilters || searchResults !== null) return;
+    if (homepageLists.length === 0) return;
+
+    hasAutoOpenedList.current = true;
+    const first = homepageLists[0];
+    toggleSection(`${first.type}-${first.id}`);
+  }, [homepageLists, hasActiveFilters, searchResults, toggleSection]);
+
+  // Expand the filtered-results section automatically whenever filters become
+  // active, so matches are visible immediately (mirrors search behaviour).
+  useEffect(() => {
+    if (!hasActiveFilters) return;
+    setOpenSections(prev => {
+      if (prev.has('filtered-results')) return prev;
+      return new Set(prev).add('filtered-results');
+    });
+  }, [hasActiveFilters]);
 
   // Fetch genres on component mount
   useEffect(() => {
@@ -539,6 +604,8 @@ const HomePage = () => {
     try {
       const response = await movieApi.searchMovies(searchQuery);
       setSearchResults(response.results);
+      // Expand the results section automatically so results are visible immediately
+      setOpenSections(prev => new Set(prev).add('search-results'));
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
@@ -823,24 +890,32 @@ const HomePage = () => {
                 <button
                   onClick={handleFilterToggle}
                   className={`inline-flex items-center px-4 py-2 border rounded-md transition-colors ${
-                    isFiltersOpen 
+                    isFiltersOpen
                       ? variants.filter.button.active
                       : variants.filter.button.inactive
                   }`}
                   aria-label="Toggle filters"
+                  title="Filter & sort movies"
                 >
                   <span className="text-sm font-medium mr-2">FILTER & SORT</span>
-                  <span className="text-lg leading-none">≡</span>
+                  {activeFilterCount > 0 ? (
+                    <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold rounded-full bg-gold text-emerald-dark">
+                      {activeFilterCount}
+                    </span>
+                  ) : (
+                    <span className="text-lg leading-none">≡</span>
+                  )}
                 </button>
                 {/* Search Button */}
                 <button
                   onClick={handleSearchToggle}
                   className={`${variants.header.button.base} ${
-                    isSearchOpen 
+                    isSearchOpen
                       ? variants.header.button.active
                       : variants.header.button.inactive
                   }`}
                   aria-label="Toggle search"
+                  title="Search for movies"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -851,16 +926,18 @@ const HomePage = () => {
                 <div className="relative" ref={excludeRef}>
                   <button
                     onClick={() => setExcludeOpen(!excludeOpen)}
-                    className={`${variants.header.button.base} ${
-                      excludeOpen 
-                        ? variants.header.button.active 
+                    className={`${variants.header.button.base} inline-flex items-center gap-2 sm:px-3 ${
+                      excludeOpen
+                        ? variants.header.button.active
                         : variants.header.button.inactive
                     }`}
-                    aria-label="Toggle exclude lists"
+                    aria-label="Exclude lists from results"
+                    title="Hide movies from your lists"
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                     </svg>
+                    <span className="hidden sm:inline text-sm font-medium">Exclude</span>
                   </button>
 
                   {/* Exclude Lists Dropdown */}
@@ -903,16 +980,18 @@ const HomePage = () => {
                 {/* Homepage List Manager Toggle */}
                 <button
                   onClick={() => setIsHomepageManagerOpen(true)}
-                  className={`${variants.header.button.base} ${
-                    isHomepageManagerOpen 
+                  className={`${variants.header.button.base} inline-flex items-center gap-2 sm:px-3 ${
+                    isHomepageManagerOpen
                       ? variants.header.button.active
                       : variants.header.button.inactive
                   }`}
                   aria-label="Manage homepage lists"
+                  title="Choose which lists appear on your homepage"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
+                  <span className="hidden sm:inline text-sm font-medium">Lists</span>
                 </button>
               </div>
 

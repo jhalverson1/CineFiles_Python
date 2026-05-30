@@ -190,65 +190,6 @@ api.interceptors.response.use(
   }
 );
 
-// Function to decode JWT and check expiration
-const checkTokenExpiration = () => {
-  const token = localStorage.getItem('token');
-  const refreshToken = localStorage.getItem('refresh_token');
-  
-  const decodeJWT = (token) => {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const payload = JSON.parse(window.atob(base64));
-      return {
-        expiresAt: new Date(payload.exp * 1000),
-        issuedAt: new Date(payload.iat * 1000),
-        type: payload.token_type,
-        email: payload.sub,
-        timeUntilExpiry: (payload.exp * 1000) - Date.now()
-      };
-    } catch (error) {
-      console.error('Error decoding token:', error);
-      return null;
-    }
-  };
-  
-  console.log('\n=== Token Status ===');
-  if (token) {
-    const decodedAccess = decodeJWT(token);
-    console.log('Access Token:', {
-      expiresAt: decodedAccess?.expiresAt,
-      issuedAt: decodedAccess?.issuedAt,
-      type: decodedAccess?.type,
-      email: decodedAccess?.email,
-      timeUntilExpiry: decodedAccess?.timeUntilExpiry + 'ms',
-      hasExpired: decodedAccess?.timeUntilExpiry < 0
-    });
-  } else {
-    console.log('No access token found');
-  }
-  
-  if (refreshToken) {
-    const decodedRefresh = decodeJWT(refreshToken);
-    console.log('Refresh Token:', {
-      expiresAt: decodedRefresh?.expiresAt,
-      issuedAt: decodedRefresh?.issuedAt,
-      type: decodedRefresh?.type,
-      email: decodedRefresh?.email,
-      timeUntilExpiry: decodedRefresh?.timeUntilExpiry + 'ms',
-      hasExpired: decodedRefresh?.timeUntilExpiry < 0
-    });
-  } else {
-    console.log('No refresh token found');
-  }
-  console.log('===================\n');
-};
-
-// Make token checker available globally
-if (typeof window !== 'undefined') {
-  window.checkTokens = checkTokenExpiration;
-}
-
 export const authApi = {
   login: async (formData) => {
     const response = await api.post('/api/auth/login', formData, {
@@ -259,48 +200,29 @@ export const authApi = {
     localStorage.setItem('token', response.access_token);
     localStorage.setItem('refresh_token', response.refresh_token);
     localStorage.setItem('username', response.username);
-    
-    // Check token expiration times after login
-    checkTokenExpiration();
-    
+
     return response;
   },
   signup: (userData) => api.post('/api/auth/signup', userData),
   getCurrentUser: () => api.get('/api/auth/me'),
   logout: () => {
-    console.log('[API] Logout called - Clearing tokens');
-    const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refresh_token');
-    console.log('[API] Current tokens:', { hasToken: !!token, hasRefreshToken: !!refreshToken });
-    
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('username');
-    
+
     // Reset axios default authorization header
     api.defaults.headers.common['Authorization'] = '';
-    
-    console.log('[API] Tokens cleared');
+
     return Promise.resolve();
   },
   testAuth: async () => {
-    console.log('[Auth Test] Starting auth test');
-    console.log('[Auth Test] Current tokens:', {
-      access_token: localStorage.getItem('token')?.substring(0, 10) + '...',
-      refresh_token: localStorage.getItem('refresh_token')?.substring(0, 10) + '...',
-      username: localStorage.getItem('username')
-    });
-    
     try {
       // First test regular auth
       const response = await api.get('/api/auth/test-auth');
-      console.log('[Auth Test] Regular auth successful:', response);
-      
+
       // Then test with forced expiry
-      console.log('[Auth Test] Testing token expiry...');
       const expiryResponse = await api.get('/api/auth/test-auth-expiry');
-      console.log('[Auth Test] Expiry test successful:', expiryResponse);
-      
+
       return { regular: response, expiry: expiryResponse };
     } catch (error) {
       console.error('[Auth Test] Request failed:', {
@@ -315,13 +237,10 @@ export const authApi = {
       throw error;
     }
   },
-  checkTokens: checkTokenExpiration,  // Expose the check function
 };
 
 // Helper function to add filter parameters
 const addFilterParams = (params, filters) => {
-  console.log('Adding filter params:', filters);
-  
   const {
     yearRange,
     ratingRange,
@@ -340,8 +259,6 @@ const addFilterParams = (params, filters) => {
     includeKeywords,
     excludeKeywords
   } = filters;
-
-  console.log('Processing keywords:', { includeKeywords, excludeKeywords });
 
   // Only add year range if both values are valid numbers
   if (yearRange?.length === 2) {
@@ -397,7 +314,6 @@ const addFilterParams = (params, filters) => {
 
   // Add watch provider parameters
   if (Array.isArray(watchProviders) && watchProviders.length > 0) {
-    console.log('Adding watch providers to params:', watchProviders);
     params.append('watch_providers', watchProviders.join(','));
   }
   
@@ -436,28 +352,21 @@ const addFilterParams = (params, filters) => {
 
   // Add release types
   if (Array.isArray(releaseTypes) && releaseTypes.length > 0) {
-    console.log('Adding release types to params:', releaseTypes);
     params.append('release_types', releaseTypes.join(','));
   }
 
   // Add keywords
   if (Array.isArray(includeKeywords) && includeKeywords.length > 0) {
-    console.log('Adding include_keywords to params:', includeKeywords);
     params.append('include_keywords', includeKeywords.join(','));
   } else if (typeof includeKeywords === 'string' && includeKeywords.trim()) {
-    console.log('Adding include_keywords (string) to params:', includeKeywords);
     params.append('include_keywords', includeKeywords.trim());
   }
 
   if (Array.isArray(excludeKeywords) && excludeKeywords.length > 0) {
-    console.log('Adding exclude_keywords to params:', excludeKeywords);
     params.append('exclude_keywords', excludeKeywords.join(','));
   } else if (typeof excludeKeywords === 'string' && excludeKeywords.trim()) {
-    console.log('Adding exclude_keywords (string) to params:', excludeKeywords);
     params.append('exclude_keywords', excludeKeywords.trim());
   }
-
-  console.log('Final params:', params.toString());
 };
 
 export const movieApi = {
